@@ -12,7 +12,7 @@ Final validation passed. Time to ship.
 3. **Push the branch** to origin
 4. **Create the PR** using `gh pr create`:
    - Title: derived from the feature name / proposal title
-   - Body: summary of what was implemented and why (drawn from the proposal). If Phase 4 flagged any consciously descoped items, mention them in the PR description.
+   - Body: summary of what was implemented and why (drawn from the proposal). If Phase 4 flagged any consciously descoped items, mention them in the PR description. If Phase 4c updated project docs or memories, include a "Documentation updates" section listing which files were changed and why.
    - Target: the base branch (dev/main)
 5. **Wait for CI** — check the PR's CI status
 6. **If CI fails**: Read the CI output, diagnose, fix, push. Max 3 attempts — after that, present the full diagnostic to the user and let them decide.

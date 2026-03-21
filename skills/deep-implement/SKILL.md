@@ -30,7 +30,8 @@ Before starting, check for existing work:
    - `implementation-plan.md` exists and there are commits beyond the plan commit → Mid-Phase 3c (partial execution). Check git log to identify which tasks have been committed and which remain.
    - All implementation tasks committed, no `final-validation.md` → Ready for Phase 4
    - `final-validation.md` exists with GAPS FOUND → In Phase 4b (gaps need resolution)
-   - `final-validation.md` exists with PASS or PASS WITH NOTES → Ready for Phase 5
+   - `final-validation.md` exists with PASS or PASS WITH NOTES, no doc update commits yet → Ready for Phase 4c
+   - Doc update commits exist after final-validation → Ready for Phase 5
 3. Check if the plan directory name starts with `review-` (e.g., `docs/plans/review-2026-03-16-pr-42-x8k2f/`). If so, this is a **review-driven** session — the proposal was generated from a mega-review report. Look inside `proposal.md` for the original report path.
 4. Present a summary: "I found in-progress work for `<feature-name>`. You're at [phase/step]. Continue?" For review-driven sessions: "I found in-progress review-driven work based on mega-review at `<path>`. You're at [phase/step]. Continue?"
 5. If the user confirms, pick up from that phase. Read the relevant phase reference file before proceeding.
@@ -76,6 +77,7 @@ The user can always override. When in doubt, go deeper — it's cheaper to skip 
 | **2 — Validation** | Independent review + structured discussion | Amended `proposal.md` |
 | **3 — Implementation** | Plan, validate plan, execute | Working code |
 | **4 — Final Validation** | Verify implementation covers all proposal requirements | `final-validation.md` |
+| **4c — Doc Reconciliation** | Update project docs and Claude memory made stale by the implementation | Updated docs + memories |
 | **5 — PR Creation** | Clean up, rebase, push, open PR | PR URL |
 
 All artifacts go in `docs/plans/<feature-name>/`. The feature name is auto-generated from the problem statement. If the user mentions a JIRA ticket (e.g., CEN-123), incorporate it.
@@ -137,6 +139,7 @@ Match the model to the cognitive demand of the task. Use the `model` parameter o
 | **Phase 3c**: Task implementation | `sonnet` | Following an existing plan — execution, not analysis |
 | **Phase 3c**: Task verification | `sonnet` | Checking implementation against plan — mechanical |
 | **Phase 4a**: Final validation (coverage audit) | `opus` | Independent critical evaluation |
+| **Phase 4c**: Doc discovery + reconciliation | `opus` | Judgment-heavy: what to update, how much to change |
 | **Phase 5**: PR creation, cleanup | `sonnet` | Mechanical git/PR operations |
 | Codebase exploration | `sonnet` | Search and retrieval, not judgment |
 
@@ -183,6 +186,7 @@ Each phase has detailed instructions in `references/`:
 - **Phase 2**: Read `references/phase-2-validation.md` when entering Phase 2
 - **Phase 3**: Read `references/phase-3-implementation.md` when entering Phase 3
 - **Phase 4**: Read `references/phase-4-final-validation.md` when entering Phase 4
+- **Phase 4c**: Read `references/phase-4c-doc-reconciliation.md` when entering Phase 4c
 - **Phase 5**: Read `references/phase-5-pr-creation.md` when entering Phase 5
 
 Read only the phase you're entering — avoid loading all references upfront.
