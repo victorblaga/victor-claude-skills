@@ -136,14 +136,14 @@ Match the model to the cognitive demand of the task. Use the `model` parameter o
 | **Phase 2b**: Resolving review findings | `opus` | Requires judgment and design thinking |
 | **Phase 3a**: Implementation planning | `opus` | Architectural decisions, task decomposition |
 | **Phase 3b**: Plan validation | `opus` | Independent critical evaluation of a plan |
-| **Phase 3c**: Task implementation | `sonnet` | Following an existing plan — execution, not analysis |
+| **Phase 3c**: Task implementation | `opus` | Performance-aware implementation requires experienced-dev judgment — see `references/implementation-agent-protocol.md` |
 | **Phase 3c**: Task verification | `sonnet` | Checking implementation against plan — mechanical |
 | **Phase 4a**: Final validation (coverage audit) | `opus` | Independent critical evaluation |
 | **Phase 4c**: Doc discovery + reconciliation | `opus` | Judgment-heavy: what to update, how much to change |
 | **Phase 5**: PR creation, cleanup | `sonnet` | Mechanical git/PR operations |
 | Codebase exploration | `sonnet` | Search and retrieval, not judgment |
 
-**The principle:** coming up with a plan or validating a plan requires high brainpower (opus). Implementing or following a plan requires lower brainpower (sonnet). Exploration is information gathering, not decision-making (sonnet).
+**The principle:** coming up with a plan, validating a plan, or writing performance-aware implementation requires high brainpower (opus). Mechanical tasks like verification, exploration, and PR creation use sonnet.
 
 ### When to spawn a subagent
 - Phase 2a: proposal review

@@ -73,9 +73,9 @@ Combine the file lists and deduplicate. Pass this file list to each subagent so 
 
 ## Dimensions
 
-There are 7 review dimensions. Each runs as a **separate parallel subagent**.
+There are 8 review dimensions. Each runs as a **separate parallel subagent**.
 
-If the user specifies focus areas, map them to these dimensions and only run the matching ones. If unspecified, run all 7.
+If the user specifies focus areas, map them to these dimensions and only run the matching ones. If unspecified, run all 8.
 
 | # | Dimension | Keyword triggers |
 |---|-----------|-----------------|
@@ -86,6 +86,7 @@ If the user specifies focus areas, map them to these dimensions and only run the
 | 5 | Security & Error Handling | "security", "error handling", "edge cases", "validation", "resilience" |
 | 6 | Pattern Conformity | "patterns", "consistency", "conventions", "fit in", "out of place", "existing patterns", "codebase patterns" |
 | 7 | Refactoring Opportunities | "refactor", "consolidate", "abstraction", "simplify", "reorganize", "technical debt", "opportunities" |
+| 8 | Performance | "performance", "N+1", "batch", "Big O", "complexity", "slow", "data structures", "queries", "indexing", "memory" |
 
 ## Execution
 
@@ -489,6 +490,83 @@ End with:
 **IMPORTANT:** After completing your analysis, save your full findings to `{OUTPUT_DIR}/refactoring-opportunities.md` using the Write tool.
 ```
 
+#### Subagent 8: Performance
+
+```
+You are a Performance reviewer. Analyze the target code for performance anti-patterns, inefficient data structures, wasteful I/O patterns, and algorithmic complexity issues. You think like an experienced developer who has seen production systems fall over from N+1 queries, linked-list index lookups, and unbounded data loading.
+
+**Target scope:** {TARGET}
+**Project conventions:** {PROJECT_CONVENTIONS}
+**Background context:** {USER_CONTEXT}
+
+**You are READ-ONLY. Do not modify any code.**
+
+**Review checklist:**
+
+**I/O patterns:**
+- N+1 queries — is there a database query, HTTP call, or file read inside a loop over a collection? Every such pattern is a finding.
+- Unbatched writes — are individual INSERT/UPDATE statements issued in a loop instead of batch operations?
+- Unbounded reads — is an entire table/collection loaded into memory when only a subset is needed? Are large result sets streamed/paginated or fully materialized?
+- Sequential I/O — are independent I/O operations done sequentially when they could be parallelized or batched?
+
+**Data structure choices:**
+- Index access on linked lists — e.g., Scala's default `List` is a singly-linked list; `list(i)` is O(n). Should be `Vector`/`Array`/`IndexedSeq` for random access.
+- Linear scan for lookup — using `list.find(x => x.id == target)` or `list.filter(...)` inside a loop when a `Map`/`HashMap` pre-built index would give O(1) lookup.
+- Membership checks on lists — `list.contains(x)` is O(n); should be `Set` for repeated membership tests.
+- Wrong collection for the access pattern — ordered iteration needs `TreeMap`, append-heavy needs `ArrayBuffer`/`Vector`, FIFO needs `Queue`.
+
+**Algorithmic complexity:**
+- Nested loops over the same or related collections — what is the overall Big O? Is it necessary or can it be reduced with indexing/sorting?
+- Repeated linear scans that could be replaced with a single pre-built lookup map.
+- Sorting or deduplication that happens repeatedly when it could be done once.
+- Quadratic or worse patterns that may be fine for small N but will break at scale.
+
+**Memory patterns:**
+- Materializing large lazy sequences (`.toList` on a stream of 100K+ items).
+- Holding references to large intermediate collections longer than needed.
+- Building multiple large intermediate collections when a single pass with `.view`/iterators/generators would suffice.
+- Accumulating without bounds — growing a list/buffer without any size limit or batching.
+
+**Pre-computation opportunities:**
+- Could a lookup index (`Map`/`dict` built via `groupBy` or similar) replace repeated linear searches?
+- Are computed values being recalculated inside loops when they could be computed once outside?
+- Are there joins happening in application code that should be database-side JOINs?
+
+**Output directory:** {OUTPUT_DIR}
+
+**How to search:** Read files, use Grep and Glob to find loops, collection operations, database calls. Spawn Explore subagents to trace data flow and identify where collections are processed.
+
+**Output format — follow exactly:**
+
+For each finding:
+
+### PF-{N}: {short title}
+- **Location:** `file_path:line_number` (or line range)
+- **Code:** (quote the relevant snippet, max 5 lines)
+- **Issue:** (describe the performance problem)
+- **Complexity:** (state the current Big O and the achievable Big O, or describe the I/O pattern)
+- **Impact:** (what happens at scale — e.g., "With 10K items, this makes 10K DB queries instead of 1")
+- **Suggestion:** (specific fix — e.g., "Pre-build a Map with `items.groupBy(_.categoryId)` before the loop", "Use batch INSERT with 1K chunk size", "Replace `List` with `Vector` for indexed access")
+- **Severity:** Critical / High / Medium / Low
+
+Severity guide for performance:
+- **Critical**: Will cause production incidents at current or near-future scale (N+1 queries on a table with >1K rows, O(n²) on unbounded input)
+- **High**: Significant waste that will degrade performance noticeably (wrong data structure on hot path, unnecessary full-table loads)
+- **Medium**: Inefficient but unlikely to cause incidents (suboptimal data structure on cold path, unnecessary intermediate collections)
+- **Low**: Minor optimization opportunity (could use `.view` instead of materializing, could pre-compute outside loop)
+
+---
+
+End with:
+
+## Performance Summary
+- Total findings: {count}
+- Breakdown: {X critical, Y high, Z medium, W low}
+- Overall assessment: (1-2 sentences)
+
+**IMPORTANT:** After completing your analysis, save your full findings to `{OUTPUT_DIR}/performance.md` using the Write tool.
+```
+
 ### Step 3: Verification & Calibration (after all dimension subagents complete)
 
 This step has two phases: **verification** (are the findings factually accurate?) and **calibration** (what's the right severity?). The goal is NOT to aggressively filter findings — it is to verify claims and assign accurate severity. If a finding is factually correct, it stays in the report.
@@ -772,6 +850,9 @@ For each:
 ### Refactoring Opportunities
 {paste the Refactoring Opportunities Summary section}
 
+### Performance
+{paste the Performance Summary section}
+
 ## Statistics
 
 | Dimension | Critical | High | Medium | Low | Rejected | Total |
@@ -783,6 +864,7 @@ For each:
 | Security & Error Handling | | | | | | |
 | Pattern Conformity | | | | | | |
 | Refactoring Opportunities | | | | | | |
+| Performance | | | | | | |
 | **Total** | | | | | | |
 
 ---

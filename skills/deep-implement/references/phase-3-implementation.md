@@ -123,13 +123,17 @@ Now we build. The execution follows the strategy defined in the plan.
    - Access to the codebase
    - The CI checks list from the plan
    - A directive to read and follow the project's software design guides (`docs/architecture/software-design-guide.md` and the relevant language-specific guide) — the implementing agent must apply the design principles, not just the task spec
+   - **The full content of `references/implementation-agent-protocol.md`** — the implementing agent MUST follow the performance-first protocol. Read this file and include its content verbatim in the subagent prompt.
 
-2. **The implementing agent**:
+2. **The implementing agent** (model: `opus`):
    - Reads the relevant parts of the codebase
-   - Implements the change
+   - **Assesses whether the code is performance-sensitive** (per the implementation agent protocol)
+   - If performance-sensitive: writes a pseudocode/comment sketch first, maps out Big O complexity and I/O calls, identifies and resolves bottlenecks, THEN implements
+   - If not performance-sensitive: implements directly
+   - Verifies against the performance checklist (no queries in loops, correct data structures, batched I/O, pre-built indices)
    - Runs the linter and the tests specified in the task's **Verification** section (not the full suite — that runs once after all tasks)
    - Fixes any issues found
-   - Reports back: what was done, what files were changed, any concerns
+   - Reports back: what was done, what files were changed, any performance decisions made, any concerns
 
 3. **Verify** — the level of verification depends on task complexity:
    - **Complex tasks** (multi-file changes, architectural modifications, tricky logic): Spawn a **fresh verification subagent** that independently reviews the implementation — does it match the task spec? Do verification criteria pass? Any obvious issues?
