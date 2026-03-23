@@ -1,14 +1,14 @@
-# Phase 4: Final Validation
+# Phase 5: Final Validation
 
 All implementation tasks are complete and CI passes. Before creating the PR, verify that the implementation actually delivers everything the proposal promised.
 
 ## Why this phase exists
 
-Phase 3b validates the **plan** against the proposal. Per-task verification in Phase 3c checks each task against its **task spec**. But neither catches drift between the proposal and the final implementation — tasks may have been adjusted mid-flight, edge cases may have been dropped, or test coverage may have shifted. This phase closes that gap with a fresh, independent review.
+Phase 3.2 validates the **plan** against the proposal. Per-task verification in Phase 4 checks each task against its **task spec**. But neither catches drift between the proposal and the final implementation — tasks may have been adjusted mid-flight, edge cases may have been dropped, or test coverage may have shifted. This phase closes that gap with a fresh, independent review.
 
-## Phase 4a: Proposal Coverage Audit
+## Phase 5.1: Proposal Coverage Audit
 
-Launch a **subagent with fresh context** that receives:
+Launch a **subagent with fresh context** (model: `opus`) that receives:
 - The amended proposal (`docs/plans/<feature-name>/proposal.md`)
 - The implementation plan (`docs/plans/<feature-name>/implementation-plan.md`)
 - The full diff from the base branch (`git diff <base-branch>...HEAD`)
@@ -45,8 +45,9 @@ One of:
 - **GAPS FOUND** — concrete gaps exist. List them with severity (critical vs. nice-to-have).
 
 Write findings to `docs/plans/<feature-name>/final-validation.md`. Commit.
+Update `status.md` to `Current phase: 5`, `Current step: 5.1-validation-complete`, and `Next action` based on the verdict.
 
-## Phase 4b: Address Gaps (if any)
+## Phase 5.2: Address Gaps (if any)
 
 If the validation subagent returns **GAPS FOUND**:
 
@@ -55,13 +56,14 @@ If the validation subagent returns **GAPS FOUND**:
    - Estimated effort to fix
    - Whether each gap is critical (proposal requirement not met) or minor (test coverage could be stronger)
 2. Let the user decide for each gap:
-   - **Fix it** — implement the missing piece (spawn a subagent, same protocol as Phase 3c tasks)
+   - **Fix it** — implement the missing piece (spawn a subagent, same protocol as Phase 4 tasks)
    - **Accept as-is** — the user consciously decides to ship without it
    - **Descope** — remove from proposal scope (note this in the PR description)
 3. After fixes, re-run CI checks
-4. If fixes were substantial (not just adding a test), **re-run Phase 4a** to verify the fixes didn't introduce new gaps. Cap at 2 validation rounds — if gaps persist after 2 rounds, present the remaining issues to the user and let them decide.
+4. If fixes were substantial (not just adding a test), **re-run Phase 5.1** to verify the fixes didn't introduce new gaps. Cap at 2 validation rounds — if gaps persist after 2 rounds, present the remaining issues to the user and let them decide.
+5. Update `status.md` after each gap decision and after each validation rerun
 
-If the verdict was **PASS** or **PASS WITH NOTES**, proceed directly to Phase 5.
+If the verdict was **PASS** or **PASS WITH NOTES**, proceed to Phase 6 so project documentation and local knowledge artifacts can be reconciled before PR creation.
 
 ## Subagent Prompt Template
 

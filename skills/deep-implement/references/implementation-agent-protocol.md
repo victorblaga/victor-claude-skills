@@ -1,6 +1,6 @@
 # Implementation Agent Protocol
 
-This document defines how implementation agents must approach writing code. Every subagent spawned for Phase 3c (task implementation) MUST follow this protocol. Include this file's content in every implementation subagent prompt.
+This document defines how implementation agents must approach writing code. Every subagent spawned for Phase 4 (task implementation) MUST follow this protocol. The subagent should read this file directly; the orchestrator does not need to paste it verbatim into every prompt.
 
 ## Performance-First Thinking
 
@@ -40,23 +40,23 @@ Skip the pseudocode pass. Implement directly. Don't over-optimize code that runs
 
 ## I/O Batching Rules
 
-All I/O operations MUST follow these batching principles:
+By default, I/O operations should follow these batching principles. These are strong defaults, not blind laws. If correctness, transactional semantics, ordering requirements, rate limits, API constraints, or a provably tiny bounded workload justify an exception, the agent may deviate — but it must say so explicitly in its task report.
 
 ### Database Reads
-- **Never** query inside a loop. Collect all IDs/keys first, then batch query.
+- Do not query inside an unbounded or data-dependent loop when batching is possible. Collect IDs/keys first, then batch query.
 - For large result sets, use streaming/cursors/pagination — don't load everything into memory at once.
 - Prefer `WHERE id IN (batch)` over individual lookups.
 - If the total set is very large (>10K items), chunk the `IN` clause into batches (e.g., 1000 items per batch) to avoid query parameter limits.
 
 ### Database Writes
-- **Never** insert/update one row at a time in a loop.
+- Do not insert or update one row at a time in an unbounded or data-dependent loop when bulk operations are available.
 - Accumulate items in memory (batch size ~1K-10K depending on row size), then do batch inserts/upserts.
 - Use bulk operations: `INSERT INTO ... VALUES (...), (...), (...)` or equivalent ORM batch methods.
 - For very large writes, chunk into batches and commit per batch to avoid transaction size limits and memory pressure.
 
 ### External API Calls
 - If the API supports batch endpoints, use them.
-- If not, at minimum use concurrent/parallel calls rather than sequential loops.
+- If not, prefer concurrent or parallel calls for independent requests when rate limits, ordering, and external system constraints allow it.
 - Respect rate limits — implement backoff when batching concurrent calls.
 
 ### File Operations

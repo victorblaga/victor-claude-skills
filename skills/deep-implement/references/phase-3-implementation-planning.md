@@ -1,10 +1,10 @@
-# Phase 3: Implementation
+# Phase 3: Implementation Planning
 
-The amended proposal describes *what* and *why*. This phase turns it into *how* and then *does it*.
+The amended proposal describes *what* and *why*. This phase turns it into an executable plan.
 
-## Phase 3a: Create the Implementation Plan
+## Phase 3.1: Create the Implementation Plan
 
-Launch a **subagent with fresh context** that receives:
+Launch a **subagent with fresh context** (model: `opus`) that receives:
 - The amended proposal document path
 - Access to the full codebase
 - Access to project CI configuration (to understand what checks must pass)
@@ -33,7 +33,7 @@ List of CI checks that must pass (derived from reading CI config files):
 - e.g., `pytest -m "not integration"`
 - etc.
 
-These checks will be run after every task to catch issues early.
+These checks will be run during implementation to catch issues early.
 
 ## Execution Strategy
 Whether tasks run sequentially (single agent) or in waves (parallel where possible).
@@ -89,10 +89,11 @@ A good plan should:
 - Follow the project's software design principles — new abstractions should be deep (not shallow wrappers), module boundaries should hide complexity, and internal steps should be plain classes/functions rather than framework services
 
 Commit the implementation plan.
+Update `status.md` to `Current phase: 3`, `Current step: 3.1-plan-complete`, and `Next action: Validate the implementation plan`.
 
-## Phase 3b: Validate the Plan
+## Phase 3.2: Validate the Plan
 
-Launch another **subagent with fresh context** to validate the plan against the proposal. It receives:
+Launch another **subagent with fresh context** (model: `opus`) to validate the plan against the proposal. It receives:
 - The amended proposal
 - The implementation plan
 - Access to the codebase
@@ -107,52 +108,9 @@ The validator checks:
 
 If issues are found:
 - **Straightforward fixes** (wrong dependency order, missing test, unclear description): Auto-fix by updating the plan directly
-- **Complex/ambiguous issues** (scope questions, architectural trade-offs): Present to the user for a decision, similar to Phase 2b but typically briefer
+- **Complex/ambiguous issues** (scope questions, architectural trade-offs): Present to the user for a decision, similar to Phase 2.2 but typically briefer
 
 Write validation findings to `docs/plans/<feature-name>/plan-validation.md`. Update the implementation plan with any fixes. Commit both.
-
-## Phase 3c: Execute
-
-Now we build. The execution follows the strategy defined in the plan.
-
-### For each task (or wave of parallel tasks):
-
-1. **Spawn a subagent** with fresh context. Provide it with:
-   - The specific task description from the implementation plan
-   - The overall plan context (so it understands how its task fits)
-   - Access to the codebase
-   - The CI checks list from the plan
-   - A directive to read and follow the project's software design guides (`docs/architecture/software-design-guide.md` and the relevant language-specific guide) — the implementing agent must apply the design principles, not just the task spec
-   - **The full content of `references/implementation-agent-protocol.md`** — the implementing agent MUST follow the performance-first protocol. Read this file and include its content verbatim in the subagent prompt.
-
-2. **The implementing agent** (model: `opus`):
-   - Reads the relevant parts of the codebase
-   - **Assesses whether the code is performance-sensitive** (per the implementation agent protocol)
-   - If performance-sensitive: writes a pseudocode/comment sketch first, maps out Big O complexity and I/O calls, identifies and resolves bottlenecks, THEN implements
-   - If not performance-sensitive: implements directly
-   - Verifies against the performance checklist (no queries in loops, correct data structures, batched I/O, pre-built indices)
-   - Runs the linter and the tests specified in the task's **Verification** section (not the full suite — that runs once after all tasks)
-   - Fixes any issues found
-   - Reports back: what was done, what files were changed, any performance decisions made, any concerns
-
-3. **Verify** — the level of verification depends on task complexity:
-   - **Complex tasks** (multi-file changes, architectural modifications, tricky logic): Spawn a **fresh verification subagent** that independently reviews the implementation — does it match the task spec? Do verification criteria pass? Any obvious issues?
-   - **Simple tasks** (single-file, small diff, straightforward logic): CI checks from step 2 are sufficient. Skip the verification subagent.
-
-4. **Commit** the task's changes with a clear commit message describing what was done
-
-5. **If something goes wrong** (tests fail, the approach doesn't work, unexpected complications):
-   - The agent stops and reports the issue
-   - Present it to the user with: what happened, why, and suggested options for how to proceed
-   - Wait for user direction before continuing
-
-### After all tasks are complete:
-
-1. Run the full CI check suite one final time
-2. If anything fails, enter a fix cycle (max 3 attempts):
-   - Diagnose the failure
-   - Fix it
-   - Re-run checks
-   - After 3 failed attempts, stop and present the full diagnostic to the user
+Update `status.md` to `Current phase: 3`, `Current step: 3.2-validation-complete`, and `Next action: Start implementation`.
 
 Phase 3 is complete. Announce it and proceed to Phase 4.

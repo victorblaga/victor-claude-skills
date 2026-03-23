@@ -23,7 +23,7 @@ You're not limited to just asking the user questions. Use subagents to:
 - Run tests — does the current test suite reveal anything about the problem?
 - Check dependencies — are there version constraints or conflicts?
 - Search online — if the problem involves external libraries or services, look up docs
-- Search the project's knowledge base (Obsidian/qmd if available) for prior decisions
+- Search the project's knowledge base or notes system, if available, for prior decisions
 
 Share your findings with the user as you go. "I looked at the code and found X — this makes me think the issue might actually be Y. What do you think?"
 
@@ -43,7 +43,7 @@ The user can always say "enough discussion, write it up" to skip ahead, or "keep
 Before writing the proposal, make sure you've considered:
 
 - Architectural docs referenced in CLAUDE.md or the project
-- Relevant entries in the Obsidian vault (search qmd if available)
+- Relevant entries in the project's knowledge base or notes system, if available
 - Ask the user directly: "Are there any design docs, past decisions, or other context I should factor in?"
 
 ## Writing the Proposal
@@ -52,6 +52,12 @@ When it's time to write (either the user says so or you've reached natural compl
 
 ```
 docs/plans/<feature-name>/proposal.md
+```
+
+Also create or update:
+
+```
+docs/plans/<feature-name>/status.md
 ```
 
 The feature name should be a short, descriptive slug derived from the problem (e.g., `refactor-matching-pipeline`, `fix-geocoder-timeout`). If there's a JIRA ticket, include it (e.g., `CEN-123-refactor-matching-pipeline`).
@@ -96,6 +102,7 @@ These will be picked up during Phase 2 validation.
 ```
 
 After writing the proposal, commit it to the branch and tell the user Phase 1 is complete.
+Set `Current phase` to `1`, `Current step` to `1-complete`, and `Next action` to `Start Phase 2.1 review`.
 
 ## Review-Driven Mode (alternate Phase 1)
 
@@ -107,10 +114,12 @@ The mega-review `report.md` — contains findings across 8 dimensions, calibrati
 
 ### Transformation
 
-Launch a **subagent with fresh context** that receives:
+Launch a **subagent with fresh context** (model: `opus`) that receives:
 - The mega-review report path
 - Access to the full codebase
 - Project conventions from CLAUDE.md
+
+This is a one-shot artifact-producing agent. Expect it to take time; do not replace it locally because it's running long.
 
 The subagent reads the report and the relevant code, then produces `docs/plans/<name>/proposal.md` in the standard proposal format:
 
@@ -137,6 +146,7 @@ docs/plans/review-2026-03-16-pr-42-x8k2f/proposal.md
 
 ### After transformation
 
-Present the proposal to the user for review and approval, same as standard Phase 1. The user may adjust scope, priorities, or approach before proceeding to Phase 2.
+Present the proposal to the user for review and approval, same as standard Phase 1. The user may adjust priorities or approach before proceeding to Phase 2, but all findings remain in scope by default. Any descoping must happen explicitly during validation with rationale recorded in `review-findings.md` and the amended proposal.
 
 Commit the proposal and announce Phase 1 complete.
+Update `status.md` for the review-driven session the same way as standard Phase 1.

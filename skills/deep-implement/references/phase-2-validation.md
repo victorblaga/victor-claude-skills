@@ -1,13 +1,13 @@
-# Phase 2: Validation
+# Phase 2: Proposal Validation
 
 The proposal from Phase 1 was written collaboratively — you and the user built it together, which means you share blind spots. Phase 2 brings independent eyes to catch what you both missed.
 
-## Phase 2a: Independent Review
+## Phase 2.1: Independent Review
 
-Launch a **subagent with fresh context** to review the proposal. The subagent receives:
+Launch a **subagent with fresh context** (model: `opus`) to review the proposal. The subagent receives:
 - The proposal document path
 - Access to the full codebase
-- Access to any architectural docs or knowledge base references mentioned in the proposal
+- Access to any architectural docs or knowledge base or notes references mentioned in the proposal
 
 **For review-driven sessions:** The subagent also receives the original mega-review report path (found in the proposal's `Source:` metadata line). In addition to the checks below, it must verify that the proposal faithfully covers all findings from the original report — no findings dropped or misrepresented during transformation.
 
@@ -35,6 +35,7 @@ docs/plans/<feature-name>/review-findings.md
 Items that would cause the implementation to fail or produce incorrect results.
 
 ### Finding 1: <Title>
+**Evidence**: File paths, proposal sections, or code references that support the finding
 **Issue**: What's wrong
 **Impact**: What happens if not addressed
 **Recommendation**: Suggested fix
@@ -55,9 +56,12 @@ Small improvements, clarifications, or polish.
 
 Each finding gets a **Status** field: `unresolved` → `resolved` (after discussion).
 
-Commit the review findings document after creation.
+For review-driven sessions, include a `**Source findings**:` field whenever the finding maps to specific mega-review finding IDs or tensions.
 
-## Phase 2b: Structured Discussion
+Commit the review findings document after creation.
+Update `status.md` to `Current phase: 2`, `Current step: 2.1-review-complete`, and `Next action: Discuss review findings`.
+
+## Phase 2.2: Structured Discussion
 
 Present the findings to the user, grouped by severity. Work through them **one at a time**, starting with Critical, then Significant, then Minor.
 
@@ -73,6 +77,7 @@ After each finding is discussed:
 - Update its **Status** to `resolved` in `review-findings.md`
 - Add a **Decision** field with what was decided and why
 - Commit the updated document
+- Update `status.md` to reflect the current finding being discussed or the next unresolved finding
 
 For minor findings, the user will likely approve quickly — that's fine. Don't artificially extend the discussion, but do present each one so nothing is silently skipped.
 
@@ -88,15 +93,16 @@ If the user says something like "I trust your judgment, resolve them all" or "ha
 
 If during discussion you discover something that changes the proposal fundamentally, flag it: "This finding might change our approach significantly. Should we revisit the proposal before continuing with the remaining findings?"
 
-## Phase 2c: Amend the Proposal
+## Phase 2.3: Amend the Proposal
 
 Once all findings are resolved, apply the decisions to the proposal:
 
-1. Launch a subagent (or do it yourself if the changes are straightforward) to update `proposal.md` incorporating all resolved findings
-2. The changes should reflect the decisions made during 2b discussion — not the raw findings, but the agreed-upon resolutions
+1. Launch a subagent (model: `opus`, or do it yourself if the changes are straightforward) to update `proposal.md` incorporating all resolved findings
+2. The changes should reflect the decisions made during Phase 2.2 discussion — not the raw findings, but the agreed-upon resolutions
 3. Output a brief summary of what changed: "Updated proposal with: [list of key changes]"
 4. Commit the amended proposal
 
 The review findings document stays as-is — it's the historical record of the review process. The proposal is now the source of truth for Phase 3.
 
 Tell the user Phase 2 is complete and the proposal has been amended.
+Update `status.md` to `Current phase: 2`, `Current step: 2-complete`, and `Next action: Create the implementation plan`.
