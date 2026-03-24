@@ -274,15 +274,78 @@ Implement changes based on the reviews. Work through the Cold Reader's findings 
 
 **Output:** `draft_v2.md`
 
-If changes were major, consider re-running the Cold Reader on v2. If changes were mostly line-level, proceed to final.
+If changes were major, consider re-running the Cold Reader and Voice Auditor on v2. If changes were mostly line-level, proceed to polishing.
 
-**Final check before marking done:**
+---
+
+## Phase 8: Polishing
+
+**Mode:** Conversation — iterative, surgical
+
+This phase has three steps that may repeat:
+
+### 8a. Consistency Check
+
+Before any line-level editing, run a full consistency pass:
+- **Numbers:** Do all figures add up? Do percentages match their components? Do forward references match back references?
+- **Internal references:** If a number was introduced as X in one section, is it still X when referenced later?
+- **Section titles:** Add subsection titles if the article needs them for navigation. Titles should be plain and informational — not clever.
+- **Flow:** Read section transitions. Do they connect, or do sections feel like they were written separately?
+- **Terminology:** Are concepts named consistently throughout?
+
+Present all findings to the user.
+
+### 8b. Paragraph-by-Paragraph Surgical Edits
+
+Go through the article paragraph by paragraph, in order. For each paragraph:
+1. **Propose specific edits** — quote the current text, show the proposed change, explain why.
+2. **Wait for the user's response** — yes, no, or a counter-proposal.
+3. **Apply the accepted change** (or the user's version), then move to the next paragraph.
+4. If the paragraph is fine, say so and move on. Don't propose changes for the sake of proposing changes.
+
+This is NOT a rewrite. It's surgical: a word here, a sentence there, a transition smoothed, a phrase that doesn't quite work. The structure and content are settled. Only the prose is being tuned.
+
+### 8c. Final Consistency Check
+
+After all paragraph edits are applied, run the consistency check again. Numbers may have shifted during editing. Transitions may need adjusting after adjacent paragraphs changed.
+
+**The user may request additional rounds of 8b + 8c.** Repeat until they're satisfied.
+
+**Output:** `final.md` — promoted when the user says it's done.
+
+**Final check before promoting:**
 - Read the opening. Does it earn its place, or is it throat-clearing?
 - Read the ending. Does it trail off naturally, or does it land with a polished line?
 - Check all numbers for internal consistency.
 - If part of a series: does it connect to what came before and set up what comes after?
 
-**Output:** `final.md`
+---
+
+## Phase 9: Featured Image
+
+**Mode:** Conversation
+
+Before promoting to final, propose featured image prompts for the article. These are prompts for AI image generation (e.g., DALL-E, Midjourney) that produce a cover/header image for the article.
+
+**Check for project branding docs first.** Look for:
+- A branding guide (e.g., `docs/branding.md`) — palette, typography, visual principles, guardrails
+- An existing image prompts file (e.g., `docs/image_prompts.md`) — format, style conventions, palette codes
+
+**Follow the established format exactly.** Match the style, structure, and palette of existing image prompts in the project. If an image prompts file exists with a header describing the format (dimensions, palette, style), use those exact specifications.
+
+**Propose three options:**
+- **Primary** — the main concept, most directly tied to the article's central idea
+- **Variant A** — a restrained alternative within the same brand system
+- **Variant B** — another restrained alternative, different angle
+
+**Each prompt should:**
+- Capture the article's core idea visually, not literally (metaphor over illustration)
+- Stay within the project's color palette (use exact hex codes)
+- Follow the project's visual guardrails (e.g., no people in suits, no stock tickers, no green/red)
+- Be specific enough for an AI image generator to produce a consistent result
+- Include dimensions
+
+**Present the three options to the user.** Discuss, adjust, and when accepted, append them to the project's image prompts file.
 
 ---
 
