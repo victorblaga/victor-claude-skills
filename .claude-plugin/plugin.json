@@ -1,11 +1,11 @@
 {
   "name": "victor-claude-skills",
-  "description": "Custom Claude Code skills: deep-implement, mega-review, grill-me, cross-examine",
-  "version": "1.0.0",
+  "description": "Custom Claude Code skills: deep-implement, mega-review, grill-me, cross-examine, long-form-article",
+  "version": "1.1.0",
   "author": {
     "name": "Victor Blaga"
   },
   "repository": "https://github.com/victorblaga/victor-claude-skills",
   "license": "MIT",
-  "keywords": ["skills", "deep-implement", "mega-review", "code-review", "grill-me", "cross-examine"]
+  "keywords": ["skills", "deep-implement", "mega-review", "code-review", "grill-me", "cross-examine", "long-form-article", "writing"]
 }
