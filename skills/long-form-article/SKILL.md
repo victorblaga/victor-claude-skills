@@ -345,7 +345,7 @@ Before promoting to final, propose featured image prompts for the article. These
 - Be specific enough for an AI image generator to produce a consistent result
 - Include dimensions
 
-**Present the three options to the user.** Discuss, adjust, and when accepted, append them to the project's image prompts file.
+**Present the three options to the user.** Discuss, adjust, and when accepted, save them to `image_prompts.md` in the article folder. Also append them to the project's main image prompts file if one exists.
 
 ---
 
