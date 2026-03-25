@@ -48,16 +48,16 @@ When expanding a component, add sub-components following the same format as the 
 ### <Component>
 
 **Purpose:** <one sentence>
-**Current location:** <file paths> (refactor/migrate only)
 **Interface:** <inputs, outputs, what callers need to know>
 **Hides:** <what complexity is internal>
+**v1 reference:** <file paths where relevant logic lives> (refactor/migrate only, optional)
 
 #### <Sub-component 1>
 
 **Purpose:** <one sentence>
-**Current location:** <file paths> (refactor/migrate only)
 **Interface:** <inputs, outputs>
 **Hides:** <internal complexity>
+**v1 reference:** <file paths> (refactor/migrate only, optional)
 
 #### <Sub-component 2>
 ...
@@ -87,33 +87,34 @@ As you drill deeper, you'll discover more about the domain entities. Update the 
 - Refine descriptions of existing entities
 - Note which components produce/consume each entity
 
-## Refactor Mode: Current Code Anchors
+## Refactor Mode: v1 References
 
-For each sub-component, annotate where the corresponding logic currently lives:
+For components that draw on existing logic, note where the relevant v1 code lives. **These are references for the engineer, not constraints on the design.** The component's purpose and interface are defined by the new architecture — v1 just tells the engineer where to look for the business rules.
 
 ```markdown
 #### <Sub-component>
 **Purpose:** Parse incoming SQS messages into domain commands
-**Current location:** `src/pipeline/handler.py:45-89`, `src/pipeline/utils.py:12-34`
 **Interface:** `parse(raw_message: dict) -> Command`
 **Hides:** Message format parsing, validation, error recovery
+**v1 reference:** `src/pipeline/handler.py:45-89` — parsing logic to extract and adapt
 ```
 
-These anchors are essential for the implementor — they show exactly what existing code maps to this node.
+Note the ordering: purpose, interface, and hides come first (they define the component). The v1 reference is secondary context, not the starting point. If the component has no v1 equivalent, omit the reference entirely — don't force a mapping.
 
-## Migration Mode: Old-to-New Mapping During Drill-Down
+## Migration Mode: v1 References During Drill-Down
 
-When drilling into a component in migration mode, annotate each sub-component with:
+When drilling into a component in migration mode, note which v1 logic informs it and what hidden requirements v1 reveals:
 
 ```markdown
 #### <Sub-component>
 **Purpose:** Score candidate pairs using multi-signal similarity
-**Old location:** `old_project/src/matching/scorer.py:30-120`
-**Action:** Rewrite — preserve scoring algorithm, new streaming interface
-**Constraints from old code:** Must handle NaN embeddings gracefully (old code has a special case at line 85). TF-IDF weighting uses custom normalization, not sklearn default.
+**Interface:** `score_pair(inc_hash, db_hash, inc_features) -> float`
+**Hides:** Multi-signal scoring algorithm, NaN handling, TF-IDF normalization
+**v1 reference:** `old_project/src/matching/scorer.py:30-120` — scoring algorithm to extract
+**Hidden requirements from v1:** Must handle NaN embeddings gracefully (v1 line 85). TF-IDF weighting uses custom normalization, not sklearn default.
 ```
 
-The **action** (preserve / rewrite / discard) and **constraints** fields are migration-specific. Constraints capture the hidden requirements discovered during Phase 1 exploration of the old codebase — these are the things that would be missed in a clean-sheet design.
+**Hidden requirements** are the key value of studying v1. They capture invariants, edge cases, and non-obvious business rules that would be missed in a clean-sheet design. The new architecture must satisfy these requirements, but it doesn't have to satisfy them the same way v1 does.
 
 ## Iteration
 

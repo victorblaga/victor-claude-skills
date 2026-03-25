@@ -15,9 +15,9 @@ A top-down, iterative code architecture skill. Works like writing an article: st
 
 | Mode | Trigger | Starting point |
 |------|---------|---------------|
-| **Refactor** | User points at existing code | Six exploration agents scan the code, produce initial outline |
+| **Refactor** | User points at existing code | Exploration agents extract what the system does, then design fresh |
 | **Greenfield** | User describes something new to build | Lightweight kickoff questions, then draft outline |
-| **Migrate** | User provides old code + new project target | Exploration agents scan old code, outline targets new project |
+| **Migrate** | User provides old code + new project target | Exploration agents extract requirements from old code, outline designs for new project |
 
 ## Invocation
 
@@ -90,6 +90,18 @@ The fundamental working pattern is: **start at the highest level with a diagram,
 5. **Repeat** — each zoom-in follows the same pattern: diagram first, then components, then feedback.
 
 This is non-negotiable. Do not skip levels. Do not jump to implementation details before the structure is agreed.
+
+### v1 is a requirements document, not a design document (refactor/migrate)
+
+The user is refactoring because v1's structure is wrong — tangled, coupled, hard to change. Reproducing v1's module graph with cleaner names is not architecture.
+
+**Use v1 to learn WHAT the system does:** workflows, business rules, invariants, edge cases, external interactions. This is the behavioral model — the requirements extracted from code.
+
+**Design the new structure from first principles:** given those requirements, what's the cleanest architecture? Apply deep modules, information hiding, loose coupling. Don't look at v1's file layout while designing.
+
+**Then reality-check against v1:** did you miss any hidden requirements? Any edge cases the behavioral model didn't capture? Adjust the design — but don't adopt v1's structure to do it.
+
+The failure mode to avoid: the architect reads v1, deeply imprints its module graph into context, and unconsciously reproduces it in v2. The tangled coupling survives the "refactoring" because the architect never stepped back far enough to question it.
 
 ### Loose coupling and information hiding
 

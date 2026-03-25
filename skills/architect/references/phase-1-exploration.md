@@ -98,20 +98,33 @@ Launch all six agents in parallel using the Agent tool. Each agent gets:
 
 ## Synthesis
 
-Once all six agents complete, synthesize their findings:
+Once all six agents complete, synthesize their findings. **Critical: the goal of synthesis is to understand what the system DOES, not to memorize how v1 is structured.** The v1 module graph is evidence, not a template.
 
 1. **Read all six agent outputs**
-2. **Describe the runtime architecture first** — before any static/structural analysis, answer: how does this system actually run? What processes exist, how do they communicate, what is the main loop structure, where does data flow at runtime? Produce a **behavioral mermaid diagram** showing processes, communication channels (queues, filesystem, shared memory), and the main workflows. This is the mental model that makes everything else make sense — lead with it.
-3. **Identify the main architectural units** — the top-level modules/components that the code naturally groups into
-4. **Flag design principle violations** — using the red flags checklist from `design-principles.md`:
+2. **Extract the behavioral model first** — before any structural analysis, answer these questions:
+   - What does this system do? What is its purpose?
+   - What are the inputs (triggers, data sources) and outputs (artifacts, side effects)?
+   - What are the main workflows / happy paths?
+   - What business rules and invariants must be preserved?
+   - What external systems does it interact with, and how?
+   - What are the runtime characteristics (processes, threads, loops, communication)?
+
+   Produce a **behavioral mermaid diagram** showing processes, communication channels (queues, filesystem, shared memory), and the main workflows. This is the "requirements document extracted from code" — it describes *what*, not *how*.
+
+3. **Flag design principle violations** — using the red flags checklist from `design-principles.md`:
    - Shallow modules, pass-through chains
    - Information leakage across boundaries
    - Temporal decomposition
    - Infrastructure mechanics leaking into domain code
    - Giant utility modules
    - ABC hierarchies for sequential steps
-5. **Write the findings appendix** — a section listing violations and observations, linked to specific files/lines
-6. **Feed everything into Phase 2** — the outline generation
+   - Tight coupling that makes the code hard to change
+
+   **These violations are WHY we're refactoring.** They describe what's wrong with v1's structure, not what to preserve from it.
+
+4. **Write the findings appendix** — a section listing violations and observations, linked to specific files/lines
+5. **Do NOT produce a "current architecture" section that maps v1's module graph.** The behavioral model + violations are what Phase 2 needs. v1's file layout, class hierarchy, and module structure are symptoms of the design decisions (good and bad) that produced them — they should inform the architect, not constrain the outline.
+6. **Feed the behavioral model and violations into Phase 2** — the outline generation
 
 ## Migration Mode
 

@@ -27,9 +27,9 @@ The document starts with these sections and grows as drill-down progresses:
 
 <1-2 paragraphs describing what this code does, who it serves, and why it exists>
 
-## Current State — Exploration Findings (refactor/migrate only)
+## What This System Does (refactor/migrate only)
 
-<Runtime architecture diagram (from Phase 1 synthesis), physical structure, key observations, findings appendix>
+<Behavioral model (from Phase 1 synthesis): workflows, inputs/outputs, business rules, runtime characteristics, external interactions. NOT v1's module structure — what the system does, not how v1 organizes it.>
 
 ## Target State — Overview
 
@@ -109,15 +109,19 @@ Don't go deep yet. The goal is to get the top-level shape right before expanding
 
 ## Refactor/Migrate Mode
 
-In refactor and migrate modes, the outline is derived from the Phase 1 exploration findings:
+**The outline is a fresh design informed by v1's requirements, not a reorganization of v1's modules.**
 
-1. Read the synthesis from Phase 1
-2. Identify the natural architectural units
-3. Map them to the outline structure
-4. Annotate each component with current file locations
-5. Include the findings appendix with design principle violations
+The user is refactoring because something is wrong with v1 — tangled coupling, unclear boundaries, accumulated tech debt. Reproducing v1's structure with different names is not refactoring. The architect's job is to design the system the user *wishes* they had, using v1 only as evidence of what the system must do.
 
-The outline represents the **target state** — how the code should be structured. If the current structure has problems (identified in the findings), the outline should reflect the improved design, not mirror the existing mess.
+The process:
+
+1. **Start from the behavioral model** (Phase 1 synthesis) — what does the system do? What are its workflows, inputs, outputs, business rules?
+2. **Design from first principles** — given those requirements, how would you structure this system from scratch? Apply the design principles: deep modules, information hiding, loose coupling. Don't look at v1's file layout while doing this.
+3. **Reality-check against v1** — now compare your clean design to v1. Are there business rules or invariants you missed? Edge cases the behavioral model didn't capture? Hidden requirements? Adjust the design to account for these, but don't adopt v1's structure to do it.
+4. **Annotate with v1 anchors where helpful** — for each component, note which v1 files contain the logic that will inform the implementation. These are references for the engineer, not constraints on the design.
+5. **Include the findings appendix** — the design principle violations from Phase 1. These explain *why* the new design differs from v1.
+
+The outline represents the **target state** — how the code *should* be structured. v1's structure is a cautionary tale, not a starting point.
 
 ## Migration Mode
 
@@ -125,24 +129,26 @@ Migration has unique concerns beyond refactoring. The outline must track both th
 
 ### Migration mapping
 
-Include a mapping section in the outline that connects old code to new components:
+Include a mapping section that connects **new components to v1 logic they draw from** (not the reverse — the new design leads):
 
 ```markdown
 ## Migration Mapping
 
-| Old module / location | New component | Action |
+| New component | v1 reference | Notes |
 |---|---|---|
-| `old_project/src/matching.py` | Track 2b: Fuzzy match | Rewrite — preserve algorithm, new interface |
-| `old_project/src/cache.py` | LiveCache | Preserve — port with minimal changes |
-| `old_project/src/utils/legacy_format.py` | — | Discard — replaced by new input format |
+| FuzzyMatchContext | `old_project/src/matching.py:30-120` | Reuse scoring algorithm, new query interface |
+| LiveCache | `old_project/src/cache.py` | Reuse data loading, redesign as query object |
+| IngestPhase | (no v1 equivalent) | New — v1 had no input validation |
 ```
 
 ### What to preserve vs. rewrite
 
-For each component, be explicit:
-- **Preserve** — the logic is correct and well-structured, port it to the new codebase with minimal changes
-- **Rewrite** — the algorithm or business rule must be preserved, but the code structure should change
-- **Discard** — legacy pattern, tech debt, or no longer needed
+For each component in the **new** design, be explicit about what v1 logic informs it:
+- **Reuse algorithm** — the algorithm or business rule is correct, extract and adapt it to the new interface
+- **Rewrite** — the requirement must be met, but v1's approach doesn't fit the new design
+- **No v1 equivalent** — new component that doesn't exist in v1
+
+Note the framing: the new design leads, and v1 logic adapts to fit it. Not the other way around. Don't list v1 modules and assign them destinations — list new components and note which v1 logic informs them.
 
 ### Constraints from the old code
 
