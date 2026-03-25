@@ -6,6 +6,16 @@ This phase applies to **refactor** and **migrate** modes. For greenfield, skip t
 
 Build a comprehensive understanding of the existing codebase before proposing any structural changes. Use maximum parallelism — six specialized agents exploring simultaneously from different angles.
 
+## Small Codebase Escape Hatch
+
+For small codebases (~10 files or fewer), six parallel agents are overkill. Instead:
+
+1. **Read the code directly** — it fits in context. No need for specialized agents.
+2. **Combine the exploration** into a single pass: structure, interfaces, flow, dependencies, cross-cutting concerns, tests — all in one read-through.
+3. **Proceed directly to synthesis** — produce the runtime architecture diagram and findings, then move to Phase 2.
+
+The six-agent approach is for codebases too large to read in a single context window. Don't force the ceremony when the codebase is small enough to understand directly.
+
 ## Agents
 
 Launch all six agents in parallel using the Agent tool. Each agent gets:
@@ -18,7 +28,7 @@ Launch all six agents in parallel using the Agent tool. Each agent gets:
 **Brief:** Map the physical organization of the codebase.
 
 - File tree (directories, modules, packages)
-- Module boundaries — what's in each `__init__.py`, what's exported
+- Module boundaries — what's exported from each module (e.g. `__init__.py` in Python, `mod.rs` in Rust, `index.ts` in TypeScript)
 - Package organization — how code is grouped
 - File sizes — which files are large (potential god modules)
 - Entry points — where execution starts
@@ -114,6 +124,8 @@ The outline in Phase 2 will target the **new** project structure, using the old 
 
 ## Agent Configuration
 
-All exploration agents should use the `sonnet` model — this is search and retrieval work, not judgment. Use the `Explore` subagent type where appropriate, or `general-purpose` for broader analysis.
+Prefer lightweight agent types for exploration — this is search and retrieval work, not deep judgment. Use the `Explore` subagent type for file discovery and code search. Use `general-purpose` when the agent needs to reason about what it finds (e.g., tracing call chains, identifying design patterns).
 
 Keep each agent's prompt self-contained — include the target path, what to look for, and the output format. Agents have no access to the conversation history.
+
+If an agent produces empty or unusable output (e.g., the codebase doesn't have tests, or there are no cross-cutting patterns worth noting), skip that finding rather than forcing it into the synthesis. Not every agent will produce useful output for every codebase.

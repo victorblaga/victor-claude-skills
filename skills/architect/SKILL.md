@@ -121,7 +121,21 @@ Read the relevant phase reference file when entering each phase. Don't load all 
 
 ## Handoff
 
-When the outline is complete, suggest:
+`/deep-implement` is a separate skill that takes a completed architecture plan and turns it into an implementation plan with concrete tasks, commits, and validation steps. It reads the plan document produced by `/architect` as its input.
+
+### Readiness checklist
+
+Before suggesting handoff, verify:
+
+- [ ] **All diagrams are current** — no stale references, labels match the text
+- [ ] **Every leaf component has:** Purpose, Interface (or query methods), and what it Hides
+- [ ] **No unresolved TODOs or open questions** in the plan document
+- [ ] **Superseded sections are marked** — not silently stale
+- [ ] **Domain entities table is complete** — all entities discovered during drill-down are listed
+- [ ] **New artifacts / data structures are documented** — anything the implementation needs to create
+- [ ] **Dead code is identified** — modules that will be removed or replaced
+
+When the checklist passes, suggest:
 
 > "The outline is finalized. To plan and execute the implementation, run:
 > `/deep-implement` and point it at `docs/plans/<path>/plan.md`"

@@ -101,6 +101,20 @@ For each sub-component, annotate where the corresponding logic currently lives:
 
 These anchors are essential for the implementor — they show exactly what existing code maps to this node.
 
+## Migration Mode: Old-to-New Mapping During Drill-Down
+
+When drilling into a component in migration mode, annotate each sub-component with:
+
+```markdown
+#### <Sub-component>
+**Purpose:** Score candidate pairs using multi-signal similarity
+**Old location:** `old_project/src/matching/scorer.py:30-120`
+**Action:** Rewrite — preserve scoring algorithm, new streaming interface
+**Constraints from old code:** Must handle NaN embeddings gracefully (old code has a special case at line 85). TF-IDF weighting uses custom normalization, not sklearn default.
+```
+
+The **action** (preserve / rewrite / discard) and **constraints** fields are migration-specific. Constraints capture the hidden requirements discovered during Phase 1 exploration of the old codebase — these are the things that would be missed in a clean-sheet design.
+
 ## Iteration
 
 Each drill-down round follows the same pattern:

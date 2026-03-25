@@ -119,6 +119,35 @@ In refactor and migrate modes, the outline is derived from the Phase 1 explorati
 
 The outline represents the **target state** — how the code should be structured. If the current structure has problems (identified in the findings), the outline should reflect the improved design, not mirror the existing mess.
 
+## Migration Mode
+
+Migration has unique concerns beyond refactoring. The outline must track both the old and new worlds:
+
+### Migration mapping
+
+Include a mapping section in the outline that connects old code to new components:
+
+```markdown
+## Migration Mapping
+
+| Old module / location | New component | Action |
+|---|---|---|
+| `old_project/src/matching.py` | Track 2b: Fuzzy match | Rewrite — preserve algorithm, new interface |
+| `old_project/src/cache.py` | LiveCache | Preserve — port with minimal changes |
+| `old_project/src/utils/legacy_format.py` | — | Discard — replaced by new input format |
+```
+
+### What to preserve vs. rewrite
+
+For each component, be explicit:
+- **Preserve** — the logic is correct and well-structured, port it to the new codebase with minimal changes
+- **Rewrite** — the algorithm or business rule must be preserved, but the code structure should change
+- **Discard** — legacy pattern, tech debt, or no longer needed
+
+### Constraints from the old code
+
+Phase 1 exploration of the old codebase reveals hidden requirements — edge cases, invariants, non-obvious business rules. These must be captured in the outline, even if they aren't obvious from a clean-sheet design. Add them as annotations on the relevant components.
+
 ## Design Principles Review
 
 Before presenting the outline, review each component boundary against the Design Questions in `design-principles.md`:

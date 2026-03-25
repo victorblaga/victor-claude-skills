@@ -174,7 +174,11 @@ Naming is a design activity. Good names are specific, domain-aligned, unambiguou
 
 ---
 
-## Python-Specific Patterns
+## Language-Specific Patterns
+
+> The principles above are language-agnostic. The patterns below are language-specific guidance. Apply the section that matches the target codebase. If working with a language not listed here, apply the general principles and use the language's idiomatic equivalents.
+
+### Python
 
 ### Functions over class hierarchies
 
