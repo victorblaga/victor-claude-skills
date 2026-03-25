@@ -91,16 +91,17 @@ Launch all six agents in parallel using the Agent tool. Each agent gets:
 Once all six agents complete, synthesize their findings:
 
 1. **Read all six agent outputs**
-2. **Identify the main architectural units** — the top-level modules/components that the code naturally groups into
-3. **Flag design principle violations** — using the red flags checklist from `design-principles.md`:
+2. **Describe the runtime architecture first** — before any static/structural analysis, answer: how does this system actually run? What processes exist, how do they communicate, what is the main loop structure, where does data flow at runtime? Produce a **behavioral mermaid diagram** showing processes, communication channels (queues, filesystem, shared memory), and the main workflows. This is the mental model that makes everything else make sense — lead with it.
+3. **Identify the main architectural units** — the top-level modules/components that the code naturally groups into
+4. **Flag design principle violations** — using the red flags checklist from `design-principles.md`:
    - Shallow modules, pass-through chains
    - Information leakage across boundaries
    - Temporal decomposition
    - Infrastructure mechanics leaking into domain code
    - Giant utility modules
    - ABC hierarchies for sequential steps
-4. **Write the findings appendix** — a section listing violations and observations, linked to specific files/lines
-5. **Feed everything into Phase 2** — the outline generation
+5. **Write the findings appendix** — a section listing violations and observations, linked to specific files/lines
+6. **Feed everything into Phase 2** — the outline generation
 
 ## Migration Mode
 
