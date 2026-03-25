@@ -6,7 +6,7 @@ Recursively expand branches of the outline until each leaf node represents a dee
 
 ## How It Works
 
-The user points at a component in the outline and says "go deeper on X." The plugin then:
+The user points at a component in the outline and says "go deeper on X." The skill then:
 
 1. **Reads the current outline** from disk
 2. **Explores the component** — in refactor/migrate mode, reads the existing code for that component. In greenfield mode, asks clarifying questions if needed.
@@ -17,7 +17,7 @@ The user points at a component in the outline and says "go deeper on X." The plu
 
 ## Depth Control
 
-### When to stop (default — plugin judges)
+### When to stop (default — skill judges)
 
 A node is a leaf when it represents a **deep module**:
 - It can be described as "takes X, returns Y, hides Z"
@@ -25,7 +25,7 @@ A node is a leaf when it represents a **deep module**:
 - The complexity it hides is meaningful but contained
 - It maps naturally to a single function, class, or small module
 
-### When to keep going (plugin judges)
+### When to keep going (skill judges)
 
 A node needs further expansion when:
 - It contains multiple distinct responsibilities that could be separated
@@ -36,8 +36,8 @@ A node needs further expansion when:
 ### User override
 
 The user can always:
-- **"Go deeper on X"** — force expansion of a node the plugin considered a leaf
-- **"That's enough detail"** — stop expansion of a node the plugin would have expanded further
+- **"Go deeper on X"** — force expansion of a node the skill considered a leaf
+- **"That's enough detail"** — stop expansion of a node the skill would have expanded further
 - **"This whole branch is fine"** — mark an entire subtree as done
 
 ## Expanding a Node
@@ -112,8 +112,8 @@ Each drill-down round follows the same pattern:
 
 The user can also:
 - Give feedback on expanded sections ("this should be structured differently")
-- Ask the plugin to re-expand a section with different decomposition
-- Go back up and restructure a parent node (changes cascade — the plugin updates children)
+- Ask the skill to re-expand a section with different decomposition
+- Go back up and restructure a parent node (changes cascade — the skill updates children)
 
 ## Higher-level reorganization during drill-down
 
@@ -122,7 +122,10 @@ It is normal and expected that drilling into components reveals that the top-lev
 When this happens:
 1. **Embrace it** — this is the design process working correctly. The initial outline was a hypothesis; drill-down tests it.
 2. **Update the top-level diagram and structure** to reflect the new understanding.
-3. **Mark superseded sections** with a note rather than deleting them — they document the current code structure even if the target architecture has evolved.
+3. **Mark superseded sections** with a blockquote note rather than deleting them — they document the current code structure even if the target architecture has evolved. Use this format:
+   ```markdown
+   > **Note:** This section was written against the original <X> architecture. The target has since evolved to <Y>. Retained as reference for the current code structure.
+   ```
 4. **Don't fight it** — if the user proposes a reorganization, update the document to reflect it. The plan must always represent the current best understanding.
 
 ## Consistency reviews
@@ -153,14 +156,14 @@ Keep sketches focused — show the composition and data flow, not error handling
 
 ## Completion
 
-When all branches are expanded to leaf depth (or the user is satisfied), the plugin announces:
+When all branches are expanded to leaf depth (or the user is satisfied), the skill announces:
 
 "The outline is complete. All branches are at leaf depth. You can:
 - Review the full outline in your editor at `<path>`
 - Ask me to adjust any section
 - Hand off to `/deep-implement` to plan and execute the implementation"
 
-The plugin suggests the `/deep-implement` handoff command but does not auto-invoke it.
+The skill suggests the `/deep-implement` handoff command but does not auto-invoke it.
 
 ## Greenfield Drill-Down
 

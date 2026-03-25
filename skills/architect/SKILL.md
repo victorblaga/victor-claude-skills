@@ -31,22 +31,18 @@ If the mode isn't clear from the arguments, ask: "Are we refactoring existing co
 
 ## Phase Overview
 
-```dot
-digraph architect_flow {
-    rankdir=LR;
-    node [shape=box];
+```mermaid
+flowchart LR
+    explore["Phase 1<br/>Exploration<br/>(refactor/migrate)"]
+    outline["Phase 2<br/>Outline"]
+    drilldown["Phase 3<br/>Drill-Down"]
+    handoff["Handoff<br/>to /deep-implement"]
 
-    explore [label="Phase 1\nExploration\n(refactor/migrate)"];
-    outline [label="Phase 2\nOutline"];
-    drilldown [label="Phase 3\nDrill-Down"];
-    handoff [label="Handoff\nto /deep-implement"];
-
-    explore -> outline;
-    outline -> drilldown [label="user approves\ntop-level"];
-    drilldown -> drilldown [label="go deeper\non branch X"];
-    drilldown -> outline [label="restructure\ntop level"];
-    drilldown -> handoff [label="outline\ncomplete"];
-}
+    explore --> outline
+    outline -->|"user approves<br/>top-level"| drilldown
+    drilldown -->|"go deeper<br/>on branch X"| drilldown
+    drilldown -->|"restructure<br/>top level"| outline
+    drilldown -->|"outline<br/>complete"| handoff
 ```
 
 | Phase | Purpose | Reference |
@@ -134,24 +130,10 @@ Do not auto-invoke `/deep-implement`. The user decides when and how to proceed.
 
 ## Greenfield Kickoff
 
-When there's no code to scan, gather the essentials with 2-3 questions:
-
-1. **Purpose** — "What does this thing do?"
-2. **Scope** — "What's in scope, what's out?"
-3. **Key workflows** — "What are the main things it does?"
-
-Don't over-interview. Produce a first-draft outline quickly, then iterate. If the user already described these in their invocation, skip the questions.
+For greenfield mode (no existing code to scan), gather essentials with 2-3 lightweight questions before producing the first outline draft. See `references/phase-2-outline.md` for the full kickoff procedure.
 
 ## Depth Control
 
-The plugin stops expanding a branch when a node represents a **deep module**:
-- Simple interface: "takes X, returns Y, hides Z"
-- Meaningful hidden complexity
-- Maps to a single function, class, or small module
-
-The plugin continues expanding when a node:
-- Contains multiple distinct responsibilities
-- Has a vague or compound interface
-- Is too large for one implementation task
+Expansion stops when a node is a **deep module** (simple interface, meaningful hidden complexity). Expansion continues when a node has multiple responsibilities, vague interfaces, or is too large for one implementation task. See `references/phase-3-drill-down.md` for the full depth control criteria.
 
 **User override always wins**: "go deeper on X" or "that's enough detail."

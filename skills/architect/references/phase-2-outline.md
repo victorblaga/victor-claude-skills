@@ -27,9 +27,13 @@ The document starts with these sections and grows as drill-down progresses:
 
 <1-2 paragraphs describing what this code does, who it serves, and why it exists>
 
-## Overview
+## Current State — Exploration Findings (refactor/migrate only)
 
-<Mermaid diagram — bird's-eye view of the system>
+<Runtime architecture diagram (from Phase 1 synthesis), physical structure, key observations, findings appendix>
+
+## Target State — Overview
+
+<Mermaid diagram — bird's-eye view of the target system>
 
 ## Structure
 
@@ -114,6 +118,18 @@ In refactor and migrate modes, the outline is derived from the Phase 1 explorati
 5. Include the findings appendix with design principle violations
 
 The outline represents the **target state** — how the code should be structured. If the current structure has problems (identified in the findings), the outline should reflect the improved design, not mirror the existing mess.
+
+## Design Principles Review
+
+Before presenting the outline, review each component boundary against the Design Questions in `design-principles.md`:
+
+- Does each component hide meaningful complexity behind a simple interface?
+- Are components loosely coupled — could they run independently?
+- Do consumers use query methods rather than accessing raw data structures?
+- Is knowledge encapsulated — or leaked across multiple components?
+- Are layers providing genuinely different abstractions, or just pass-through?
+
+This review catches structural issues before the user invests time drilling deeper.
 
 ## Presenting to the User
 
