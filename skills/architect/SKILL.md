@@ -103,6 +103,22 @@ The user is refactoring because v1's structure is wrong — tangled, coupled, ha
 
 The failure mode to avoid: the architect reads v1, deeply imprints its module graph into context, and unconsciously reproduces it in v2. The tangled coupling survives the "refactoring" because the architect never stepped back far enough to question it.
 
+### Layer-by-layer abstraction — stay at the level
+
+Design proceeds one abstraction layer at a time, from the entry point down to the infrastructure boundary. At each layer, design **all** components at that level before descending into any one of them.
+
+**The descent:**
+1. Start at `main()` — what are the top-level units? (e.g., two workflows: JobProcessor, CacheBuilder)
+2. Design layer 1 in abstract terms — what does each unit do, what's its interface, how do they communicate? Don't think about databases or files yet.
+3. Pick one unit, design its layer 2 — what are its internal components? (e.g., CacheBuilder has a decision tree that delegates to SnapshotStore, EventSource, FullRebuilder, IncrementalRebuilder). Still abstract — EventSource answers "are there changes?", it doesn't "query the database."
+4. Continue descending until you reach the **infrastructure boundary** — the point where business abstractions give way to DB calls, file I/O, network requests, framework APIs. That's a leaf.
+
+**The discipline: stay at the abstraction layer.** The most common failure mode is going concrete too soon. On the first pass, the temptation is to jump from "CacheBuilder checks for changes" directly to "run this SQL query." Resist. The intermediate abstraction (EventSource) is where the design value lives — it hides *how* changes are detected behind *what question is being asked*. Getting these intermediate layers right takes iteration; expect 2-3 passes before the abstractions feel natural.
+
+**The leaf test:** You've reached a leaf when the component's implementation exits the business domain — it calls a database, reads a file, posts to a webhook, invokes an external library. Everything above that boundary should be expressible in business terms ("check for changes", "rebuild the cache", "score a candidate pair"), not infrastructure terms ("SELECT FROM source_record_events", "write parquet to S3").
+
+**The judgment call:** Too many abstraction layers is also bad — each layer adds naming overhead, indirection, and cognitive load. The test is whether the abstraction hides meaningful complexity and reduces what callers need to know. If an abstraction layer is just forwarding calls without adding understanding, it's shallow and should be removed. A good intermediate abstraction changes the vocabulary: callers think in domain terms, the implementation thinks in infrastructure terms. If both sides speak the same language, the layer isn't earning its keep.
+
 ### Loose coupling and information hiding
 
 When proposing the target architecture, actively design for:

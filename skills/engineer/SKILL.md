@@ -72,6 +72,7 @@ Commit after completing each level or module. This gives you:
 When the engineer discovers something the architect plan got wrong:
 - **Interface doesn't work** as designed — surface it to the user, suggest an alternative
 - **Missing component** — the plan didn't account for something — flag it, propose where it fits
+- **Missing abstraction layer** — a component reaches directly for infrastructure (DB calls, file I/O, network) where a domain abstraction would be cleaner. If a component both makes domain decisions AND talks to infrastructure, there's likely a missing intermediate layer. Surface it: "this component is mixing business logic with DB queries — should we introduce an abstraction here?"
 - **Plan is ambiguous** — ask the user for clarification rather than guessing
 - **Update the plan document** — if the user agrees to a change, update `plan.md` to reflect the new understanding
 
@@ -140,6 +141,8 @@ Pick the next component to flesh out. Follow the plan's component breakdown:
 **Order:** Follow the plan's dependency graph — implement components that others depend on first (interfaces, types, query objects), then the components that use them. Within a level, prefer the simpler components first to build momentum.
 
 When a component has an implementation sketch in the plan (e.g., a generator pipeline), use it as the starting point — the architect already validated the design.
+
+**Respect the abstraction layers.** The plan designs components at specific abstraction levels — higher-level components speak in domain terms, leaf components handle infrastructure. During implementation, maintain this separation. If you find yourself writing SQL queries or file I/O inside a component that the plan describes in business terms, stop — there's likely a missing abstraction that the plan intended. Either find it in the plan or surface it to the user as a missing component.
 
 ### Plan conformance check (major milestones)
 

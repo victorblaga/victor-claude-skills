@@ -24,6 +24,7 @@ A node is a leaf when it represents a **deep module**:
 - Its interface is simple enough to specify in a few lines
 - The complexity it hides is meaningful but contained
 - It maps naturally to a single function, class, or small module
+- **Its implementation exits the business domain** — it calls a database, reads files, invokes external libraries, makes network requests. Everything above it speaks in business terms; it translates to infrastructure.
 
 ### When to keep going (skill judges)
 
@@ -32,6 +33,16 @@ A node needs further expansion when:
 - Its interface is still vague or compound
 - It hides heterogeneous complexity that would benefit from internal structure
 - It's too large to be one implementation task
+- **It mixes business logic with infrastructure** — if a component both makes domain decisions AND calls the DB/reads files/makes network requests, there's a missing abstraction layer. The domain logic should delegate to an infrastructure component, not contain it.
+
+### Watch for: going concrete too soon
+
+The most common drill-down mistake is jumping from a high-level component directly to infrastructure details (SQL queries, file paths, API calls) without designing the intermediate business abstractions. Example:
+
+- **Too soon:** CacheBuilderProcess → "queries the database for new events since the watermark"
+- **Right level:** CacheBuilderProcess → EventSource ("are there changes?") → database query
+
+The intermediate abstraction (EventSource) is where the design value lives. It lets CacheBuilderProcess think in domain terms ("are there changes?") without knowing about databases, watermarks, or SQL. Getting these intermediate layers right usually takes 2-3 iterations — expect to revisit and refine.
 
 ### User override
 
