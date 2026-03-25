@@ -185,3 +185,36 @@ The plan document (`docs/plans/<name>/plan.md`) is the shared source of truth be
 - **Update it when you discover issues** — keep it accurate
 - **Reference it in commit messages** — "implement JobLoop per plan section 1"
 - **Don't delete it when done** — it serves as architecture documentation going forward
+
+## Progress Tracking
+
+Maintain a `progress.md` file alongside the plan at `docs/plans/<name>/progress.md`. This file survives session interruptions — if the session crashes or context is compressed, the next session can read this file and pick up where things left off.
+
+**Create it at the start of Phase 1.** Update it after each commit. Format:
+
+```markdown
+# Progress — <plan name>
+
+## Current phase
+Phase 2: Components — implementing LiveCache query interface
+
+## Completed
+- [x] Phase 1: Skeleton (commit abc1234)
+- [x] Phase 2a: Preserved modules copied (commit def5678)
+- [x] Phase 2b: JobProcessorProcess (commit 9ab0123)
+
+## Next up
+- [ ] Phase 2d: Enhanced LiveCache
+- [ ] Phase 2e: Streaming rebuild_worker
+
+## Decisions made during implementation
+- Renamed CacheManager → CacheBuilderProcess for clarity (plan updated)
+- Inlined feature_extraction_settings constants into consumers
+
+## Open questions
+- Should incremental rebuilder retry on transient DB errors?
+```
+
+Keep it concise — one line per completed item, one line per pending item. Include commit hashes so you can find the code. Record decisions that changed the plan so the next session understands why the code differs from the original plan text.
+
+Use in-conversation TodoWrite for fine-grained step tracking within a session. Use `progress.md` for coarse-grained phase tracking across sessions.
