@@ -1,0 +1,70 @@
+# Testing Strategy
+
+Tests are written **bottom-up** after **top-down** implementation. You can't test a skeleton — you test completed code.
+
+## Test Pyramid
+
+```mermaid
+flowchart BT
+    LEAF["Leaf tests<br/>(integration, testcontainers)<br/>real DB, real S3, real queues"]
+    MODULE["Module tests<br/>(mocks OK — leaves are integration-tested)<br/>verify composition logic"]
+    E2E["E2E / local test<br/>(docker-compose stack)<br/>full pipeline, production-like"]
+
+    LEAF --> MODULE --> E2E
+```
+
+### Leaf tests (integration)
+
+Each leaf component gets integration tests using testcontainers:
+
+- **Real databases** — Postgres via testcontainers, seeded with representative data
+- **Real object storage** — LocalStack S3, with actual read/write operations
+- **Real queues** — LocalStack SQS, with actual send/receive
+- **No mocks at this level** — the leaf is the most concrete unit. If it works against real infrastructure, it works.
+
+Why integration at the leaf level: leaves contain the actual logic — SQL queries, S3 operations, feature extraction, scoring algorithms. Mocking these hides the bugs that matter most (wrong query, wrong S3 path, wrong serialization format).
+
+### Module tests (composition)
+
+After all leaves of a module are integration-tested, test the module itself:
+
+- **Mocks are fine** — the module's job is to wire leaves together. The leaves are already proven to work against real infrastructure.
+- **Test the composition** — verify that the module calls the right leaves in the right order with the right arguments.
+- **Test error handling** — verify that the module handles leaf failures correctly.
+- **Don't re-test leaf behavior** — if a leaf's integration test covers a scenario, the module test doesn't need to cover it again.
+
+### E2E / local test
+
+A docker-compose stack that mirrors production as closely as possible:
+
+- All real services (Postgres, LocalStack, Mailpit for email, etc.)
+- Init script that seeds realistic test data at production-like scale
+- End-to-end test that exercises the full pipeline from input to output
+- Test data consistency — IDs, foreign keys, and cross-references match
+
+This validates:
+- Service startup and configuration
+- End-to-end data flow through all components
+- Integration between components that were tested with mocks at the module level
+- Realistic timing and resource usage
+
+See `docs/local-tests/` in the project for the established pattern.
+
+## When to write tests
+
+| Implementation phase | Testing action |
+|---|---|
+| Phase 1: Skeleton | No tests. Skeletons have `# TODO` — nothing to test. |
+| Phase 2: Leaf completed | Write integration tests for that leaf immediately. |
+| Phase 2: All leaves of a module done | Write module composition tests. |
+| Phase 2: All components done | All leaf + module tests should pass. |
+| Phase 4: Local test | Create docker-compose stack + init script + E2E test. |
+
+## Test file organization
+
+Mirror the source structure:
+- `tests/unit/` or `tests/` — module composition tests (with mocks)
+- `tests/integration/` — leaf integration tests (with testcontainers)
+- `docker/docker-compose.local-test-<pipeline>.yml` — E2E stack
+- `docker/local-test-<pipeline>-init.py` — E2E data seeding
+- `docs/local-tests/<pipeline>.md` — E2E documentation
