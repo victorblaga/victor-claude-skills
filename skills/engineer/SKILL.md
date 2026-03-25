@@ -51,12 +51,14 @@ When the architect plan describes a refactoring, treat it as a migration:
 
 This avoids in-place editing of a live codebase, prevents half-migrated states, and gives you a clean rollback point (v1 still works until the switchover).
 
-### Commit cadence
+### Commit cadence and review checkpoints
 
 Commit after completing each level or module. This gives you:
 - Rollback points at each structural level
 - A readable git history showing the progression: skeleton → first component → second component → leaf details
 - Natural review points
+
+**After each phase (skeleton, each component group, tests), stop and present the work to the user for review.** Do not proceed to the next phase until the user has had a chance to inspect the output. Summarize what was done, list the files created/modified, and wait for the user's go-ahead. This is non-negotiable — the user must be able to course-correct between phases, not discover issues after everything is built.
 
 ### Discovery feeds back to architect
 
@@ -93,6 +95,17 @@ Create the top-level structure. Every module gets a file with:
 - Class/function signatures matching the plan's interfaces
 - `# TODO` markers for the body
 - Docstrings describing purpose (from the plan)
+- **Descriptive inline comments in stub methods** — not just `# TODO: implement`, but pseudocode-level comments that describe *what should happen*: what to call, what data flows where, what decisions are made. The skeleton should read like an implementation plan at the method level. The reader should understand the intent of every method without cross-referencing the plan document or v1 code. Example:
+  ```python
+  def _handle_message(self, message: dict) -> None:
+      """JSON decode -> parse_queue_message(expected_env) -> dispatch."""
+      # 1. json.loads(message["Body"])
+      # 2. parse_queue_message(payload) — validates all fields, rejects env mismatch
+      # 3. If ControlMessage: call _handle_control_message(message, ctrl.request_id)
+      # 4. If FacilityMatchingJob: call _handle_job_message(job, message)
+      # 5. On parse error: log warning, delete message (prevent redelivery loop)
+      raise NotImplementedError
+  ```
 
 At the end of this phase, the codebase should be importable (no `ImportError`) even though nothing works yet. The module graph is real.
 
