@@ -45,9 +45,11 @@ Bottom-up implementation (start with leaves, compose upward) risks building the 
 When the architect plan describes a refactoring, treat it as a migration:
 
 1. **Create v2 alongside v1** — new modules in a new namespace (e.g., `facility_matching_v2/` or a clearly separate package structure). Do not edit existing files.
-2. **Copy-paste what is preserved** — if the plan says "preserve this module," copy it into the v2 namespace. Don't import from v1 — make v2 self-contained.
-3. **Implement what is new** — build new components in v2 following the top-down process.
+2. **Build the new architecture first** — implement all new and rewritten components in v2 using the top-down process. Reference v1 code for understanding, but do not copy it into v2 yet. Use stubs and `NotImplementedError` where preserved logic will eventually go.
+3. **Copy preserved code last** — only after the v2 architecture is fully shaped and stable, copy code from v1 into the appropriate v2 locations. By this point you know exactly what fits, what needs adaptation, and what should be rewritten instead. Early copying anchors you on v1's structure and silently reintroduces suboptimal decisions into the new architecture.
 4. **Switchover** — when v2 is complete and tested, update the entry point to use v2. Delete v1. Rename v2 if needed.
+
+**Why defer v1 copying:** Copying early creates a false sense of progress and pollutes context with code that may not fit the new architecture. v2 is a rewrite — the new architecture should drive the code, not v1's legacy structure. When you copy early, you end up fixing imports and adapting code repeatedly as the architecture evolves. When you copy late, you do it once, correctly.
 
 This avoids in-place editing of a live codebase, prevents half-migrated states, and gives you a clean rollback point (v1 still works until the switchover).
 
