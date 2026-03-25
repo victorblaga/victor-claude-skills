@@ -83,13 +83,15 @@ Do not silently diverge from the plan. Do not gold-plate — if you see a "bette
 flowchart LR
     SKELETON["Phase 1<br/>Skeleton<br/>(top-level structure)"]
     COMPONENTS["Phase 2<br/>Components<br/>(zoom in, fractal)"]
-    TESTS["Phase 3<br/>Tests<br/>(bottom-up)"]
-    LOCAL["Phase 4<br/>Local Test<br/>(E2E validation)"]
-    CLEANUP["Phase 5<br/>Cleanup<br/>(delete v1, rename)"]
+    COUPLING["Phase 3<br/>Coupling Analysis<br/>(component graph)"]
+    TESTS["Phase 4<br/>Tests<br/>(bottom-up)"]
+    LOCAL["Phase 5<br/>Local Test<br/>(E2E validation)"]
+    CLEANUP["Phase 6<br/>Cleanup<br/>(delete v1, rename)"]
 
     SKELETON --> COMPONENTS
     COMPONENTS -->|"zoom deeper"| COMPONENTS
-    COMPONENTS -->|"all leaves done"| TESTS
+    COMPONENTS -->|"all leaves done"| COUPLING
+    COUPLING -->|"improvements applied"| TESTS
     TESTS --> LOCAL
     LOCAL --> CLEANUP
 ```
@@ -141,7 +143,7 @@ When a component has an implementation sketch in the plan (e.g., a generator pip
 
 ### Plan conformance check (major milestones)
 
-When the implementation is large enough that context drift is a real risk, run an independent verification agent at major milestones — specifically after Phase 2 (all components implemented) and before Phase 5 (cleanup/switchover). Use your judgement: evaluate the number of components, how long the implementation has been running, and whether the plan has complex cross-cutting concerns that are easy to forget.
+When the implementation is large enough that context drift is a real risk, run an independent verification agent at major milestones — specifically after Phase 2 (all components implemented) and before Phase 6 (cleanup/switchover). Use your judgement: evaluate the number of components, how long the implementation has been running, and whether the plan has complex cross-cutting concerns that are easy to forget.
 
 The verification agent reads ONLY the plan document and the current implementation. It does not see conversation history. Fresh context prevents "plan blindness" — the implementing agent has been staring at the code for hours and can drift from the plan without noticing. A fresh pair of eyes catches what familiarity hides.
 
@@ -156,7 +158,34 @@ The check is read-only. The verification agent does not modify code — it only 
 
 Skip this for trivially small implementations where you can hold the entire plan in working memory. For anything where you catch yourself thinking "I think the plan said..." instead of being certain — run the check. It pays for itself: catching a missed component before tests are written is far cheaper than discovering it during E2E validation.
 
-### Phase 3: Tests (bottom-up)
+### Phase 3: Coupling Analysis
+
+After all components are implemented and the plan conformance check passes, analyze the dependency structure of the codebase to identify coupling issues, unnecessary complexity, and structural improvements.
+
+**Step 1: Generate the component graph.** Use explore agents to read every file in the package and map out the full dependency graph — which module imports what, which classes own which collaborators, what's shared across boundaries. Be thorough: read every file, trace every import.
+
+**Step 2: Produce a `component-graph.md` document** in the plan directory (`docs/plans/<name>/component-graph.md`). This document contains:
+
+- **Ownership tree** — a `tree`-style (like `tree` on Linux) indented view showing who creates/owns each component. Indentation = "is owned by parent". Mark components that appear in multiple branches with `*` (shared). This is the primary view — it immediately reveals whether you have a clean tree or a tangled graph.
+- **Shared components summary** — a table listing every `*`-marked component: what uses it, why it's shared, and whether the sharing is intentional (cross-cutting concern, stateless utility) or accidental (temporal coupling, convenience).
+- **Verdict** — is this mostly a tree or a tangle? Where are the cross-links? Are they justified?
+- **Dependency layers table** — acyclic layers from leaf (external-only deps) to entry point. This doubles as the bottom-up test order.
+
+**Step 3: Analyze and suggest improvements.** Based on the component graph, identify:
+
+- **Temporal coupling** — component A must be called before component B, but nothing enforces it. Example: `has_new_events()` must precede `changed_record_ids()` on the same instance.
+- **Shared mutable state** — multiple owners updating the same resource without clear ownership.
+- **Unnecessary dependencies** — a component receives a collaborator it only uses for one thing that could be passed as data instead.
+- **Lifecycle issues** — resources (connections, pools, file handles) without clear ownership or cleanup.
+- **Opportunities to simplify** — components that could be merged, split, or restructured to reduce the dependency count.
+
+Present each finding with a concrete suggestion. Discuss with the user before implementing — some coupling is intentional and acceptable.
+
+**Step 4: Implement agreed improvements.** After the user reviews, apply the structural changes. Update the component graph document to reflect the new state. Commit.
+
+This phase catches architectural issues that are invisible at the single-file level but obvious when you see the full graph. It's much cheaper to fix coupling before writing tests than after.
+
+### Phase 4: Tests (bottom-up)
 
 Tests are written after implementation, in the opposite direction:
 
@@ -166,7 +195,7 @@ Tests are written after implementation, in the opposite direction:
 
 See `references/testing-strategy.md` for detailed guidance.
 
-### Phase 4: Local Test (E2E validation)
+### Phase 5: Local Test (E2E validation)
 
 Create a local test environment that mirrors production:
 - Docker Compose stack with real services (Postgres, LocalStack for S3/SQS/EventBridge, etc.)
@@ -175,7 +204,7 @@ Create a local test environment that mirrors production:
 
 This is not optional — it's part of "done." See `docs/local-tests/` in the project for examples of this pattern.
 
-### Phase 5: Cleanup (refactor/migrate only)
+### Phase 6: Cleanup (refactor/migrate only)
 
 After v2 is complete and tested:
 1. Update the entry point to use v2
