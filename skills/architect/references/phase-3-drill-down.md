@@ -106,14 +106,50 @@ These anchors are essential for the implementor — they show exactly what exist
 Each drill-down round follows the same pattern:
 1. User picks a branch
 2. Plugin expands it (reading code or asking questions)
-3. Plugin writes updated outline to disk
-4. Plugin presents summary/diff
+3. **Plugin writes the expansion to the plan document on disk** — diagrams, sub-components, everything. Never present new structure only in conversation.
+4. Plugin presents a brief summary of what was added
 5. User gives feedback or picks the next branch
 
 The user can also:
 - Give feedback on expanded sections ("this should be structured differently")
 - Ask the plugin to re-expand a section with different decomposition
 - Go back up and restructure a parent node (changes cascade — the plugin updates children)
+
+## Higher-level reorganization during drill-down
+
+It is normal and expected that drilling into components reveals that the top-level structure needs to change. For example, zooming into a 10-phase pipeline might reveal it's better organized as 3 macro phases with parallel tracks.
+
+When this happens:
+1. **Embrace it** — this is the design process working correctly. The initial outline was a hypothesis; drill-down tests it.
+2. **Update the top-level diagram and structure** to reflect the new understanding.
+3. **Mark superseded sections** with a note rather than deleting them — they document the current code structure even if the target architecture has evolved.
+4. **Don't fight it** — if the user proposes a reorganization, update the document to reflect it. The plan must always represent the current best understanding.
+
+## Consistency reviews
+
+As the document evolves through multiple drill-down rounds, diagrams and text can drift out of sync. Periodically (every 3-4 drill-down rounds, or when the user asks):
+
+1. **Read the full document** end to end
+2. **Flag inconsistencies** — text that references old diagram labels, stale component descriptions, contradictions between sections
+3. **Fix them in one pass** — update the document on disk, then summarize what changed
+
+Common drift patterns:
+- Diagram labels updated but text descriptions still reference old names
+- Component listed as "no changes" but later sections describe changes to it
+- Domain entities table missing new entities introduced during drill-down
+- Dead code section contradicting "modules with no changes" section
+
+## Implementation sketches for complex components
+
+When drilling into a component that involves non-obvious algorithms, data flow, or streaming patterns, include a **target implementation sketch** directly in the plan document. This is not pseudo-code — it's real, runnable code that validates the design is feasible.
+
+Good candidates for implementation sketches:
+- Streaming/pipeline compositions (generators, iterators)
+- Algorithm outlines (union-find, graph construction, connected components)
+- Query interface contracts (class with method signatures + docstrings)
+- Complex state machines
+
+Keep sketches focused — show the composition and data flow, not error handling or logging. The goal is to verify the design works, not to write production code.
 
 ## Completion
 

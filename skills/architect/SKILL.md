@@ -73,12 +73,37 @@ The outline document evolves through all phases. It contains:
 - Current code anchors (refactor/migrate — where existing code lives)
 - Findings appendix (refactor/migrate — design principle violations)
 
-## Interaction Pattern
+## Core Working Principles
 
-1. **Always write to disk first** — the document lives on disk, not in conversation
-2. **Present a summary/diff** in conversation after each update
-3. **User reviews in their editor** (or mermaid previewer for diagrams)
-4. **Ask at checkpoints**: "Happy with this level? Or adjust before we go deeper?"
+### The plan document is the source of truth
+
+1. **Always write to disk first** — every diagram, every component description, every design decision goes into the plan document BEFORE appearing in conversation. The user needs to see mermaid diagrams rendered in their editor/previewer, not as raw text in chat.
+2. **Never dump analysis into conversation without writing it to disk** — if you produce a diagram, a component breakdown, or an implementation sketch, it goes in the plan first. Then summarize briefly in conversation.
+3. **Present a short summary/diff** in conversation after each update — not the full content, just what changed and where.
+4. **User reviews in their editor** (or mermaid previewer for diagrams).
+5. **Ask at checkpoints**: "Happy with this level? Or adjust before we go deeper?"
+
+### Top-down, diagram-first
+
+The fundamental working pattern is: **start at the highest level with a diagram, get the shape right, then zoom into individual components one at a time.**
+
+1. **Start with the bird's-eye view** — a single mermaid diagram showing the major components and how they relate. Get this right before anything else.
+2. **Map out components at the current level** — brief descriptions of what each does, what it hides, how it interfaces with others.
+3. **Get user feedback on the shape** — don't drill deeper until the user confirms the current level makes sense.
+4. **Zoom into the most complex or uncertain component** — expand it with its own diagram and sub-components.
+5. **Repeat** — each zoom-in follows the same pattern: diagram first, then components, then feedback.
+
+This is non-negotiable. Do not skip levels. Do not jump to implementation details before the structure is agreed.
+
+### Loose coupling and information hiding
+
+When proposing the target architecture, actively design for:
+
+- **Loose coupling** — components should communicate through narrow, well-defined interfaces. If two components share a lot of knowledge, they're too coupled. Look for ways to make them independent (shared data stores, message passing, query interfaces).
+- **Information hiding** — each component should hide its implementation details behind a clean interface. Callers should never need to know the internal data structures, algorithms, or storage mechanisms. If the backing store could change (e.g., in-memory dicts → Redis), only the component itself should need to change.
+- **Query interfaces over data exposure** — instead of exposing raw data structures (dicts, DataFrames, indices), expose query methods that answer questions. This keeps consumers independent of the implementation.
+
+When reviewing a proposed component boundary, ask: "If I replaced the internals of this component, would its consumers need to change?" If yes, the boundary is leaking.
 
 ## Project-Local Guidelines Discovery
 

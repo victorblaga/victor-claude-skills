@@ -71,6 +71,8 @@ The document starts with these sections and grows as drill-down progresses:
 
 ## Mermaid Diagram
 
+The diagram is the most important artifact at this phase. It establishes the shape of the system — everything else is commentary.
+
 At the top level, use a **block diagram** or **flowchart** that shows containment and relationships between major components. Choose the diagram type that best communicates the structure:
 
 - **Block diagram** — when the key insight is what contains what (packages, modules, layers)
@@ -80,6 +82,15 @@ At the top level, use a **block diagram** or **flowchart** that shows containmen
 Keep the top-level diagram simple — 5-10 nodes maximum. Detail comes in Phase 3 when drilling into individual nodes.
 
 Use meaningful labels. Each node should be understandable without reading the surrounding text.
+
+### Designing for loose coupling
+
+When drawing the diagram, pay attention to the edges between components. Each edge represents a dependency — a reason for one component to know about another. Minimize these:
+
+- Components should communicate through **narrow interfaces**, not shared state
+- Where two components need data from each other, introduce a **shared data store** or **query interface** rather than direct coupling
+- If a component exposes internal data structures to its consumers, redesign — expose **query methods** instead
+- Ask: "Could these two components run in separate processes?" If not, explore why — the coupling may be unnecessary
 
 ## Component Sections
 

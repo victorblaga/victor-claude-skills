@@ -56,6 +56,15 @@ When a design decision is reflected in multiple modules, those modules are coupl
 - What should callers never need to know?
 - What decisions can remain internal?
 
+### Query interfaces over data exposure
+
+A common form of information leakage is exposing raw data structures (dicts, DataFrames, indices) to consumers. Instead, expose **query methods** that answer questions:
+
+- Bad: `cache.hash_to_source_record_ids[hash]` — consumer knows the internal dict structure
+- Good: `cache.masters_for_hash(hash) -> set[str]` — consumer asks a question, gets an answer
+
+This matters because the backing implementation can change (in-memory → Redis, dict → database) without affecting consumers. Design components as **queryable services**, not **data bags**.
+
 ---
 
 ## Different Layer, Different Abstraction
