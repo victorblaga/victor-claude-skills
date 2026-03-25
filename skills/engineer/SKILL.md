@@ -95,16 +95,24 @@ Create the top-level structure. Every module gets a file with:
 - Class/function signatures matching the plan's interfaces
 - `# TODO` markers for the body
 - Docstrings describing purpose (from the plan)
-- **Descriptive inline comments in stub methods** — not just `# TODO: implement`, but pseudocode-level comments that describe *what should happen*: what to call, what data flows where, what decisions are made. The skeleton should read like an implementation plan at the method level. The reader should understand the intent of every method without cross-referencing the plan document or v1 code. Example:
+- **Descriptive inline comments in stub methods** — not just `# TODO: implement`, but high-level intent comments that describe *what should happen*. The reader should understand the purpose and flow of every method without cross-referencing the plan document or v1 code. Describe intent, not implementation — no commented-out code, no API call signatures, no argument lists. Think "what and why", not "how". Example:
   ```python
   def _handle_message(self, message: dict) -> None:
       """JSON decode -> parse_queue_message(expected_env) -> dispatch."""
-      # 1. json.loads(message["Body"])
-      # 2. parse_queue_message(payload) — validates all fields, rejects env mismatch
-      # 3. If ControlMessage: call _handle_control_message(message, ctrl.request_id)
-      # 4. If FacilityMatchingJob: call _handle_job_message(job, message)
-      # 5. On parse error: log warning, delete message (prevent redelivery loop)
+      # 1. Parse and validate the message body
+      # 2. Dispatch to control or job handler based on message type
+      # 3. On parse error: delete the invalid message to prevent redelivery loop
       raise NotImplementedError
+  ```
+  Bad example (too much implementation detail — this is just harder-to-read code):
+  ```python
+  def _poll_sqs(self) -> list[dict]:
+      # 1. Call self._sqs.receive_message(
+      #        QueueUrl=self._config.queue_url,
+      #        MaxNumberOfMessages=1,
+      #        WaitTimeSeconds=self._config.polling_wait_seconds,
+      #    )
+      # 2. On success: reset consecutive_errors counter, return response.get("Messages", [])
   ```
 
 At the end of this phase, the codebase should be importable (no `ImportError`) even though nothing works yet. The module graph is real.
@@ -126,7 +134,7 @@ When a component has an implementation sketch in the plan (e.g., a generator pip
 
 ### Plan conformance check (major milestones)
 
-For large implementations (5+ components), run an independent verification agent at major milestones — specifically after Phase 2 (all components implemented) and before Phase 5 (cleanup/switchover).
+When the implementation is large enough that context drift is a real risk, run an independent verification agent at major milestones — specifically after Phase 2 (all components implemented) and before Phase 5 (cleanup/switchover). Use your judgement: evaluate the number of components, how long the implementation has been running, and whether the plan has complex cross-cutting concerns that are easy to forget.
 
 The verification agent reads ONLY the plan document and the current implementation. It does not see conversation history. Fresh context prevents "plan blindness" — the implementing agent has been staring at the code for hours and can drift from the plan without noticing. A fresh pair of eyes catches what familiarity hides.
 
@@ -139,7 +147,7 @@ The agent produces a conformance checklist:
 
 The check is read-only. The verification agent does not modify code — it only reports findings. The implementing agent (or the user) decides what to do with the results.
 
-For small implementations (<5 components), this is optional. For anything larger, it pays for itself — catching a missed component before tests are written is far cheaper than discovering it during E2E validation.
+Skip this for trivially small implementations where you can hold the entire plan in working memory. For anything where you catch yourself thinking "I think the plan said..." instead of being certain — run the check. It pays for itself: catching a missed component before tests are written is far cheaper than discovering it during E2E validation.
 
 ### Phase 3: Tests (bottom-up)
 
