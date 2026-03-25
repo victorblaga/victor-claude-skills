@@ -124,6 +124,23 @@ Pick the next component to flesh out. Follow the plan's component breakdown:
 
 When a component has an implementation sketch in the plan (e.g., a generator pipeline), use it as the starting point — the architect already validated the design.
 
+### Plan conformance check (major milestones)
+
+For large implementations (5+ components), run an independent verification agent at major milestones — specifically after Phase 2 (all components implemented) and before Phase 5 (cleanup/switchover).
+
+The verification agent reads ONLY the plan document and the current implementation. It does not see conversation history. Fresh context prevents "plan blindness" — the implementing agent has been staring at the code for hours and can drift from the plan without noticing. A fresh pair of eyes catches what familiarity hides.
+
+The agent produces a conformance checklist:
+
+- **Component coverage:** For each component in the plan — does the implementation exist? Does it match the planned interface (signatures, types, module location)?
+- **Dead code:** For each "dead code to remove" item in the plan — is it still referenced anywhere?
+- **Wiring:** For each new artifact or data flow — is it wired end-to-end? Are there dangling stubs, unconnected modules, or `# TODO` markers that should have been resolved?
+- **Silent drops:** Are there any plan items that were silently dropped or partially implemented?
+
+The check is read-only. The verification agent does not modify code — it only reports findings. The implementing agent (or the user) decides what to do with the results.
+
+For small implementations (<5 components), this is optional. For anything larger, it pays for itself — catching a missed component before tests are written is far cheaper than discovering it during E2E validation.
+
 ### Phase 3: Tests (bottom-up)
 
 Tests are written after implementation, in the opposite direction:
