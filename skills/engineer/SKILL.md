@@ -204,6 +204,8 @@ Tests are written after implementation, in the opposite direction:
 
 Present findings conversationally to the user. Act on agreed improvements before moving to the next batch. This is analogous to the review checkpoints between implementation phases.
 
+**Keep the component graph in sync.** Testing often reveals cleaner boundaries — a module gets split, a function moves to a different component, an interface changes. Whenever testing leads to refactoring production code (splitting modules, moving functions, changing interfaces), refresh the component graph document (`docs/plans/<name>/component-graph.md`) to reflect the new structure. The component graph from Phase 3 described the pre-test architecture; if the architecture evolved during testing, the document must be updated before moving to Phase 5.
+
 See `references/testing-strategy.md` for detailed guidance.
 
 ### Phase 5: Local Test (E2E validation)
