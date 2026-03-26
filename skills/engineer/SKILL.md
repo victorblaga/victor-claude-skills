@@ -195,6 +195,14 @@ Tests are written after implementation, in the opposite direction:
 1. **Leaf tests first** — integration tests using testcontainers (real DB, real S3 via LocalStack, real queues). The leaf is the most concrete unit — test it against real infrastructure.
 2. **Module tests** — after all leaves of a module are tested, write tests for the module's composition logic. Mocks are acceptable here — the leaves are already integration-tested, so the module test only needs to verify that the leaves are wired correctly.
 3. **Don't test skeletons** — `NotImplementedError` stubs are not testable. Only test completed implementations.
+4. **Test only behavior** — pure data definitions (dataclasses, type aliases, constants with no logic) don't need tests. Only test modules that contain behavior (functions, methods, state machines). If a module is just dataclass definitions, skip it. If a module mixes data and behavior, consider splitting it: data definitions in one file, behavior (parsing, validation, etc.) in another. The split makes the "no tests needed" decision obvious and keeps both files focused.
+
+**Post-batch review checkpoint.** After each batch of tests is written and passing, stop and run a dedicated review agent to check:
+- Test sanity and coverage (missing edge cases, redundant tests)
+- Test infrastructure quality (fixture scoping, factory patterns)
+- Architectural insights discovered by reading and testing the code
+
+Present findings conversationally to the user. Act on agreed improvements before moving to the next batch. This is analogous to the review checkpoints between implementation phases.
 
 See `references/testing-strategy.md` for detailed guidance.
 
