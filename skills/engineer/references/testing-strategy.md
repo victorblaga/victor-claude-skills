@@ -69,8 +69,27 @@ See `docs/local-tests/` in the project for the established pattern.
 
 **No artificial unit vs integration separation.** Don't separate tests into `tests/unit/` and `tests/integration/` folders. Don't use `@pytest.mark.integration` markers. All tests are just tests. Testcontainer startup is fast (~2-4 seconds) and session-scoped, so there's no meaningful speed penalty. If larger E2E tests emerge later that need separate treatment, deal with that then — don't pre-optimize the structure.
 
-Mirror the source structure under a flat `tests/` directory:
-- `tests/` — all tests (leaf integration + module composition)
+**Mirror the production package structure.** Test files should mirror the production code's directory hierarchy under `tests/`. If production code lives at `my_package/workflows/cache_builder/streaming.py`, the test lives at `tests/workflows/cache_builder/test_streaming.py`. Top-level modules (e.g. `my_package/parsing.py`) stay at `tests/test_parsing.py`. This makes it immediately obvious which production module a test covers, and scales naturally as the package grows — no reorganization needed when subpackages are added.
+
+```
+# Production                              # Tests
+my_package/                               tests/
+├── parsing.py                            ├── test_parsing.py
+├── config.py                             ├── test_config.py
+├── workflows/                            ├── workflows/
+│   ├── cache_builder/                    │   ├── cache_builder/
+│   │   ├── streaming.py                  │   │   ├── test_streaming.py
+│   │   └── snapshot.py                   │   │   └── test_snapshot.py
+│   └── ingest/                           │   └── ingest/
+│       └── pipeline.py                   │       └── test_pipeline.py
+└── storage/                              ├── storage/
+    ├── s3.py                             │   ├── test_s3.py
+    └── dynamo.py                         │   └── test_dynamo.py
+                                          └── conftest.py
+```
+
+Directory layout:
+- `tests/` — all tests (leaf integration + module composition), mirroring production structure
 - `tests/conftest.py` — root conftest with session-scoped container fixtures
 - `docker/docker-compose.local-test-<pipeline>.yml` — E2E stack
 - `docker/local-test-<pipeline>-init.py` — E2E data seeding
