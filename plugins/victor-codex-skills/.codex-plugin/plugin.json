@@ -1,0 +1,46 @@
+{
+  "name": "victor-codex-skills",
+  "version": "1.8.0",
+  "description": "Codex-native variants of Victor Blaga's Claude workflow skills. The Claude skills remain canonical.",
+  "author": {
+    "name": "Victor Blaga",
+    "url": "https://github.com/victorblaga"
+  },
+  "homepage": "https://github.com/victorblaga/victor-claude-skills",
+  "repository": "https://github.com/victorblaga/victor-claude-skills",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "codex",
+    "deep-implement",
+    "mega-review",
+    "review-triage",
+    "grill-me",
+    "cross-examine",
+    "architect",
+    "engineer",
+    "surgeon",
+    "long-form-article"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Victor Codex Skills",
+    "shortDescription": "Codex-native workflow skills derived from canonical Claude prompts",
+    "longDescription": "Install Victor Blaga's workflow skills for Codex, including deep implementation, multi-dimensional review, review triage, architecture planning, structural refactoring, codebase cross-examination, and long-form writing support.",
+    "developerName": "Victor Blaga",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/victorblaga/victor-claude-skills",
+    "privacyPolicyURL": "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",
+    "termsOfServiceURL": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    "defaultPrompt": [
+      "Run a deep implementation workflow from a proposal or review report",
+      "Do a mega-review and then triage the findings into a plan",
+      "Design a refactor top-down and then implement it in Codex"
+    ],
+    "brandColor": "#1F6FEB"
+  }
+}
