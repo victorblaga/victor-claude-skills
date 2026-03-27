@@ -154,6 +154,25 @@ Note the framing: the new design leads, and v1 logic adapts to fit it. Not the o
 
 Phase 1 exploration of the old codebase reveals hidden requirements — edge cases, invariants, non-obvious business rules. These must be captured in the outline, even if they aren't obvious from a clean-sheet design. Add them as annotations on the relevant components.
 
+## Data Flow Audit
+
+Before presenting the outline, audit every edge in the diagram — what data crosses each boundary?
+
+For each arrow between components, name the type that flows across it. Not "data" or "result" — a specific named type. If you can't name it, the boundary is underspecified.
+
+| From | To | What flows | Type |
+|------|-----|-----------|------|
+| Builder | Repository | A built snapshot | `Snapshot` |
+| Repository | ModelScoring | Query results | `list[ModelSiteRow]` |
+
+**Red flags during this audit:**
+- **`dict` or `Any` crossing a boundary** — make it a dataclass. A `dict[str, Any]` crossing a module boundary is a bug waiting to happen.
+- **Primitive obsession** — raw `str` where a domain type should exist (paths, IDs, timestamps, watermarks). If two strings have different semantics, they need different types.
+- **Method signatures with >3 parameters** — the parameters likely want to be a single typed object.
+- **Same data assembled from scratch in multiple places** — it should be constructed once and passed as a typed value.
+
+Update the Domain Entities table with every type identified during this audit. These become the implementation's data types — the architect defines them, the engineer uses them.
+
 ## Design Principles Review
 
 Before presenting the outline, review each component boundary against the Design Questions in `design-principles.md`:

@@ -53,26 +53,36 @@ The user can always:
 
 ## Expanding a Node
 
-When expanding a component, add sub-components following the same format as the top-level structure:
+When expanding a component, add sub-components following the same format as the top-level structure. **Interfaces must specify concrete types, not prose descriptions.**
 
 ```markdown
 ### <Component>
 
 **Purpose:** <one sentence>
-**Interface:** <inputs, outputs, what callers need to know>
+**Interface:** <typed signatures — what goes in, what comes out>
 **Hides:** <what complexity is internal>
 **v1 reference:** <file paths where relevant logic lives> (refactor/migrate only, optional)
 
 #### <Sub-component 1>
 
 **Purpose:** <one sentence>
-**Interface:** <inputs, outputs>
+**Interface:** <typed signatures>
 **Hides:** <internal complexity>
 **v1 reference:** <file paths> (refactor/migrate only, optional)
 
 #### <Sub-component 2>
 ...
 ```
+
+### Typed interfaces are mandatory
+
+Every interface must name its input and output types explicitly. Not "takes site data and returns scores" — `score(sites: list[StudySiteRow]) -> list[SiteScore]`. This forces you to:
+
+1. **Define the types early** — if `StudySiteRow` doesn't exist yet, define it in the Domain Entities table now. The engineer shouldn't have to invent types during implementation.
+2. **Catch primitive obsession** — if a method takes `(str, str, str, int, int, int)`, those six values are probably a single typed object.
+3. **Validate the flow** — if component A produces `Snapshot` and component B expects `dict`, there's a design gap.
+
+When you can't name a type, that's a signal the component's responsibility is unclear. Stop and clarify before proceeding.
 
 For each expanded component, also add or update a **mermaid diagram** showing the internal structure. Use the diagram type that fits:
 - **Flowchart** for data/control flow within a workflow

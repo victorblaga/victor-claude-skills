@@ -222,6 +222,8 @@ Use this when evaluating code structure in the outline:
 - **Giant utility modules** — `utils.py`, `helpers.py`, `common.py` — give modules real names or inline the code
 - **ABC hierarchies for sequential steps** — use plain functions instead
 - **Leaking infrastructure mechanics** — AWS API shapes, SQL syntax, file path schemes exposed to callers
+- **Primitive obsession** — raw `str`, `int`, `dict` where a domain type should exist. If two strings have different semantics (S3 path vs timestamp vs snapshot ID), they need different types. A `dict[str, Any]` crossing a module boundary is a design failure — make it a dataclass.
+- **Fat method signatures** — methods with >3 parameters often indicate a missing typed object. `publish(path, markers, id, created_at, count1, count2, count3)` should be `publish(snapshot: Snapshot)`
 
 ---
 
@@ -234,6 +236,13 @@ Use this when evaluating code structure in the outline:
 - Could a caller use this without understanding the internals?
 - Am I splitting because of temporal order rather than information boundaries?
 - Does each layer provide a genuinely different abstraction?
+
+### When auditing data flow between components
+
+- Can I name the type that crosses this boundary? (If not, the boundary is underspecified)
+- Is the type a domain concept or a raw container? (`Snapshot` vs `dict[str, Any]`)
+- Could I accidentally pass the wrong thing? (Two `str` params with different semantics = missing types)
+- Does the same data get assembled from parts in multiple places? (It should be one typed object, constructed once)
 
 ### When proposing restructuring
 
