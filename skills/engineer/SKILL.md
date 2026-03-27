@@ -134,15 +134,38 @@ At the end of this phase, the codebase should be importable (no `ImportError`) e
 Pick the next component to flesh out. Follow the plan's component breakdown:
 
 1. Read the component's section in the plan (purpose, interface, what it hides, sub-components)
-2. If it has sub-components: create their files/classes with interfaces and `# TODO`
-3. If it's a leaf: write the full implementation
-4. **Commit** after each component is complete at its current level
+2. **Run the design pressure check** (see below) before writing any implementation
+3. If it has sub-components: create their files/classes with interfaces and `# TODO`
+4. If it's a leaf: write the full implementation
+5. **Commit** after each component is complete at its current level
 
 **Order:** Follow the plan's dependency graph — implement components that others depend on first (interfaces, types, query objects), then the components that use them. Within a level, prefer the simpler components first to build momentum.
 
 When a component has an implementation sketch in the plan (e.g., a generator pipeline), use it as the starting point — the architect already validated the design.
 
 **Respect the abstraction layers.** The plan designs components at specific abstraction levels — higher-level components speak in domain terms, leaf components handle infrastructure. During implementation, maintain this separation. If you find yourself writing SQL queries or file I/O inside a component that the plan describes in business terms, stop — there's likely a missing abstraction that the plan intended. Either find it in the plan or surface it to the user as a missing component.
+
+### Design pressure check (before each component)
+
+Before writing implementation code for a component, answer these questions. If any answer reveals a problem, fix the design before coding.
+
+**Data flow:**
+- What type flows into this component? Name it. If it's `dict`, `str`, or `Any` — introduce a domain type.
+- What type flows out? Name it. Same rule.
+- If the method signature has >3 parameters, they probably want to be a single typed object.
+
+**Narrative readability:**
+- Write the method body as a sequence of high-level steps in comments first (no code). Does it read like a story? Each step should be one sentence in domain language ("stage DQS sources", "resolve studies", "materialize snapshot"), not infrastructure language ("open connection", "execute SQL", "iterate rows").
+- If a step needs infrastructure, that's a separate function/class — the orchestrator speaks domain, the helper speaks infrastructure.
+
+**Responsibility check:**
+- Does this component do exactly one thing? If you're writing "and" in the description ("builds the database **and** uploads it **and** manages candidate state"), split it.
+- Does it hold state it doesn't own? If it receives a collaborator just to call one method once, pass the result as data instead.
+
+**Lifecycle clarity:**
+- If this component creates a resource (file, connection, temp directory), who cleans it up? Make ownership explicit — the creator owns the lifecycle unless explicitly transferred.
+
+This check takes 60 seconds and prevents the most common structural problems: primitive obsession, god methods, mixed abstraction levels, and unclear ownership. Do it every time — the cost of skipping is a full rewrite later.
 
 ### Plan conformance check (major milestones)
 

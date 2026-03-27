@@ -88,6 +88,16 @@ Read the target code thoroughly. Produce a structured diagnosis — a list of fi
 - Import cycles or awkward dependency direction
 - Type definitions far from where they're used
 
+**Narrative flow:**
+- Does a method read top-down like a story? Each line should follow from the previous without jumping to unrelated concerns. If you need to mentally context-switch while reading a method, the abstraction levels are mixed.
+- Are the steps named in domain language ("stage sources", "resolve studies") or infrastructure language ("open connection", "execute SQL")? Orchestrators should speak domain; helpers should speak infrastructure. Never both in the same method.
+- Can you describe what the method does in one sentence without "and"? If you say "it builds the database **and** uploads it **and** manages candidate state", that's three responsibilities.
+
+**Lifecycle ambiguity:**
+- Resources (files, connections, temp dirs) without clear ownership — who creates it, who cleans it up?
+- Objects that hold a reference to something they don't own and could outlive
+- Cleanup logic scattered across multiple methods instead of centralized (e.g. `close_and_delete()`)
+
 ### Severity levels
 
 Rank each finding:

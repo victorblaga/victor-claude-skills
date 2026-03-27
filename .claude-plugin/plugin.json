@@ -1,11 +1,11 @@
 {
   "name": "victor-claude-skills",
-  "description": "Custom Claude Code skills: deep-implement, mega-review, review-triage, grill-me, cross-examine, long-form-article, architect, engineer",
-  "version": "1.7.0",
+  "description": "Custom Claude Code skills: deep-implement, mega-review, review-triage, grill-me, cross-examine, long-form-article, architect, engineer, surgeon",
+  "version": "1.8.0",
   "author": {
     "name": "Victor Blaga"
   },
   "repository": "https://github.com/victorblaga/victor-claude-skills",
   "license": "MIT",
-  "keywords": ["skills", "deep-implement", "mega-review", "review-triage", "code-review", "triage", "grill-me", "cross-examine", "long-form-article", "writing", "architect", "engineer", "refactor", "design", "migrate", "implement"]
+  "keywords": ["skills", "deep-implement", "mega-review", "review-triage", "code-review", "triage", "grill-me", "cross-examine", "long-form-article", "writing", "architect", "engineer", "surgeon", "refactor", "design", "migrate", "implement"]
 }
