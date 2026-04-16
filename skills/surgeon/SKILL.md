@@ -38,6 +38,7 @@ The surgeon operates in iterative cycles. Each cycle: diagnose → present findi
 - **Parallel tool calls**: When reading the target files and related tests, make all independent reads in parallel. Opus 4.7 reasons more and uses tools less aggressively by default—explicitly parallelize file reads and searches.
 - **Minimalism guardrail**: Opus 4.7 can overengineer. When introducing new types or abstractions, prefer the minimum change that fixes the structural smell. Don't split a class into three just because you can—split it only if each resulting piece has clear, independent responsibility.
 - **Literal scope**: State explicitly when a refactor pattern applies broadly (e.g., "Apply this rename to *all* callers, not just the obvious ones").
+- **Context management tip for users**: If an operation introduces unexpected breakage or the wrong abstraction, use `/rewind` (Esc Esc) to jump back to just before the bad turn rather than adding corrective messages. This keeps the context window clean and avoids compounding reasoning overhead.
 
 ```mermaid
 flowchart LR

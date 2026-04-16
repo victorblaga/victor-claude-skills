@@ -97,6 +97,10 @@ Opus 4.7 excels at long-horizon agentic work, but its defaults differ from earli
 - **Minimalism guardrail**: Opus 4.7 can overengineer by adding unnecessary abstractions, extra files, or defensive boilerplate. During implementation, keep solutions simple and focused: only add helpers/abstractions that hide meaningful complexity; don't add error handling for impossible scenarios; don't create extra config or utilities "just in case."
 - **Task packaging**: In the first turn, provide the full problem statement, intent, constraints, acceptance criteria, and relevant file locations. Avoid dribbling requirements across turns—each user turn adds reasoning overhead.
 - **Context hygiene**: Use subagents for codebase exploration and implementation tasks to keep the main conversation lean. The main thread should orchestrate; heavy tool output should live in subagent contexts.
+- **Subagent mental test**: Before spawning a subagent, ask "Will I need this tool output again, or just the conclusion?" If only the conclusion matters, have the subagent return a concise summary and keep the raw tool noise in its own context. If you'll need to reference detailed output repeatedly, write it to disk and pass the file path forward.
+- **Subagent prompt structure**: When feeding large documents (proposals, plans, design guides) to subagents, put the longform documents near the top of the prompt and the specific task/query at the end. This improves subagent performance by up to 30%.
+- **Proactive checkpointing**: If a phase involves extensive exploration or many tool calls, save progress to `status.md` or the relevant artifact mid-phase. Do not wait until the phase is complete to checkpoint. This prevents loss of state if context compacts or the session is interrupted.
+- **Context management tip for users**: If an implementation or validation direction goes wrong, use `/rewind` (Esc Esc) to jump back to just before the bad turn rather than adding corrective messages. This keeps the context window clean and avoids compounding reasoning overhead.
 
 ### Status File
 

@@ -27,6 +27,8 @@ Opus 4.7 is meaningfully better at finding bugs than prior models, but code-revi
 - **Parallel subagents**: Launch all applicable dimension subagents simultaneously in a single turn. Opus 4.7 spawns fewer subagents by default—explicitly fan out.
 - **Parallel tool calls**: Tell subagents to read files and run searches in parallel when independent.
 - **Literal scope**: State explicitly when a checklist applies to all files (e.g., "Check *every* file in the target scope, not just the obvious ones").
+- **Subagent mental test**: Before spawning an Explore subagent from a dimension agent, apply the test: "Will I need this tool output again, or just the conclusion?" Dimension agents should typically only need the conclusion, so they can spawn fresh-context subagents freely. The Consolidator sees only the dimension summaries, keeping its context lean.
+- **Quote-grounding for large scopes**: When reviewing large diffs or many files, dimension subagents should extract relevant code quotes with file:line references before analyzing. This cuts through noise and keeps reasoning anchored to specific evidence.
 
 ## Parse the Request
 

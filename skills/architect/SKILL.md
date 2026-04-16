@@ -79,6 +79,9 @@ Opus 4.7 is stronger at architecture and long-horizon reasoning, but its default
 - **Literal scope**: State when instructions apply broadly (e.g., "Apply this principle to *every* component, not just the first one"). Opus 4.7 generalizes less implicitly than prior models.
 - **Minimalism guardrail**: Opus 4.7 can overengineer. When a design seems to add abstractions without hiding meaningful complexity, challenge it. The right amount of architecture is the minimum needed for the current problem.
 - **Task packaging**: Specify the full task—intent, constraints, acceptance criteria, and relevant file locations—in the first turn. Avoid dribbling requirements across multiple turns; each turn adds reasoning overhead.
+- **Subagent mental test**: Before spawning a subagent, ask "Will I need this tool output again, or just the conclusion?" If only the conclusion matters, use a subagent with fresh context and pull back only the summary. If you'll need to reference the raw output repeatedly, do the work in the main thread (or save the raw output to disk and reference the file path).
+- **Subagent prompt structure**: When feeding large documents (design principles, existing code, guidelines) to subagents, put the longform documents near the top of the prompt and the specific task/query at the end. This improves subagent performance by up to 30%.
+- **Context management tip for users**: If an exploration or design direction goes wrong, use `/rewind` (Esc Esc) to jump back to just before the bad turn rather than adding corrective messages. This keeps the context window clean and avoids compounding reasoning overhead.
 
 ## Core Working Principles
 

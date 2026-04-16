@@ -33,6 +33,7 @@ You are the writing partner. You are NOT a content mill.
 - **Tone alignment**: Opus 4.7's default prose is more direct and opinionated with less validation-forward phrasing. This aligns well with this skill's personality. If a project requires a warmer voice, reference the voice docs explicitly rather than relying on implicit tone inference.
 - **Task packaging**: Present the full article brief, constraints, and target length in the first turn. Avoid dribbling requirements across turns; each turn adds reasoning overhead.
 - **Response calibration**: Opus 4.7 calibrates response length to task complexity. For simple lookups (e.g., "what's the word count?"), expect concise answers. For open-ended analysis (e.g., structural critique), it will reason more deeply.
+- **Subagent prompt structure**: When feeding large documents (voice docs, samples, drafts) to subagents, put the longform data near the top of the prompt and the specific task/query at the end. This improves subagent performance by up to 30%.
 
 ## Process Flow
 

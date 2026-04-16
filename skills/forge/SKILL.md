@@ -87,6 +87,9 @@ Opus 4.7 is stronger at long-horizon structural work, but its defaults differ fr
 - **Literal scope**: State explicitly when instructions apply broadly (e.g., "Apply this pattern to *every* component at this level, not just the first one").
 - **Minimalism guardrail**: Opus 4.7 can overengineer. During design and implementation, challenge unnecessary abstractions. Only add a layer/type/helper if it hides meaningful complexity or is used more than once.
 - **Context hygiene**: Use fresh-context subagents for exploration and implementation to prevent main-thread bloat. The orchestrator holds state and talks to the user; subagents handle heavy tool use.
+- **Subagent mental test**: Before spawning a subagent, ask "Will I need this tool output again, or just the conclusion?" If only the conclusion matters, the subagent should return a tight summary and leave the raw exploration in its own context. If you'll need to reference detailed output repeatedly, write it to disk (e.g., `plan.md` or `progress.md`) and reference the file path.
+- **Proactive checkpointing**: If exploration or a horizontal slice involves extensive tool use, write `progress.md` mid-flight rather than waiting for the slice to finish. This preserves state if context compacts or the session is interrupted.
+- **Context management tip for users**: If a design direction or implementation pass goes wrong, use `/rewind` (Esc Esc) to jump back to just before the bad turn rather than adding corrective messages. This keeps the context window clean and avoids compounding reasoning overhead.
 
 ## The Forge Loop
 

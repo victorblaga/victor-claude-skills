@@ -30,6 +30,8 @@ The engineer implements exactly what the plan describes. If it discovers the pla
 - **Literal scope**: State explicitly when a rule applies broadly (e.g., "Apply this naming convention to *every* new module, not just the current one").
 - **Minimalism guardrail**: Opus 4.7 can overengineer. Do not add extra abstractions, helper files, or defensive code beyond what the plan specifies. Only create a new module/type if it hides meaningful complexity.
 - **Subagent use**: Spawn subagents in parallel for independent verification tasks. Do not spawn a subagent for work you can complete directly in a single response.
+- **Subagent prompt structure**: When feeding large plan documents or design guides to subagents, put the longform content near the top of the prompt and the specific task/query at the end. This improves subagent performance by up to 30%.
+- **Context management tip for users**: If an implementation direction goes wrong (e.g., a component doesn't fit the plan), use `/rewind` (Esc Esc) to jump back to just before the bad turn rather than adding corrective messages. This keeps the context window clean and avoids compounding reasoning overhead.
 
 ## Core Principles
 
