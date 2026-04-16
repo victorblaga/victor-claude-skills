@@ -18,6 +18,15 @@ Comprehensive, parallel code review across multiple dimensions. Each dimension i
 - **Use subagents liberally** — each dimension runs as a parallel subagent.
 - **Output is always under a dedicated review directory** — see Output Directory below.
 
+## Execution Notes
+
+- **Coverage over filtering**: In every dimension prompt, explicitly instruct agents to *report every issue they find*, including uncertain or low-severity ones. The calibration step handles severity filtering; the dimension agents' job is coverage.
+- **Parallel subagents**: Launch all applicable dimension subagents simultaneously in a single turn. Spawn fewer subagents by default—explicitly fan out.
+- **Parallel tool calls**: Tell subagents to read files and run searches in parallel when independent.
+- **Literal scope**: State explicitly when a checklist applies to all files (e.g., "Check *every* file in the target scope, not just the obvious ones").
+- **Subagent mental test**: Before spawning an Explore subagent from a dimension agent, apply the test: "Will I need this tool output again, or just the conclusion?" Dimension agents should typically only need the conclusion, so they can spawn fresh-context subagents freely. The Consolidator sees only the dimension summaries, keeping its context lean.
+- **Quote-grounding for large scopes**: When reviewing large diffs or many files, dimension subagents should extract relevant code quotes with file:line references before analyzing. This cuts through noise and keeps reasoning anchored to specific evidence.
+
 ## Parse the Request
 
 Extract from the user's message:
@@ -136,6 +145,8 @@ You are a Code Quality reviewer. Analyze the target code for adherence to clean 
 
 **You are READ-ONLY. Do not modify any code.**
 
+**Coverage rule:** Report every issue you find, including uncertain or low-severity ones. Do not self-filter for importance or confidence at this stage; the calibration step handles severity ranking. It is better to surface a finding that later gets downgraded than to silently drop a real bug. For each finding, include your confidence level and estimated severity.
+
 **Review checklist:**
 - Pythonic idioms (list comprehensions, context managers, f-strings, walrus operator where appropriate)
 - Readability — can a new developer follow the code without excessive jumping between files?
@@ -184,6 +195,8 @@ You are an Architecture reviewer. Analyze the target code for architectural soun
 **Background context:** {USER_CONTEXT}
 
 **You are READ-ONLY. Do not modify any code.**
+
+**Coverage rule:** Report every issue you find, including uncertain or low-severity ones. Do not self-filter for importance or confidence at this stage; the calibration step handles severity ranking. It is better to surface a finding that later gets downgraded than to silently drop a real bug. For each finding, include your confidence level and estimated severity.
 
 **Review checklist:**
 - Adherence to the documented architecture (orchestrator-managed vs standalone pipeline patterns)
@@ -236,6 +249,8 @@ You are a Correctness reviewer. Analyze the target code for functional correctne
 
 **You are READ-ONLY. Do not modify any code.**
 
+**Coverage rule:** Report every issue you find, including uncertain or low-severity ones. Do not self-filter for importance or confidence at this stage; the calibration step handles severity ranking. It is better to surface a finding that later gets downgraded than to silently drop a real bug. For each finding, include your confidence level and estimated severity.
+
 **Review checklist:**
 - Logic errors — are conditionals, loops, and data transformations correct?
 - Edge cases — what happens with empty inputs, None values, missing keys, boundary values?
@@ -284,6 +299,8 @@ You are a Test Quality reviewer. Analyze the test code with the principle: "test
 **Background context:** {USER_CONTEXT}
 
 **You are READ-ONLY. Do not modify any code.**
+
+**Coverage rule:** Report every issue you find, including uncertain or low-severity ones. Do not self-filter for importance or confidence at this stage; the calibration step handles severity ranking. It is better to surface a finding that later gets downgraded than to silently drop a real bug. For each finding, include your confidence level and estimated severity.
 
 **Review checklist:**
 - Test coverage — are critical code paths exercised? Are there obvious gaps?
@@ -336,6 +353,8 @@ You are a Security & Error Handling reviewer. Analyze the target code for securi
 
 **You are READ-ONLY. Do not modify any code.**
 
+**Coverage rule:** Report every issue you find, including uncertain or low-severity ones. Do not self-filter for importance or confidence at this stage; the calibration step handles severity ranking. It is better to surface a finding that later gets downgraded than to silently drop a real bug. For each finding, include your confidence level and estimated severity.
+
 **Review checklist:**
 - Exception handling — are specific exceptions caught (not bare except)?
 - DynamoDB errors — is exc.response["Error"]["Code"] checked correctly?
@@ -387,6 +406,8 @@ You are a Pattern Conformity reviewer. Your job is to determine whether new or c
 **Background context:** {USER_CONTEXT}
 
 **You are READ-ONLY. Do not modify any code.**
+
+**Coverage rule:** Report every issue you find, including uncertain or low-severity ones. Do not self-filter for importance or confidence at this stage; the calibration step handles severity ranking. It is better to surface a finding that later gets downgraded than to silently drop a real bug. For each finding, include your confidence level and estimated severity.
 
 **Approach:**
 1. First, study the EXISTING codebase patterns by reading established files outside the PR diff. Look at other pipelines, other test files, other services — understand the "house style" beyond what the written guidelines capture.
@@ -445,6 +466,8 @@ This is NOT about finding bugs or style issues. This is about stepping back and 
 
 **You are READ-ONLY. Do not modify any code.**
 
+**Coverage rule:** Report every issue you find, including uncertain or low-severity ones. Do not self-filter for importance or confidence at this stage; the calibration step handles severity ranking. It is better to surface a finding that later gets downgraded than to silently drop a real bug. For each finding, include your confidence level and estimated severity.
+
 **Approach:**
 1. Understand the new code and the abstractions it introduces.
 2. Study the existing code that touches the same domain (shared modules, other pipelines, utilities).
@@ -502,6 +525,8 @@ You are a Performance reviewer. Analyze the target code for performance anti-pat
 **Background context:** {USER_CONTEXT}
 
 **You are READ-ONLY. Do not modify any code.**
+
+**Coverage rule:** Report every issue you find, including uncertain or low-severity ones. Do not self-filter for importance or confidence at this stage; the calibration step handles severity ranking. It is better to surface a finding that later gets downgraded than to silently drop a real bug. For each finding, include your confidence level and estimated severity.
 
 **Review checklist:**
 
@@ -584,6 +609,8 @@ You are a Verification agent. Your ONLY job is to check whether each finding fro
 
 **You are READ-ONLY. Do not modify any code.**
 
+**Coverage rule:** Report every issue you find, including uncertain or low-severity ones. Do not self-filter for importance or confidence at this stage; the calibration step handles severity ranking. It is better to surface a finding that later gets downgraded than to silently drop a real bug. For each finding, include your confidence level and estimated severity.
+
 **Findings to verify:**
 {BATCH_OF_FINDINGS}
 
@@ -615,6 +642,8 @@ You are the Calibrator — a senior engineer whose job is to assign accurate sev
 **Critical rule: If a finding is factually correct, it stays in the report.** You may adjust its severity, but you may NOT remove it. The only findings you can reject are those that the verification phase proved factually wrong.
 
 **You are READ-ONLY. Do not modify any code.**
+
+**Coverage rule:** Report every issue you find, including uncertain or low-severity ones. Do not self-filter for importance or confidence at this stage; the calibration step handles severity ranking. It is better to surface a finding that later gets downgraded than to silently drop a real bug. For each finding, include your confidence level and estimated severity.
 
 **Dimension agent findings (read these files):**
 {DIMENSION_OUTPUTS}
@@ -680,6 +709,8 @@ You are an Architectural Synthesis agent. Your job is meta-analysis: you read th
 **An architectural tension exists when:** new code reveals that the existing architecture's assumptions no longer hold. Individual reviewers flag symptoms (type mismatches, duplication, inconsistent patterns, workarounds) but nobody connects the dots to the root cause.
 
 **You are READ-ONLY. Do not modify any code.**
+
+**Coverage rule:** Report every issue you find, including uncertain or low-severity ones. Do not self-filter for importance or confidence at this stage; the calibration step handles severity ranking. It is better to surface a finding that later gets downgraded than to silently drop a real bug. For each finding, include your confidence level and estimated severity.
 
 **Calibrated findings (read these files):**
 {DIMENSION_OUTPUTS}

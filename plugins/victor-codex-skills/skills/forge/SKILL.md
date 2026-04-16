@@ -77,6 +77,16 @@ flowchart LR
 
 **Exemplars and corrections:** Progressive learning from user feedback uses `references/exemplars-and-corrections.md`.
 
+## Execution Notes
+
+- **Parallel subagents**: Launch explorer and implementer subagents in parallel when tasks are independent. Spawn multiple subagents in the same turn when fanning out across files or components. Do not spawn a subagent for work you can complete directly in a single response.
+- **Parallel tool calls**: When reading multiple files or running independent searches, make all tool calls in parallel. Agents reason more and use tools less aggressively by default—explicitly parallelize independent reads.
+- **Literal scope**: State explicitly when instructions apply broadly (e.g., "Apply this pattern to *every* component at this level, not just the first one").
+- **Minimalism guardrail**: During design and implementation, challenge unnecessary abstractions. Only add a layer/type/helper if it hides meaningful complexity or is used more than once.
+- **Context hygiene**: Use fresh-context subagents for exploration and implementation to prevent main-thread bloat. The orchestrator holds state and talks to the user; subagents handle heavy tool use.
+- **Subagent mental test**: Before spawning a subagent, ask "Will I need this tool output again, or just the conclusion?" If only the conclusion matters, the subagent should return a tight summary and leave the raw exploration in its own context. If you'll need to reference detailed output repeatedly, write it to disk (e.g., `plan.md` or `progress.md`) and reference the file path.
+- **Proactive checkpointing**: If exploration or a horizontal slice involves extensive tool use, write `progress.md` mid-flight rather than waiting for the slice to finish. This preserves state if context compacts or the session is interrupted.
+
 ## The Forge Loop
 
 The fundamental working pattern:

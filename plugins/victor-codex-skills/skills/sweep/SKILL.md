@@ -47,6 +47,14 @@ Per-phase resume rules:
 
 If no session is found, proceed to Phase 1.
 
+## Execution Notes
+
+- **Parallel subagents**: Launch all 8 dimension agents simultaneously in a single turn. Spawn fewer subagents by default; the orchestrator must fan out deliberately.
+- **Parallel tool calls**: Instruct dimension agents to read files and run searches in parallel when independent.
+- **Literal scope**: Be explicit about exclusions and boundaries (e.g., "Skip *all* files in `generated/` and `vendored/`, not just the first ones you see").
+- **Minimalism in auto-apply**: Applier subagents should make the minimum change that removes the cruft. Do not refactor adjacent code "while you're there."
+- **Proactive checkpointing**: Update `status.md` after every significant step (e.g., after each dimension batch completes, after calibration, after each auto-apply batch). Do not wait until the end of a phase. This preserves state if context compacts or the session is interrupted.
+
 ## Workflow Phases
 
 Read only the phase you're entering. Do not preload all references.

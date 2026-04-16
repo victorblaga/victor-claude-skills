@@ -69,6 +69,14 @@ The outline document evolves through all phases. It contains:
 - Current code anchors (refactor/migrate — where existing code lives)
 - Findings appendix (refactor/migrate — design principle violations)
 
+## Execution Notes
+
+- **Parallel tool calls**: When reading multiple files or running independent searches, make all tool calls in parallel. Agents reason more and use tools less aggressively by default—explicitly parallelize independent reads.
+- **Subagent mental test**: Before spawning a subagent, ask "Will I need this tool output again, or just the conclusion?" If only the conclusion matters, use a subagent with fresh context and pull back only the summary. If you'll need to reference the raw output repeatedly, do the work in the main thread (or save the raw output to disk and reference the file path).
+- **Subagent prompt structure**: When feeding large documents (design principles, existing code, guidelines) to subagents, put the longform documents near the top of the prompt and the specific task/query at the end. This improves subagent performance by up to 30%.
+- **Task packaging**: Specify the full task—intent, constraints, acceptance criteria, and relevant file locations—in the first turn. Avoid dribbling requirements across multiple turns; each turn adds reasoning overhead.
+- **Minimalism guardrail**: When a design seems to add abstractions without hiding meaningful complexity, challenge it. The right amount of architecture is the minimum needed for the current problem.
+
 ## Core Working Principles
 
 ### The plan document is the source of truth

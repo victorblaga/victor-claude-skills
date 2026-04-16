@@ -86,6 +86,18 @@ All artifacts go in `docs/plans/<feature-name>/`. The feature name is auto-gener
 
 **Phase transitions**: When completing a phase, explicitly announce it ("Phase 1 complete.") and then read the next phase's reference file before proceeding. Don't rely on memory — always load the reference. Update `docs/plans/<feature-name>/status.md` at the same time so resumption does not depend on fragile heuristics.
 
+## Execution Notes
+
+- **Parallel subagents**: Spawn multiple subagents in the same turn when tasks are independent (e.g., parallel task implementation, parallel file exploration, parallel verification batches). Do not spawn a subagent for work you can complete directly in a single response.
+- **Parallel tool calls**: When reading multiple files or running independent searches, make all tool calls in parallel. Agents reason more and use tools less aggressively by default—explicitly parallelize independent reads and searches.
+- **Literal scope**: Be explicit about where instructions apply (e.g., "Apply this pattern to *every* new module, not just the first one"). Generalize less implicitly.
+- **Minimalism guardrail**: Avoid adding unnecessary abstractions, extra files, or defensive boilerplate. Keep solutions simple and focused: only add helpers/abstractions that hide meaningful complexity; don't add error handling for impossible scenarios; don't create extra config or utilities "just in case."
+- **Task packaging**: In the first turn, provide the full problem statement, intent, constraints, acceptance criteria, and relevant file locations. Avoid dribbling requirements across turns—each user turn adds reasoning overhead.
+- **Context hygiene**: Use subagents for codebase exploration and implementation tasks to keep the main conversation lean. The main thread should orchestrate; heavy tool output should live in subagent contexts.
+- **Subagent mental test**: Before spawning a subagent, ask "Will I need this tool output again, or just the conclusion?" If only the conclusion matters, have the subagent return a concise summary and keep the raw tool noise in its own context. If you'll need to reference detailed output repeatedly, write it to disk and pass the file path forward.
+- **Subagent prompt structure**: When feeding large documents (proposals, plans, design guides) to subagents, put the longform documents near the top of the prompt and the specific task/query at the end. This improves subagent performance by up to 30%.
+- **Proactive checkpointing**: If a phase involves extensive exploration or many tool calls, save progress to `status.md` or the relevant artifact mid-phase. Do not wait until the phase is complete to checkpoint. This prevents loss of state if context compacts or the session is interrupted.
+
 ### Status File
 
 Maintain this file for every non-trivial session:
@@ -269,6 +281,7 @@ If these files exist, read the language-agnostic guide and the relevant language
 - **Define errors out of existence**: design interfaces so expected conditions (empty results, optional data) are normal return values, not exceptions.
 - **Strategic over tactical**: every change should leave the design at least slightly better. Don't take shortcuts that compound complexity.
 - **Integration-first testing**: prefer Testcontainers/LocalStack over mocks. Assert on outcomes, not call chains.
+- **Minimalism / anti-overengineering**: Avoid adding unnecessary abstractions, extra files, or defensive boilerplate. Do not create helpers, utilities, or abstractions for one-time operations. Don't add error handling for scenarios that can't happen. Don't design for hypothetical future requirements. The right amount of complexity is the minimum needed for the current task.
 
 During Phase 2 (validation) and Phase 3.2 (plan validation), reviewers should check that the proposed design follows these principles. Flag violations as review findings.
 
