@@ -20,6 +20,7 @@ Codex-native variants live under `plugins/victor-codex-skills/skills/` and are d
 - **surgeon** — Structural refinement of existing working code
 - **long-form-article** — Collaborative workflow for substantial article drafting and revision
 - **llm-council** — Run decisions through 5 AI advisors who analyze, peer-review, and synthesize a final verdict
+- **sweep** — Whole-codebase hygiene sweep across duplication, dead code, weak types, defensive code, and comment slop
 
 ## Claude Installation
 
@@ -31,9 +32,10 @@ Codex-native variants live under `plugins/victor-codex-skills/skills/` and are d
 
 ## Codex Installation
 
-Codex does not mirror Claude Code's hosted marketplace flow. The practical patterns are:
+Codex does not mirror Claude Code's hosted marketplace flow. The supported path is the plugin bundle under `plugins/victor-codex-skills/`.
 
-1. Install individual skills from this repo into `~/.codex/skills` using Codex's skill installer, pointing it at `plugins/victor-codex-skills/skills/<skill-name>`.
-2. Or install the whole local plugin bundle from `plugins/victor-codex-skills/` and use `.agents/plugins/marketplace.json` in this repo as the template for your local `~/.agents/plugins/marketplace.json`.
+Use `.agents/plugins/marketplace.json` in this repo as the template for your local `~/.agents/plugins/marketplace.json`, then install or sync the whole plugin bundle from `plugins/victor-codex-skills/`.
+
+If you already use the local helper command `victor-codex-skills sync`, that is the preferred refresh path. It pulls the latest plugin bundle from GitHub, refreshes the installed/runtime copies, and prunes legacy Victor skill symlinks from `~/.codex/skills` so the skills surface only once.
 
 The Codex plugin bundle manifest is at `plugins/victor-codex-skills/.codex-plugin/plugin.json`.

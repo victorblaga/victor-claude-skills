@@ -1,6 +1,6 @@
 {
   "name": "victor-codex-skills",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "Codex-native variants of Victor Blaga's Claude workflow skills. The Claude skills remain canonical.",
   "author": {
     "name": "Victor Blaga",
@@ -21,13 +21,14 @@
     "architect",
     "engineer",
     "surgeon",
-    "long-form-article"
+    "long-form-article",
+    "sweep"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Victor Codex Skills",
     "shortDescription": "Codex-native workflow skills derived from canonical Claude prompts",
-    "longDescription": "Install Victor Blaga's workflow skills for Codex, including deep implementation, multi-dimensional review, review triage, architecture planning, structural refactoring, codebase cross-examination, and long-form writing support.",
+    "longDescription": "Install Victor Blaga's workflow skills for Codex, including deep implementation, multi-dimensional review, review triage, architecture planning, structural refactoring, whole-codebase cleanup sweeps, codebase cross-examination, and long-form writing support.",
     "developerName": "Victor Blaga",
     "category": "Coding",
     "capabilities": [
@@ -40,7 +41,8 @@
     "defaultPrompt": [
       "Run a deep implementation workflow from a proposal or review report",
       "Do a mega-review and then triage the findings into a plan",
-      "Design a refactor top-down and then implement it in Codex"
+      "Design a refactor top-down and then implement it in Codex",
+      "Run a cleanup sweep across a codebase and triage the high-blast findings"
     ],
     "brandColor": "#1F6FEB"
   }
