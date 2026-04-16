@@ -3,6 +3,12 @@ name: cross-examine
 description: Become the codebase expert and answer the user's questions with evidence. The reverse of grill-me — the user interrogates you about the code. Use when user says "cross-examine", "cross examine", "explain the code", or wants to understand how a codebase works through Q&A.
 ---
 
+## Agentic Execution Notes (Claude Opus 4.7)
+
+- **Effort**: Use `xhigh` for the initial exploration and for any complex reasoning about guarantees or edge cases.
+- **Parallel tool use**: When reading multiple files or running independent searches during setup, make all tool calls in parallel. Opus 4.7 reasons more and uses tools less aggressively by default—explicitly parallelize independent reads.
+- **Batch user turns**: In Q&A mode, every user turn adds reasoning overhead. If the user asks several questions at once, answer them all in one response rather than asking for one at a time.
+
 ## Setup
 
 **Scope**: The user may provide an optional scope argument (a path or concept). If provided, focus your exploration there. If not, scan the whole project.

@@ -47,6 +47,16 @@ Per-phase resume rules:
 
 If no session is found, proceed to Phase 1.
 
+## Agentic Execution Notes (Claude Opus 4.7)
+
+Opus 4.7 is excellent at whole-codebase hygiene, but its defaults differ from earlier models. Maintain the harness discipline:
+
+- **Effort**: Run all dimension agents and the Calibrator at `xhigh` effort. Cruft detection requires semantic judgment, not checklist matching.
+- **Parallel subagents**: Launch all 8 dimension agents simultaneously in a single turn. The skill already specifies this—maintain it explicitly. Opus 4.7 spawns fewer subagents by default; the orchestrator must fan out deliberately.
+- **Parallel tool calls**: Instruct dimension agents to read files and run searches in parallel when independent.
+- **Literal scope**: Be explicit about exclusions and boundaries (e.g., "Skip *all* files in `generated/` and `vendored/`, not just the first ones you see").
+- **Minimalism in auto-apply**: Applier subagents should make the minimum change that removes the cruft. Do not refactor adjacent code "while you're there."
+
 ## Workflow Phases
 
 Read only the phase you're entering. Do not preload all references.

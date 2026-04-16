@@ -18,6 +18,16 @@ Comprehensive, parallel code review across multiple dimensions. Each dimension i
 - **Use subagents liberally** — each dimension runs as a parallel subagent via the Agent tool.
 - **Output is always under a dedicated review directory** — see Output Directory below.
 
+## Agentic Execution Notes (Claude Opus 4.7)
+
+Opus 4.7 is meaningfully better at finding bugs than prior models, but code-review harnesses tuned for earlier models may see lower *measured* recall. This happens because Opus 4.7 follows instructions like "only report high-severity issues" or "don't nitpick" more faithfully—it may identify a bug and then choose not to report it. To counter this:
+
+- **Coverage over filtering**: In every dimension prompt, explicitly instruct agents to *report every issue they find*, including uncertain or low-severity ones. The calibration step handles severity filtering; the dimension agents' job is coverage.
+- **Effort**: Run dimension subagents at `xhigh` effort. Their job is thorough investigation, not speed.
+- **Parallel subagents**: Launch all applicable dimension subagents simultaneously in a single turn. Opus 4.7 spawns fewer subagents by default—explicitly fan out.
+- **Parallel tool calls**: Tell subagents to read files and run searches in parallel when independent.
+- **Literal scope**: State explicitly when a checklist applies to all files (e.g., "Check *every* file in the target scope, not just the obvious ones").
+
 ## Parse the Request
 
 Extract from the user's message:
@@ -134,6 +144,8 @@ You are a Code Quality reviewer. Analyze the target code for adherence to clean 
 
 **You are READ-ONLY. Do not modify any code.**
 
+**Coverage rule — critical for Opus 4.7:** Report every issue you find, including ones you are uncertain about or consider low-severity. Do not self-filter for importance or confidence at this stage; the calibration step will handle severity ranking. It is better to surface a finding that later gets downgraded than to silently drop a real bug. For each finding, include your confidence level and estimated severity.
+
 **Review checklist:**
 - Pythonic idioms (list comprehensions, context managers, f-strings, walrus operator where appropriate)
 - Readability — can a new developer follow the code without excessive jumping between files?
@@ -182,6 +194,8 @@ You are an Architecture reviewer. Analyze the target code for architectural soun
 **Background context:** {USER_CONTEXT}
 
 **You are READ-ONLY. Do not modify any code.**
+
+**Coverage rule — critical for Opus 4.7:** Report every issue you find, including ones you are uncertain about or consider low-severity. Do not self-filter for importance or confidence at this stage; the calibration step will handle severity ranking. It is better to surface a finding that later gets downgraded than to silently drop a real bug. For each finding, include your confidence level and estimated severity.
 
 **Review checklist:**
 - Adherence to the documented architecture (orchestrator-managed vs standalone pipeline patterns)
@@ -234,6 +248,8 @@ You are a Correctness reviewer. Analyze the target code for functional correctne
 
 **You are READ-ONLY. Do not modify any code.**
 
+**Coverage rule — critical for Opus 4.7:** Report every issue you find, including ones you are uncertain about or consider low-severity. Do not self-filter for importance or confidence at this stage; the calibration step will handle severity ranking. It is better to surface a finding that later gets downgraded than to silently drop a real bug. For each finding, include your confidence level and estimated severity.
+
 **Review checklist:**
 - Logic errors — are conditionals, loops, and data transformations correct?
 - Edge cases — what happens with empty inputs, None values, missing keys, boundary values?
@@ -282,6 +298,8 @@ You are a Test Quality reviewer. Analyze the test code with the principle: "test
 **Background context:** {USER_CONTEXT}
 
 **You are READ-ONLY. Do not modify any code.**
+
+**Coverage rule — critical for Opus 4.7:** Report every issue you find, including ones you are uncertain about or consider low-severity. Do not self-filter for importance or confidence at this stage; the calibration step will handle severity ranking. It is better to surface a finding that later gets downgraded than to silently drop a real bug. For each finding, include your confidence level and estimated severity.
 
 **Review checklist:**
 - Test coverage — are critical code paths exercised? Are there obvious gaps?
@@ -333,6 +351,8 @@ You are a Security & Error Handling reviewer. Analyze the target code for securi
 **Background context:** {USER_CONTEXT}
 
 **You are READ-ONLY. Do not modify any code.**
+
+**Coverage rule — critical for Opus 4.7:** Report every issue you find, including ones you are uncertain about or consider low-severity. Do not self-filter for importance or confidence at this stage; the calibration step will handle severity ranking. It is better to surface a finding that later gets downgraded than to silently drop a real bug. For each finding, include your confidence level and estimated severity.
 
 **Review checklist:**
 - Exception handling — are specific exceptions caught (not bare except)?
@@ -500,6 +520,8 @@ You are a Performance reviewer. Analyze the target code for performance anti-pat
 **Background context:** {USER_CONTEXT}
 
 **You are READ-ONLY. Do not modify any code.**
+
+**Coverage rule — critical for Opus 4.7:** Report every issue you find, including ones you are uncertain about or consider low-severity. Do not self-filter for importance or confidence at this stage; the calibration step will handle severity ranking. It is better to surface a finding that later gets downgraded than to silently drop a real bug. For each finding, include your confidence level and estimated severity.
 
 **Review checklist:**
 

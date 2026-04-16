@@ -23,6 +23,14 @@ The engineer reads a completed architect plan at `docs/plans/<name>/plan.md`. Th
 
 The engineer implements exactly what the plan describes. If it discovers the plan is wrong, it surfaces the issue to the user — it does not silently diverge.
 
+## Agentic Execution Notes (Claude Opus 4.7)
+
+- **Effort**: Use `xhigh` effort for structural decisions and coupling analysis. Use `high` for straightforward implementation. Avoid lower effort for any task requiring judgment about abstractions.
+- **Parallel tool calls**: When reading the plan and multiple source files, make all independent reads in parallel. Opus 4.7 reasons more and uses tools less aggressively by default—explicitly parallelize file reads and searches.
+- **Literal scope**: State explicitly when a rule applies broadly (e.g., "Apply this naming convention to *every* new module, not just the current one").
+- **Minimalism guardrail**: Opus 4.7 can overengineer. Do not add extra abstractions, helper files, or defensive code beyond what the plan specifies. Only create a new module/type if it hides meaningful complexity.
+- **Subagent use**: Spawn subagents in parallel for independent verification tasks. Do not spawn a subagent for work you can complete directly in a single response.
+
 ## Core Principles
 
 ### Top-down implementation

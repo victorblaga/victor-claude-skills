@@ -69,6 +69,17 @@ The outline document evolves through all phases. It contains:
 - Current code anchors (refactor/migrate — where existing code lives)
 - Findings appendix (refactor/migrate — design principle violations)
 
+## Agentic Execution Notes (Claude Opus 4.7)
+
+Opus 4.7 is stronger at architecture and long-horizon reasoning, but its defaults differ from earlier models. Tune your prompting and harness:
+
+- **Effort**: Keep subagents at `xhigh` effort for design, exploration, and validation. Use `high` only if token cost is a constraint; avoid `medium`/`low` for architectural judgment.
+- **Parallel subagents**: Launch all 6 exploration agents simultaneously in a single turn. Spawn multiple subagents in parallel when fanning out across files or independent searches. Do not spawn a subagent for work you can complete directly in a single response.
+- **Explicit tool use**: Opus 4.7 reasons more and uses tools less aggressively by default. In subagent prompts, explicitly tell agents when to read files, use Grep/Glob, and spawn Explore subagents. Use parallel tool calls for independent file reads.
+- **Literal scope**: State when instructions apply broadly (e.g., "Apply this principle to *every* component, not just the first one"). Opus 4.7 generalizes less implicitly than prior models.
+- **Minimalism guardrail**: Opus 4.7 can overengineer. When a design seems to add abstractions without hiding meaningful complexity, challenge it. The right amount of architecture is the minimum needed for the current problem.
+- **Task packaging**: Specify the full task—intent, constraints, acceptance criteria, and relevant file locations—in the first turn. Avoid dribbling requirements across multiple turns; each turn adds reasoning overhead.
+
 ## Core Working Principles
 
 ### The plan document is the source of truth

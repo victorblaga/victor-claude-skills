@@ -86,6 +86,18 @@ All artifacts go in `docs/plans/<feature-name>/`. The feature name is auto-gener
 
 **Phase transitions**: When completing a phase, explicitly announce it ("Phase 1 complete.") and then read the next phase's reference file before proceeding. Don't rely on memory — always load the reference. Update `docs/plans/<feature-name>/status.md` at the same time so resumption does not depend on fragile heuristics.
 
+## Agentic Execution Notes (Claude Opus 4.7)
+
+Opus 4.7 excels at long-horizon agentic work, but its defaults differ from earlier models. Adjust harness and prompting:
+
+- **Effort**: Use `xhigh` effort for planning, discovery, validation, and audit subagents. Use `high` for mechanical verification tasks. Avoid `medium`/`low` for any judgment-heavy step.
+- **Parallel subagents**: Spawn multiple subagents in the same turn when tasks are independent (e.g., parallel task implementation, parallel file exploration, parallel verification batches). Do not spawn a subagent for work you can complete directly in a single response.
+- **Parallel tool calls**: When reading multiple files or running independent searches, make all tool calls in parallel. Opus 4.7 reasons more and uses tools less aggressively by default—explicitly parallelize independent reads and searches.
+- **Literal scope**: Be explicit about where instructions apply (e.g., "Apply this pattern to *every* new module, not just the first one"). Opus 4.7 generalizes less implicitly.
+- **Minimalism guardrail**: Opus 4.7 can overengineer by adding unnecessary abstractions, extra files, or defensive boilerplate. During implementation, keep solutions simple and focused: only add helpers/abstractions that hide meaningful complexity; don't add error handling for impossible scenarios; don't create extra config or utilities "just in case."
+- **Task packaging**: In the first turn, provide the full problem statement, intent, constraints, acceptance criteria, and relevant file locations. Avoid dribbling requirements across turns—each user turn adds reasoning overhead.
+- **Context hygiene**: Use subagents for codebase exploration and implementation tasks to keep the main conversation lean. The main thread should orchestrate; heavy tool output should live in subagent contexts.
+
 ### Status File
 
 Maintain this file for every non-trivial session:
@@ -249,6 +261,7 @@ If these files exist, read the language-agnostic guide and the relevant language
 - **Define errors out of existence**: design interfaces so expected conditions (empty results, optional data) are normal return values, not exceptions.
 - **Strategic over tactical**: every change should leave the design at least slightly better. Don't take shortcuts that compound complexity.
 - **Integration-first testing**: prefer Testcontainers/LocalStack over mocks. Assert on outcomes, not call chains.
+- **Minimalism / anti-overengineering**: Opus 4.7 can add unnecessary abstractions by default. Do not create helpers, utilities, or abstractions for one-time operations. Don't add error handling for scenarios that can't happen. Don't design for hypothetical future requirements. The right amount of complexity is the minimum needed for the current task.
 
 During Phase 2 (validation) and Phase 3.2 (plan validation), reviewers should check that the proposed design follows these principles. Flag violations as review findings.
 
