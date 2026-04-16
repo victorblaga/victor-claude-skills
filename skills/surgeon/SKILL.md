@@ -32,6 +32,29 @@ Takes existing, working code and iteratively refines its structure through dialo
 
 The surgeon operates in iterative cycles. Each cycle: diagnose → present findings → discuss → operate → verify. The user steers — the surgeon never makes structural changes without agreement.
 
+## Session Artifact
+
+Surgeon uses a durable markdown file to manage findings across sessions. This makes the workflow scale-invariant: a 16-finding diagnosis does not blow up the conversation context.
+
+**Artifact path:**
+```
+.docs/surgeon/YYYY-MM-DD-<scope-slug>-<random5>.md
+```
+
+**Ensure `.docs/` is in `.gitignore`** before creating the directory. These are working notes, not source code, but the user may opt to commit them alongside the work.
+
+**Keep the file lean:** Verdicts should be 1–2 sentences. `Notes for downstream` should only capture conventions that later findings *need* to know (not a full changelog). If the artifact grows past ~50 lines, consider starting a fresh one for the next cycle.
+
+### Resume protocol
+
+If the user invokes `/surgeon` with a path to an existing surgeon notes file (e.g., `/surgeon .docs/surgeon/2026-04-16-actors-snapshot-x8k2f.md`):
+
+1. Read the file.
+2. Identify the next un-addressed finding.
+3. Jump directly to **Phase 2** for that finding: present it, discuss, get verdict, operate.
+
+If no path is given, proceed with a fresh diagnosis (Phase 1) and create a new artifact file.
+
 ## Agentic Execution Notes (Claude Opus 4.7)
 
 - **Effort**: Use `xhigh` effort for diagnosis and structural decisions. Use `high` for straightforward refactors.
@@ -67,6 +90,43 @@ Read the target code thoroughly. Produce a structured diagnosis — a list of fi
 2. **Where** — file, class, method, line range
 3. **Why it matters** — what's the concrete cost (cognitive load, change amplification, type unsafety)
 4. **Proposed fix** — concrete suggestion, not vague ("introduce proper types" → "replace the 8-param publish() with `publish(snapshot: Snapshot)` where Snapshot bundles db_path + metadata")
+
+### Creating the artifact
+
+Write the full diagnosis to the artifact file **before** presenting it in chat. The file is the contract.
+
+```markdown
+# Surgeon Notes — <scope>
+**Created:** YYYY-MM-DD
+**Target:** <file or module>
+
+## Legend
+- [ ] Pending
+- [~] In progress
+- [x] Done
+- [-] Skipped / rejected
+
+## Findings
+
+### Critical
+- [ ] **C1:** <what> — <where>
+  - **Why:** <cost>
+  - **Fix:** <concrete suggestion>
+
+### Major
+- [ ] **M1:** ...
+
+### Minor
+- [ ] **m1:** ...
+
+## Verdicts
+(Recorded as findings are addressed.)
+
+## Notes for downstream
+(Append conventions, commits, and learnings as work proceeds.)
+```
+
+After writing the file, present a brief summary in chat: "Diagnosis written to `.docs/surgeon/<file>`. {N} findings: {X} critical, {Y} major, {Z} minor. Ready to address the first one?"
 
 ### What to look for
 
@@ -118,30 +178,39 @@ Rank each finding:
 
 ## Phase 2: Presentation
 
-Present findings to the user as a numbered list, grouped by severity. Keep it concise — one line per finding with enough context to evaluate.
+The file is the contract. For each finding, read it from the artifact, present it in chat, discuss, and record the verdict back into the file.
 
+**Presentation format in chat:**
 ```
-## Diagnosis: actors/snapshot/repository.py
+## Next finding: C1 — publish() takes 8 params
+**Where:** actors/snapshot/repository.py:42
+**Why it matters:** <cost>
+**Proposed fix:** <concrete suggestion>
 
-### Critical
-1. publish() takes 8 params — should take `Snapshot` (bundles db_path + metadata + counts)
-2. Candidate state is raw dicts — should be `CandidateState` dataclass with status enum
-
-### Major
-3. S3 key construction, candidate state, and pointer I/O all in one class — three concerns
-4. Cache is `dict[tuple, tuple]` — should be `SnapshotCache` class owning its lifecycle
-
-### Minor
-5. `_parse_json_list` is a module-level util unrelated to the actor — move to query service
+Proceed with this change? (yes / no / modify / skip)
 ```
 
-Then ask: **"Which of these do you want to address? All of them, or specific ones?"**
+### Recording verdicts
+
+After the user decides, append a `## Verdict` block to the artifact **before operating**:
+
+```markdown
+## Verdict: C1
+- **Decision:** Accepted / Rejected / Modified / Deferred
+- **Rationale:** <user reasoning>
+- **Adjusted fix:** <if modified>
+```
+
+Update the finding's checkbox in the file:
+- Accepted / Modified → `[~]`
+- Done → `[x]`
+- Rejected / Deferred / Skipped → `[-]`
 
 The user may:
-- Agree with all → operate on each in order
-- Pick specific ones → operate only on those
-- Disagree with some → discuss, adjust, or skip
-- Add their own findings → incorporate and prioritize
+- Agree with the finding → operate on it
+- Pick a different finding → jump to that one
+- Disagree → discuss, adjust the verdict, and update the file
+- Add their own findings → append to the artifact and prioritize
 - Ask "what do you think about X?" → discuss before deciding
 
 **Never proceed without the user's go-ahead on each structural change.** The surgeon proposes, the user decides.
@@ -158,10 +227,24 @@ For each agreed finding, make the change:
 
 ### Operating principles
 
-- **One change at a time.** Don't combine multiple structural changes in one pass — they interact in surprising ways. Do finding #1, verify, commit. Then finding #2.
+- **One change at a time.** Don't combine multiple structural changes in one pass — they interact in surprising ways. Do finding #1, verify, commit, checkpoint to the artifact. Then finding #2.
 - **Preserve behavior.** The surgeon changes structure, not functionality. After each operation, the code should do the same thing it did before, just organized differently.
 - **Stay in scope.** If you discover new problems while operating on finding #1, note them for later — don't chase them now.
 - **Types before restructuring.** If a finding involves both introducing a type and splitting a class, introduce the type first (it makes the split cleaner).
+
+### Notes for downstream
+
+After each verified commit, append a block to the artifact under `## Notes for downstream`:
+
+```markdown
+### Notes for downstream — after C1
+- **Commit:** <SHA or message>
+- **What landed:** <brief summary>
+- **Conventions established:** <patterns later findings should follow>
+- **Deferred decisions:** <anything left unresolved>
+```
+
+This is the hand-off that makes the next clear session coherent. Mark the finding `[x]` in the file. Then suggest: "Finding complete and checkpointed. Want to continue in this session, or clear context and resume from the artifact for the next finding?"
 
 ### Naming new types
 
@@ -177,10 +260,11 @@ After all agreed findings are addressed:
 
 1. Run a final import verification
 2. Run tests if available
-3. Present a summary: what changed, files affected, new types introduced
-4. Ask: "Want me to do another pass, or is this clean enough?"
+3. Append a final summary to the artifact
+4. Present a summary in chat: what changed, files affected, new types introduced
+5. Ask: "Want me to do another pass, or is this clean enough?"
 
-The user may request additional cycles. Each cycle starts fresh — re-read the code (it's changed), produce new findings.
+The user may request additional cycles. Each cycle starts fresh — re-read the code (it's changed), append new findings to the same artifact or create a new one.
 
 ## Invocation
 
