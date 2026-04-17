@@ -42,8 +42,7 @@
     "defaultPrompt": [
       "Run a deep implementation workflow from a proposal or review report",
       "Do a mega-review and then triage the findings into a plan",
-      "Design a refactor top-down and then implement it in Codex",
-      "Run a cleanup sweep across a codebase and triage the high-blast findings"
+      "Design a refactor top-down and then implement it in Codex"
     ],
     "brandColor": "#1F6FEB"
   }

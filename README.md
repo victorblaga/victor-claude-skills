@@ -34,8 +34,26 @@ Codex-native variants live under `plugins/victor-codex-skills/skills/` and are d
 
 Codex does not mirror Claude Code's hosted marketplace flow. The supported path is the plugin bundle under `plugins/victor-codex-skills/`.
 
-Use `.agents/plugins/marketplace.json` in this repo as the template for your local `~/.agents/plugins/marketplace.json`, then install or sync the whole plugin bundle from `plugins/victor-codex-skills/`.
+Use `.agents/plugins/marketplace.json` in this repo as the template for your local `~/.agents/plugins/marketplace.json`.
 
-If you already use the local helper command `victor-codex-skills sync`, that is the preferred refresh path. It pulls the latest plugin bundle from GitHub, refreshes the installed/runtime copies, and prunes legacy Victor skill symlinks from `~/.codex/skills` so the skills surface only once.
+For ongoing updates, use the tracked sync script in this repo:
+
+```text
+./bin/victor-skills-sync
+```
+
+If you prefer a global command, symlink it once:
+
+```text
+ln -sfn "$PWD/bin/victor-skills-sync" ~/.local/bin/victor-skills-sync
+```
+
+The sync script:
+
+- pulls the latest repo state
+- refreshes the runtime bundle at `~/plugins/victor-codex-skills`
+- refreshes the Codex cache at `~/.codex/plugins/cache/victor-local-plugins/victor-codex-skills/<version>`
+- copies the plugin contents flat into the version root so Codex can load `.codex-plugin/plugin.json`
+- prunes legacy Victor skill symlinks from `~/.codex/skills` so the skills surface only once
 
 The Codex plugin bundle manifest is at `plugins/victor-codex-skills/.codex-plugin/plugin.json`.

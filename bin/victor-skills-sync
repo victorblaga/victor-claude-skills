@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly REPO="${REPO:-$HOME/work/personal/victor-claude-skills/victor-claude-skills}"
+readonly OPENCODE_SKILLS_DIR="$HOME/.config/opencode/skills"
+readonly CODEX_INSTALL_DIR="$HOME/plugins/victor-codex-skills"
+readonly CODEX_CACHE_ROOT="$HOME/.codex/plugins/cache/victor-local-plugins/victor-codex-skills"
+readonly CODEX_LEGACY_SKILLS_DIR="$HOME/.codex/skills"
+readonly OLD_REPO_PATH="$HOME/.local/share/opencode/repos/victor-claude-skills"
+
+plugin_version() {
+  local manifest="$1/.codex-plugin/plugin.json"
+  python3 - "$manifest" <<'PY'
+import json, pathlib, sys
+path = pathlib.Path(sys.argv[1])
+with path.open() as fh:
+    print(json.load(fh)["version"])
+PY
+}
+
+sync_dir_contents() {
+  local src="$1"
+  local dest="$2"
+
+  rm -rf "$dest"
+  mkdir -p "$dest"
+  cp -a "$src"/. "$dest"/
+}
+
+if [[ ! -d "$REPO/.git" ]]; then
+  printf 'ERROR: repo not found: %s\n' "$REPO" >&2
+  exit 1
+fi
+
+git -C "$REPO" pull
+
+mkdir -p "$OPENCODE_SKILLS_DIR"
+
+opencode_added=0
+opencode_updated=0
+opencode_removed=0
+opencode_unchanged=0
+
+for src in "$REPO"/skills/*; do
+  [[ -d "$src" ]] || continue
+  name=$(basename "$src")
+  link="$OPENCODE_SKILLS_DIR/$name"
+
+  if [[ -L "$link" ]]; then
+    current_target=$(readlink "$link" || true)
+    if [[ "$current_target" == "$src" ]]; then
+      opencode_unchanged=$((opencode_unchanged + 1))
+    else
+      ln -sfn "$src" "$link"
+      opencode_updated=$((opencode_updated + 1))
+    fi
+  elif [[ -e "$link" ]]; then
+    printf 'WARNING: %s exists and is not a symlink - skipping\n' "$link" >&2
+  else
+    ln -s "$src" "$link"
+    opencode_added=$((opencode_added + 1))
+  fi
+done
+
+for link in "$OPENCODE_SKILLS_DIR"/*; do
+  [[ -L "$link" ]] || continue
+  target=$(readlink "$link" || true)
+  if [[ "$target" == "$REPO"/skills/* || "$target" == "$OLD_REPO_PATH"/skills/* ]]; then
+    name=$(basename "$link")
+    if [[ ! -d "$REPO/skills/$name" ]]; then
+      rm "$link"
+      opencode_removed=$((opencode_removed + 1))
+    fi
+  fi
+done
+
+src_bundle="$REPO/plugins/victor-codex-skills"
+version=$(plugin_version "$src_bundle")
+
+sync_dir_contents "$src_bundle" "$CODEX_INSTALL_DIR"
+sync_dir_contents "$src_bundle" "$CODEX_CACHE_ROOT/$version"
+
+codex_pruned=0
+if [[ -d "$CODEX_LEGACY_SKILLS_DIR" ]]; then
+  for link in "$CODEX_LEGACY_SKILLS_DIR"/*; do
+    [[ -L "$link" ]] || continue
+    target=$(readlink "$link" || true)
+    if [[ "$target" == *"/victor-claude-skills/"*"/plugins/victor-codex-skills/skills/"* ]]; then
+      rm -f "$link"
+      codex_pruned=$((codex_pruned + 1))
+    fi
+  done
+fi
+
+printf '\n=== victor-skills-sync complete ===\n\n'
+printf 'OpenCode skills: +%d updated, +%d added, -%d removed, %d unchanged\n' \
+  "$opencode_updated" "$opencode_added" "$opencode_removed" "$opencode_unchanged"
+printf 'Codex bundle:    synced v%s\n' "$version"
+printf 'Codex cache:     %s/%s\n' "$CODEX_CACHE_ROOT" "$version"
+if [[ "$codex_pruned" -gt 0 ]]; then
+  printf 'Legacy symlinks pruned: %d\n' "$codex_pruned"
+fi
