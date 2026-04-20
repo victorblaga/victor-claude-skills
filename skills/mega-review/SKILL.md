@@ -112,17 +112,17 @@ Match the model to the cognitive demand of each step. Use the `model` parameter 
 
 | Step | Model | Rationale |
 |------|-------|-----------|
-| Dimension subagents (Step 2) | `sonnet` | Exploration and pattern-matching against checklists — information gathering |
+| Dimension subagents (Step 2) | `opus` | Bug-hunting and design-smell detection across large diffs — depth matters more than cost |
 | Verification subagents (Step 3, Phase 1) | `sonnet` | Factual cross-checking — mechanical |
 | Calibrator (Step 3, Phase 2) | `opus` | Judgment calls on severity, weighing trade-offs |
 | Architectural Synthesis (Step 4) | `opus` | Meta-analysis, connecting dots across dimensions, design thinking |
 | Consolidator (Step 5) | `sonnet` | Merging and formatting — mechanical |
 
-**The principle:** analysis, synthesis, and judgment require high brainpower (opus). Exploration, fact-checking, and formatting require lower brainpower (sonnet).
+**The principle:** analysis, synthesis, judgment, AND thorough dimension review require high brainpower (opus). Fact-checking and formatting can run lower (sonnet). Dimension agents specifically benefit from opus because they set the ceiling on what the later stages can work with — a missed finding at Step 2 cannot be recovered later.
 
 ### Step 2: Launch Dimension Subagents (in parallel)
 
-Launch all applicable dimension subagents **in a single message** so they run concurrently. Each subagent uses the Agent tool with `model: "sonnet"`.
+Launch all applicable dimension subagents **in a single message** so they run concurrently. Each subagent uses the Agent tool with `model: "opus"`.
 
 **Important:** Each subagent must be told:
 - It is READ-ONLY — do not modify any source code
@@ -760,23 +760,23 @@ If no tensions are found, write: "No architectural tensions identified. The find
 
 ### Step 5: Consolidate (after Synthesis completes)
 
-Launch a **Consolidator subagent** with the dimension outputs, the Calibrator's verdicts, AND the Architectural Synthesis output. The consolidator merges everything into the final report.
+Launch a **Consolidator subagent** with the dimension outputs, the Calibrator's verdicts, AND the Architectural Synthesis output. The consolidator merges everything and **returns the report as text**; the parent (you, executing the skill) writes it to disk in Step 6.
 
-Replace `{DIMENSION_OUTPUTS}` with the file paths to all dimension outputs. Replace `{CALIBRATOR_OUTPUT}` with the Calibrator's output. Replace `{SYNTHESIS_OUTPUT}` with the Architectural Synthesis output. Replace `{OUTPUT_DIR}/report.md` with the resolved output file path.
+**Why the parent writes the file, not the subagent:** subagent Write permission can vary by sandbox/harness configuration, and a silently-failed Write at Step 5 leaves the review without a final report even though every other artifact succeeded. Returning the text up to the parent is robust across environments.
+
+Replace `{DIMENSION_OUTPUTS}` with the file paths to all dimension outputs. Replace `{CALIBRATOR_OUTPUT}` with the Calibrator's output. Replace `{SYNTHESIS_OUTPUT}` with the Architectural Synthesis output.
 
 ```
-You are the Review Consolidator. You have received findings from multiple review dimension agents, verdicts from the Calibrator agent, and an architectural synthesis analysis. Your job is to merge everything into one clean, unified review document.
+You are the Review Consolidator. You have received findings from multiple review dimension agents, verdicts from the Calibrator agent, and an architectural synthesis analysis. Your job is to merge everything into one clean, unified review document and return it as text.
 
-**Dimension agent outputs:**
+**Dimension agent outputs (read these files):**
 {DIMENSION_OUTPUTS}
 
-**Calibrator verdicts:**
+**Calibrator verdicts (read this file):**
 {CALIBRATOR_OUTPUT}
 
-**Architectural Synthesis:**
+**Architectural Synthesis (read this file):**
 {SYNTHESIS_OUTPUT}
-
-**Output file path:** {OUTPUT_DIR}/report.md
 
 **Your tasks:**
 1. **Apply Calibrator verdicts:**
@@ -786,8 +786,9 @@ You are the Review Consolidator. You have received findings from multiple review
 2. Deduplicate — if multiple dimensions flagged the same issue, merge into one finding and note which dimensions caught it.
 3. **Apply Architectural Synthesis:** If tensions were identified, add the Architectural Tensions section BEFORE the individual findings. For each individual finding that is subsumed by a tension, add a note: `Part of [T-{N}]({tension title})`.
 4. Re-sort all remaining findings by severity (Critical first, then High, Medium, Low).
-5. Write the unified report in the format below.
-6. Save it using the Write tool to {OUTPUT_DIR}/report.md.
+5. Return the unified report as text in the format below.
+
+**Do NOT attempt to write `report.md` yourself — the parent will write it.**
 
 **Report format:**
 
@@ -893,12 +894,15 @@ For each:
 
 ---
 
-**IMPORTANT:** Save this entire report to: `{OUTPUT_DIR}/report.md` using the Write tool.
+**IMPORTANT:** Return the entire report as your final text response. Do not call the Write tool. The parent agent executing this skill will persist the text to `{OUTPUT_DIR}/report.md`.
 ```
 
-### Step 6: Report to User
+### Step 6: Persist Report + Report to User
 
-After the Consolidator finishes, print a brief summary:
+After the Consolidator finishes:
+
+1. Take the full report text returned by the Consolidator and write it to `{OUTPUT_DIR}/report.md` using the parent's Write tool. This is a mechanical step — do not re-summarize or edit the Consolidator's output.
+2. Print a brief summary:
 
 ```
 Review complete.
