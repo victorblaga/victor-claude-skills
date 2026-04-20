@@ -113,7 +113,7 @@ Use `gpt-5.4` for every review phase. Vary only `reasoning_effort` based on the 
 | Verification subagents (Step 3, Phase 1) | `gpt-5.4` | `medium` | Factual cross-checking is narrower and more mechanical, but still benefits from the full model |
 | Calibrator (Step 3, Phase 2) | `gpt-5.4` | `xhigh` | Severity calibration requires careful trade-off analysis and disciplined judgment |
 | Architectural Synthesis (Step 4) | `gpt-5.4` | `xhigh` | Meta-analysis across dimensions is the most synthesis-heavy step |
-| Consolidator (Step 5) | `gpt-5.4` | `medium` | Merging, deduplicating, and formatting are structured tasks with lower ambiguity |
+| Consolidator (Step 5) | `gpt-5.4` | `high` | Terminal step — must follow the write-file instruction reliably; a silent skip throws away the work of every other agent |
 
 **Nested explorer subagents:** if a dimension reviewer, verifier, calibrator, or synthesis agent spawns an explorer subagent, that explorer should also use `gpt-5.4`. Default to `medium`; raise to `high` when tracing subtle control flow, architectural assumptions, or cross-file behavior.
 
@@ -769,14 +769,14 @@ If no tensions are found, write: "No architectural tensions identified. The find
 
 ### Step 5: Consolidate (after Synthesis completes)
 
-Launch a **Consolidator subagent** with the dimension outputs, the Calibrator's verdicts, AND the Architectural Synthesis output. The consolidator merges everything and **returns the report as text**; the parent (you, executing the skill) writes it to disk in Step 6.
+Launch a **Consolidator subagent** with the dimension outputs, the Calibrator's verdicts, AND the Architectural Synthesis output. The consolidator merges everything into the final report AND writes it to disk as `{OUTPUT_DIR}/report.md`.
 
-**Why the parent writes the file, not the subagent:** subagent write permission can vary by sandbox/harness configuration, and a silently-failed write at Step 5 leaves the review without a final report even though every other artifact succeeded. Returning the text up to the parent is robust across environments.
+**Consolidator must write the file itself.** If the Consolidator responds with "I'll return the text, the parent should write it" or similar, that is a failure — the parent must relaunch the Consolidator (or fall back to writing the returned text) rather than accept the skipped write.
 
-Replace `{DIMENSION_OUTPUTS}` with the file paths to all dimension outputs. Replace `{CALIBRATOR_OUTPUT}` with the Calibrator's output. Replace `{SYNTHESIS_OUTPUT}` with the Architectural Synthesis output.
+Replace `{DIMENSION_OUTPUTS}` with the file paths to all dimension outputs. Replace `{CALIBRATOR_OUTPUT}` with the Calibrator's output. Replace `{SYNTHESIS_OUTPUT}` with the Architectural Synthesis output. Replace `{OUTPUT_DIR}/report.md` with the resolved output file path.
 
 ```
-You are the Review Consolidator. You have received findings from multiple review dimension agents, verdicts from the Calibrator agent, and an architectural synthesis analysis. Your job is to merge everything into one clean, unified review document and return it as text.
+You are the Review Consolidator. You have received findings from multiple review dimension agents, verdicts from the Calibrator agent, and an architectural synthesis analysis. Your job is to merge everything into one clean, unified review document and **write it to the output file yourself**.
 
 **Dimension agent outputs (read these files):**
 {DIMENSION_OUTPUTS}
@@ -787,6 +787,8 @@ You are the Review Consolidator. You have received findings from multiple review
 **Architectural Synthesis (read this file):**
 {SYNTHESIS_OUTPUT}
 
+**Output file path:** {OUTPUT_DIR}/report.md — you will write here.
+
 **Your tasks:**
 1. **Apply Calibrator verdicts:**
    - **Rejected** findings → exclude from the main findings sections. List them in the Rejected Findings table with the reason (factual inaccuracy).
@@ -795,9 +797,9 @@ You are the Review Consolidator. You have received findings from multiple review
 2. Deduplicate — if multiple dimensions flagged the same issue, merge into one finding and note which dimensions caught it.
 3. **Apply Architectural Synthesis:** If tensions were identified, add the Architectural Tensions section BEFORE the individual findings. For each individual finding that is subsumed by a tension, add a note: `Part of [T-{N}]({tension title})`.
 4. Re-sort all remaining findings by severity (Critical first, then High, Medium, Low).
-5. Return the unified report as text in the format below.
+5. Write the unified report (format below) to `{OUTPUT_DIR}/report.md`.
 
-**Do NOT attempt to write `report.md` yourself — the parent will write it.**
+**Writing is the whole point of this step.** Do not return the report text and ask the parent to write — write it yourself. After the write succeeds, reply with a short (under 100 words) confirmation that includes the file path and a one-line stat summary.
 
 **Report format:**
 
@@ -903,14 +905,14 @@ For each:
 
 ---
 
-**IMPORTANT:** Return the entire report as your final text response. Do not write the file yourself. The parent agent executing this skill will persist the text to `{OUTPUT_DIR}/report.md`.
+**IMPORTANT:** Write the entire report to `{OUTPUT_DIR}/report.md`. Your final response is a short confirmation, not the report itself.
 ```
 
-### Step 6: Persist Report + Report to User
+### Step 6: Report to User
 
 After the Consolidator finishes:
 
-1. Take the full report text returned by the Consolidator and write it to `{OUTPUT_DIR}/report.md` yourself. This is a mechanical step — do not re-summarize or edit the Consolidator's output.
+1. Verify that `{OUTPUT_DIR}/report.md` exists and is non-empty. If the Consolidator failed to write, relaunch it once with an even stronger "YOU MUST WRITE THE FILE" reminder. If it fails a second time, fall back to writing the returned text yourself — do not leave the review without a final report.
 2. Print a brief summary:
 
 ```
