@@ -312,4 +312,3 @@ At the start of every session:
 | `/mega-review` | Feeds into forge. Review findings can trigger a `/forge refine`. |
 | `/grill-me` | Complementary. Use before forge to stress-test a design idea. |
 | `/cross-examine` | Complementary. Use to understand existing code before forge. |
-| `/simplify` | For quick cleanup that doesn't need forge's structural workflow. |

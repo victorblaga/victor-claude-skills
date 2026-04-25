@@ -5,8 +5,8 @@ description: >
   Use when the user asks for "mega-review", "mega review", "deep review", "comprehensive review",
   "full review", "review everything", "review all dimensions", or any variation requesting a
   thorough multi-dimensional code review that produces a document.
-  Do NOT trigger for bug hunting (use bug-hunt), /simplify (code cleanup), or when the user
-  wants code changes — this skill is strictly read-only analysis that outputs a report.
+  Do NOT trigger for one-off code cleanup, or when the user wants code changes —
+  this skill is strictly read-only analysis that outputs a report.
 ---
 
 # Mega Review Skill

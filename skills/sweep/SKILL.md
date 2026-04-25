@@ -6,7 +6,7 @@ description: >
   a whole-codebase hygiene workflow across duplication, dead code, circular deps, weak types,
   defensive boilerplate, legacy shims, and comment slop, with blast-radius calibration and
   one-by-one triage for high-impact findings.
-  Do NOT trigger for single-file cleanup (use simplify), PR-specific review (use mega-review),
+  Do NOT trigger for single-file cleanup, PR-specific review (use mega-review),
   feature implementation (use deep-implement), or casual "clean this up" requests without
   whole-codebase scope. Trigger ONLY when the user explicitly opts into the heavyweight sweep.
 ---
@@ -118,7 +118,6 @@ Preflight ensures `.docs` is in `.gitignore` before creating this structure.
 | If the user wants... | Use... |
 |----------------------|--------|
 | Whole-codebase maintenance sweep | **sweep** (this skill) |
-| Single-file or single-function cleanup | `simplify` |
 | Review a PR / diff | `mega-review` |
 | Triage review findings | `review-triage` |
 | Implement a specific feature or proposal | `deep-implement` |
