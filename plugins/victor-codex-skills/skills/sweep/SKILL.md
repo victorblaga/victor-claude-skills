@@ -119,8 +119,7 @@ Preflight ensures `.docs` is in `.gitignore` before creating this structure.
 | Review a PR / diff | `$mega-review` |
 | Triage review findings | `$review-triage` |
 | Implement a specific feature or proposal | `$deep-implement` |
-| Refine working code's abstractions | `$surgeon` |
-| Design new system top-down | `architect` / `forge` |
+| Design, refactor, or refine code with architectural intent | `forge` |
 
 ## Cancellation
 
