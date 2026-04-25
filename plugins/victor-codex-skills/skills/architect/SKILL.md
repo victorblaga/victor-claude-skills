@@ -19,6 +19,23 @@ A top-down, iterative code architecture skill. Works like writing an article: st
 | **Greenfield** | User describes something new to build | Lightweight kickoff questions, then draft outline |
 | **Migrate** | User provides old code + new project target | Exploration agents extract requirements from old code, outline designs for new project |
 
+## Scope Triage
+
+Architect is heavyweight — only invoke at full depth when it earns the cost.
+
+| Scope | Signal | What architect does |
+|-------|--------|---------------------|
+| **Trivial** | Single file, one new module, no architectural implications | Decline: "This doesn't need architect. Code it directly or use $simplify." |
+| **Small** | 2-3 components, fits existing patterns, low uncertainty | Abbreviated: skip Phase 1 exploration if greenfield, one outline pass, no recursive drill-down |
+| **Medium** | New subsystem, multiple components, real design decisions | Standard architect loop |
+| **Large** | New system, major refactor, cross-cutting | Full architect with all phases |
+
+Announce: "This looks like a [scope] task. I'll use [decline/abbreviated/standard/full] architect."
+
+### Prototype escape hatch
+
+If during exploration or outline you realize the design is speculative because the problem isn't well-understood, **stop and recommend a 50-200 line prototype** before continuing. Working code reveals shape that diagrams cannot.
+
 ## Invocation
 
 The user invokes explicitly: `$architect <mode or description>`. Examples:

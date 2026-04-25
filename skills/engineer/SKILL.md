@@ -23,6 +23,18 @@ The engineer reads a completed architect plan at `docs/plans/<name>/plan.md`. Th
 
 The engineer implements exactly what the plan describes. If it discovers the plan is wrong, it surfaces the issue to the user — it does not silently diverge.
 
+## Scope Triage
+
+Engineer is heavyweight — six phases with conformance checks. Match phase rigor to plan size.
+
+| Plan size | Signal | Engineer does |
+|-----------|--------|---------------|
+| **Trivial** | Single component, single file, no abstractions | Decline: "Just implement directly. No phases needed." |
+| **Small** | 2-4 components, single module | Phases 1-2 only. Skip coupling analysis (Phase 3) and conformance check. |
+| **Medium/Large** | Multiple modules, refactor/migrate, cross-cutting | Full six-phase workflow. |
+
+Announce: "Plan looks [scope]. Using [abbreviated/full] engineer workflow."
+
 ## Agentic Execution Notes (Claude Opus 4.7)
 
 - **Effort**: Use `xhigh` effort for structural decisions and coupling analysis. Use `high` for straightforward implementation. Avoid lower effort for any task requiring judgment about abstractions.

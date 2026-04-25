@@ -126,6 +126,24 @@ Write the full diagnosis to the artifact file **before** presenting it in chat. 
 
 After writing the file, present a brief summary in chat: "Diagnosis written to `.docs/surgeon/<file>`. {N} findings: {X} critical, {Y} major, {Z} minor. Ready to address the first one?"
 
+### Before diagnosing — Chesterton's Fence pass
+
+The code exists. It works. Someone wrote it that way for a reason. Before producing any finding:
+
+1. Skim recent commits touching the target (`git log -p --since="6 months ago" -- <path>`)
+2. Look for comments explaining surprising structure
+3. If a pattern looks "wrong" but is consistent across the codebase, the team likely knows something you don't
+
+Findings should pass the test: *"I understand why it was built this way, and a structural change would meaningfully reduce cognitive load or prevent likely future bugs."* If you can describe what's "wrong" but not why it ended up that way, your understanding is incomplete — keep reading.
+
+### A clean diagnosis is a valid outcome
+
+If after thorough reading you find nothing critical or major, say so:
+
+> "Diagnosis: no structural changes warranted. The code's abstractions, types, and boundaries fit the problem. Minor findings only — none worth a refactor pass. Closing."
+
+This is a success, not a failure. Refactoring code that doesn't need it adds risk and reviewer time for no benefit.
+
 ### What to look for
 
 **Primitive obsession:**

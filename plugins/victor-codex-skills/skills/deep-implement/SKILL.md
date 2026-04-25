@@ -68,7 +68,9 @@ Every request starts here. Assess the scope before committing to a workflow dept
 
 Announce your assessment: "This looks like a [trivial/small/medium/large/review-driven] change. I'll use [no/abbreviated/full/review-driven] workflow. Sound right?"
 
-The user can always override. When in doubt, go deeper — it's cheaper to skip phases than to redo work.
+The user can always override. **When in doubt, go lighter.** A small workflow that produces working code in 30 minutes beats a medium workflow that produces a perfect proposal in 3 hours. You can always escalate if a Small turns out to need design work; you cannot recover time spent on phases that weren't needed.
+
+Prefer **Trivial → Small → Medium → Large**, in that order, and only escalate when clear need emerges.
 
 ## Phase Overview
 
@@ -279,7 +281,7 @@ If these files exist, read the language-agnostic guide and the relevant language
 - **Information hiding**: internal types, storage paths, AWS mechanics stay behind the interface. Don't leak implementation details into public signatures.
 - **Pull complexity downward**: push complexity into the module, not onto callers.
 - **Define errors out of existence**: design interfaces so expected conditions (empty results, optional data) are normal return values, not exceptions.
-- **Strategic over tactical**: every change should leave the design at least slightly better. Don't take shortcuts that compound complexity.
+- **Strategic over tactical**: every change should leave the design at least slightly better. Don't take shortcuts that compound complexity. **But: small, isolated tactical fixes are not the same as compounding shortcuts.** A one-line bugfix that doesn't touch the surrounding design is fine. Strategic effort is reserved for places where the design is actively in your way.
 - **Integration-first testing**: prefer Testcontainers/LocalStack over mocks. Assert on outcomes, not call chains.
 - **Minimalism / anti-overengineering**: Avoid adding unnecessary abstractions, extra files, or defensive boilerplate. Do not create helpers, utilities, or abstractions for one-time operations. Don't add error handling for scenarios that can't happen. Don't design for hypothetical future requirements. The right amount of complexity is the minimum needed for the current task.
 

@@ -45,6 +45,22 @@ Every request starts here. Assess before committing to workflow depth:
 
 Announce: "This looks like a [scope] task. I'll use [abbreviated/standard/full] forge. Sound right?"
 
+### Prototype Escape Hatch
+
+If — at any point during forge — the design feels speculative because the problem isn't well-understood:
+
+**Stop. Recommend a 50-200 line prototype instead of continued design.**
+
+Working code reveals shape that diagrams cannot. The prototype is throwaway — its purpose is to surface constraints you couldn't see from the outside. After the prototype, return to forge with a sharper sense of what the system needs to be.
+
+Signals you need a prototype, not more design:
+- "I'm not sure if X is feasible at this layer"
+- "We're guessing at the data shape"
+- "The interface depends on how Y behaves under load"
+- The user keeps reframing requirements
+
+A prototype that runs is worth a hundred diagrams.
+
 ## Phase Overview
 
 ```mermaid

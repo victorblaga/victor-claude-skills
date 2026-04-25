@@ -151,6 +151,14 @@ When the user rejects a HIGH-blast finding, the rationale lives on the code line
 
 Default scope excludes tests; Phase 7 nudges user to run the sweep against tests separately with relaxed rules.
 
+### Chesterton's Fence on Removal Dimensions
+
+Comments-slop and defensive-code dimensions are removal-biased. Before flagging:
+- **Comments**: distinguish WHAT-comments (slop) from WHY-comments (load-bearing). A comment explaining a non-obvious constraint, workaround, or invariant stays. Only flag comments that restate the code.
+- **Defensive code**: a try/except, null check, or fallback may exist because something *did* fail in production. Don't flag unless you can articulate why the failure mode it guards against is impossible.
+
+When in doubt → mark HIGH-blast and route to triage, not auto-apply.
+
 ### Tool-Aware, Tool-Optional
 
 Preflight detects languages and probes for tools. Missing tools → agent falls back to LLM-only analysis with a noted caveat. Never aborts on missing tools.
