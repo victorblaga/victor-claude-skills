@@ -20,8 +20,8 @@ The core insight: users often describe symptoms, not root causes. This skill dig
 
 Before starting, check for existing work:
 
-1. Look for `docs/plans/*/` directories in the project
-2. If found, prefer `docs/plans/<feature-name>/status.md` as the source of truth for the current phase and next action. This file should be updated whenever the workflow advances.
+1. Look for `.docs/plans/*/` directories in the project
+2. If found, prefer `.docs/plans/<feature-name>/status.md` as the source of truth for the current phase and next action. This file should be updated whenever the workflow advances.
 3. If `status.md` is missing, fall back to inference from which documents exist and their state:
    - Only `proposal.md` exists, no `review-findings.md` → Ready for Phase 2
    - `review-findings.md` exists with unresolved items → In Phase 2.2
@@ -33,7 +33,7 @@ Before starting, check for existing work:
    - `final-validation.md` exists with GAPS FOUND → In Phase 5.2 (gaps need resolution)
    - `final-validation.md` exists with PASS or PASS WITH NOTES, no doc reconciliation recorded yet → Ready for Phase 6
    - Doc reconciliation complete → Ready for Phase 7
-4. Check if the plan directory name starts with `review-` (e.g., `docs/plans/review-2026-03-16-pr-42-x8k2f/`). If so, this is a **review-driven** session — the proposal was generated from a mega-review report. Look inside `proposal.md` for the original report path.
+4. Check if the plan directory name starts with `review-` (e.g., `.docs/plans/review-2026-03-16-pr-42-x8k2f/`). If so, this is a **review-driven** session — the proposal was generated from a mega-review report. Look inside `proposal.md` for the original report path.
 5. Present a summary: "I found in-progress work for `<feature-name>`. You're at [phase/step]. Continue?" For review-driven sessions: "I found in-progress review-driven work based on mega-review at `<path>`. You're at [phase/step]. Continue?"
 6. If the user confirms, pick up from that phase. Read the relevant phase reference file before proceeding.
 
@@ -43,7 +43,7 @@ If no existing work is found, proceed with triage.
 
 Every request starts here. Assess the scope before committing to a workflow depth:
 
-**Review-driven** (user provides a path to a mega-review report, e.g., `docs/reviews/*/report.md`):
+**Review-driven** (user provides a path to a mega-review report, e.g., `.docs/reviews/*/report.md`):
 - Stay on the current branch — no new branch creation. The mega-review was run against this branch (typically an existing PR), so fixes belong here.
 - Phase 1 becomes a **transformation step**: a subagent converts the review findings into a `proposal.md` (see the Phase 1 reference for details)
 - All findings go into the proposal by default. Reprioritization or descoping is allowed only explicitly during validation, and the rationale must be recorded in the review findings and amended proposal.
@@ -84,9 +84,9 @@ Prefer **Trivial → Small → Medium → Large**, in that order, and only escal
 | **6 — Documentation Reconciliation** | Update project docs and local knowledge artifacts made stale by the implementation | Updated docs + knowledge artifacts |
 | **7 — PR Creation** | Clean up, rebase, push, open PR | PR URL |
 
-All artifacts go in `docs/plans/<feature-name>/`. The feature name is auto-generated from the problem statement. If the user mentions a JIRA ticket (e.g., CEN-123), incorporate it.
+All artifacts go in `.docs/plans/<feature-name>/`. The feature name is auto-generated from the problem statement. If the user mentions a JIRA ticket (e.g., CEN-123), incorporate it.
 
-**Phase transitions**: When completing a phase, explicitly announce it ("Phase 1 complete.") and then read the next phase's reference file before proceeding. Don't rely on memory — always load the reference. Update `docs/plans/<feature-name>/status.md` at the same time so resumption does not depend on fragile heuristics.
+**Phase transitions**: When completing a phase, explicitly announce it ("Phase 1 complete.") and then read the next phase's reference file before proceeding. Don't rely on memory — always load the reference. Update `.docs/plans/<feature-name>/status.md` at the same time so resumption does not depend on fragile heuristics.
 
 ## Agentic Execution Notes (Claude Opus 4.7)
 
@@ -109,7 +109,7 @@ Opus 4.7 excels at long-horizon agentic work, but its defaults differ from earli
 Maintain this file for every non-trivial session:
 
 ```
-docs/plans/<feature-name>/status.md
+.docs/plans/<feature-name>/status.md
 ```
 
 Suggested structure:
@@ -226,7 +226,7 @@ Per-task verification with a fresh agent is valuable for complex tasks (multi-fi
 
 If the user wants to stop at any point ("stop", "abandon this", "let's not do this"):
 1. Commit any useful work that's been done (don't lose progress)
-2. Tell the user what's on the branch and in `docs/plans/<feature-name>/`
+2. Tell the user what's on the branch and in `.docs/plans/<feature-name>/`
 3. Ask: "Want me to clean up (delete branch + docs) or leave everything in case you want to resume later?"
 4. Act on their choice
 

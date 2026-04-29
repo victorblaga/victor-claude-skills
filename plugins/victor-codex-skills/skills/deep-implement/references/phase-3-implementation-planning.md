@@ -19,7 +19,7 @@ The plan must reflect these principles. In particular: new module boundaries sho
 
 ### Plan Structure
 
-Write to `docs/plans/<feature-name>/implementation-plan.md`:
+Write to `.docs/plans/<feature-name>/implementation-plan.md`:
 
 ```markdown
 # Implementation Plan: <Feature Name>
@@ -110,7 +110,7 @@ If issues are found:
 - **Straightforward fixes** (wrong dependency order, missing test, unclear description): Auto-fix by updating the plan directly
 - **Complex/ambiguous issues** (scope questions, architectural trade-offs): Present to the user for a decision, similar to Phase 2.2 but typically briefer
 
-Write validation findings to `docs/plans/<feature-name>/plan-validation.md`. Update the implementation plan with any fixes. Commit both.
+Write validation findings to `.docs/plans/<feature-name>/plan-validation.md`. Update the implementation plan with any fixes. Commit both.
 Update `status.md` to `Current phase: 3`, `Current step: 3.2-validation-complete`, and `Next action: Start implementation`.
 
 Phase 3 is complete. Announce it and proceed to Phase 4.

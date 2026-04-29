@@ -25,7 +25,7 @@ Do not assume fixed paths - each project organizes docs differently. Use a subag
 Write the discovery result to:
 
 ```
-docs/plans/<feature-name>/doc-reconciliation.md
+.docs/plans/<feature-name>/doc-reconciliation.md
 ```
 
 Start the file with:
@@ -48,8 +48,8 @@ If **no documentation is found**:
 ## Step 2: Update documentation
 
 Launch a subagent (model: `opus`) with:
-- The proposal (`docs/plans/<feature-name>/proposal.md`)
-- The final validation (`docs/plans/<feature-name>/final-validation.md`)
+- The proposal (`.docs/plans/<feature-name>/proposal.md`)
+- The final validation (`.docs/plans/<feature-name>/final-validation.md`)
 - The full diff (`git diff <base-branch>...HEAD`)
 - The list of discovered doc files to review
 - The project's working directory

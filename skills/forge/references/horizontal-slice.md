@@ -146,7 +146,7 @@ Bias towards horizontal. Only dive vertical when there's a concrete reason.
 
 ## Progress Tracking
 
-Maintain `docs/plans/<name>/progress.md`:
+Maintain `.docs/plans/<name>/progress.md`:
 
 ```markdown
 # Progress — <name>

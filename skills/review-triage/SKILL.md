@@ -27,8 +27,8 @@ Interactive, finding-by-finding triage of a `/mega-review` report. The user and 
 ## Locate the Review
 
 1. The user may provide a path directly. If so, use it.
-2. Otherwise, scan `docs/reviews/` for the most recent review folder (by date prefix in the directory name).
-3. Confirm with the user: "I found a review at `docs/reviews/{folder}/`. Is this the one to triage?"
+2. Otherwise, scan `.docs/reviews/` for the most recent review folder (by date prefix in the directory name).
+3. Confirm with the user: "I found a review at `.docs/reviews/{folder}/`. Is this the one to triage?"
 
 The review folder contains:
 - `report.md` — the consolidated report (source of truth for findings and severities)
@@ -76,7 +76,7 @@ Initialize with:
 
 **Persistent notes** (survives review folder deletion):
 ```
-docs/reviews/{project}/notes.md
+.docs/reviews/{project}/notes.md
 ```
 
 If this file already exists, read it — it contains prior decisions from earlier reviews. Append to it; never overwrite. If it does not exist, create it with:

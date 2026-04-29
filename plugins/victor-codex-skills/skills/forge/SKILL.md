@@ -199,10 +199,10 @@ The implementer being fresh prevents context drift on long sessions.
 
 ## Output Artifacts
 
-All artifacts live in `docs/plans/<name>/`:
+All artifacts live in `.docs/plans/<name>/`:
 
 ```
-docs/plans/<name>/
+.docs/plans/<name>/
 ├── plan.md            # Architecture: constraints, diagrams, components. Evolves with each level.
 ├── exemplars.md       # User-validated reference files with descriptions
 ├── corrections.md     # Correction log: CORRECTION → LESSON with WHY

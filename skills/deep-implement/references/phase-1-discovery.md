@@ -51,13 +51,13 @@ Before writing the proposal, make sure you've considered:
 When it's time to write (either the user says so or you've reached natural completion), create:
 
 ```
-docs/plans/<feature-name>/proposal.md
+.docs/plans/<feature-name>/proposal.md
 ```
 
 Also create or update:
 
 ```
-docs/plans/<feature-name>/status.md
+.docs/plans/<feature-name>/status.md
 ```
 
 The feature name should be a short, descriptive slug derived from the problem (e.g., `refactor-matching-pipeline`, `fix-geocoder-timeout`). If there's a JIRA ticket, include it (e.g., `CEN-123-refactor-matching-pipeline`).
@@ -121,7 +121,7 @@ Launch a **subagent with fresh context** (model: `opus`) that receives:
 
 This is a one-shot artifact-producing agent. Expect it to take time; do not replace it locally because it's running long.
 
-The subagent reads the report and the relevant code, then produces `docs/plans/<name>/proposal.md` in the standard proposal format:
+The subagent reads the report and the relevant code, then produces `.docs/plans/<name>/proposal.md` in the standard proposal format:
 
 - **Problem Statement** — synthesized from the executive summary and architectural tensions. Write a narrative ("The codebase has X structural issues that manifest as Y problems"), not a list of findings.
 - **Context** — pulled from the review's scope, dimension summaries, and the code itself.
@@ -141,7 +141,7 @@ Add a metadata line at the top of the proposal:
 
 Use `review-` prefix followed by the review directory name:
 ```
-docs/plans/review-2026-03-16-pr-42-x8k2f/proposal.md
+.docs/plans/review-2026-03-16-pr-42-x8k2f/proposal.md
 ```
 
 ### After transformation

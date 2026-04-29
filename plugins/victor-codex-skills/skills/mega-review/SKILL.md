@@ -45,7 +45,7 @@ Extract from the user's message:
 All review artifacts (main report + any per-dimension files) go into a single dedicated directory:
 
 ```
-docs/reviews/YYYY-MM-DD-pr-NNN-XXXXX/
+.docs/reviews/YYYY-MM-DD-pr-NNN-XXXXX/
 ```
 
 Where:
@@ -56,7 +56,7 @@ Where:
 Create this directory before launching subagents. The main consolidated report goes at:
 
 ```
-docs/reviews/YYYY-MM-DD-pr-NNN-XXXXX/report.md
+.docs/reviews/YYYY-MM-DD-pr-NNN-XXXXX/report.md
 ```
 
 Each dimension subagent MUST write its findings to a file in the same directory (e.g. `code-quality.md`, `architecture.md`, etc.). Pass the full `{OUTPUT_DIR}` path to every subagent. Subagents must NEVER write files outside this directory.

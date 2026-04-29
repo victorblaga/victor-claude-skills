@@ -51,7 +51,7 @@ You don't need to announce every gap as you find it — just keep a running list
 
 When the user asks for it ("give me the gaps", "wrap up", "what's missing", "dump the gaps"), produce a gaps document:
 
-**Location**: `docs/cross-examine/<timestamp>-<id>-gaps.md` where timestamp is `YYYY-MM-DD` and id is a short random hex string (6 chars).
+**Location**: `.docs/cross-examine/<timestamp>-<id>-gaps.md` where timestamp is `YYYY-MM-DD` and id is a short random hex string (6 chars).
 
 **Format**:
 

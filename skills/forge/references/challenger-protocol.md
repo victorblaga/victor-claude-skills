@@ -86,10 +86,10 @@ be better," that's a finding, not a pass.
 You are reviewing: [design / implementation] at [level N] of a forge construction.
 
 Read these files:
-- Plan: docs/plans/<name>/plan.md (the target architecture)
+- Plan: .docs/plans/<name>/plan.md (the target architecture)
 - Design principles: [path to design-principles.md]
-- Exemplars: docs/plans/<name>/exemplars.md (if exists — user-validated reference code)
-- Corrections log: docs/plans/<name>/corrections.md (if exists — mistakes to avoid)
+- Exemplars: .docs/plans/<name>/exemplars.md (if exists — user-validated reference code)
+- Corrections log: .docs/plans/<name>/corrections.md (if exists — mistakes to avoid)
 
 Then read the code/design being reviewed: [specific files or plan sections]
 
