@@ -59,6 +59,14 @@ Create this directory before launching subagents. The main consolidated report g
 .docs/reviews/YYYY-MM-DD-pr-NNN-XXXXX/report.md
 ```
 
+**Gitignore preflight**: Before creating `.docs/`, check that `.docs/` is in `.gitignore` (review reports are local artifacts, not PR content):
+
+```bash
+grep -qE '^\.docs/?$' .gitignore 2>/dev/null || echo "ADD_NEEDED"
+```
+
+If missing, ask: "Append `.docs/` to `.gitignore`? (recommended)". On yes: append and commit `chore: ignore .docs review artifacts`.
+
 Each dimension subagent MUST write its findings to a file in the same directory (e.g. `code-quality.md`, `architecture.md`, etc.). Pass the full `{OUTPUT_DIR}` path to every subagent. Subagents must NEVER write files outside this directory.
 
 ### Scope Resolution

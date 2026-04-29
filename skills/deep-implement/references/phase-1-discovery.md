@@ -54,6 +54,16 @@ When it's time to write (either the user says so or you've reached natural compl
 .docs/plans/<feature-name>/proposal.md
 ```
 
+### Gitignore preflight
+
+Before writing into `.docs/`, ensure `.docs/` is in `.gitignore` (session artifacts are ephemeral workflow state, not PR content):
+
+```bash
+grep -qE '^\.docs/?$' .gitignore 2>/dev/null || echo "ADD_NEEDED"
+```
+
+If missing, ask the user: "Append `.docs/` to `.gitignore`? (recommended — keeps deep-implement workflow files local)". On yes: append `.docs/` to `.gitignore` and commit with `chore: ignore .docs workflow artifacts`.
+
 Also create or update:
 
 ```

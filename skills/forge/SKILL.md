@@ -203,6 +203,14 @@ The implementer being fresh prevents context drift on long sessions.
 
 ## Output Artifacts
 
+**Gitignore preflight**: Before creating `.docs/plans/<name>/`, check that `.docs/` is in `.gitignore` (forge planning artifacts are local workflow state, not PR content):
+
+```bash
+grep -qE '^\.docs/?$' .gitignore 2>/dev/null || echo "ADD_NEEDED"
+```
+
+If missing, ask the user: "Append `.docs/` to `.gitignore`? (recommended)". On yes: append and commit `chore: ignore .docs forge artifacts`.
+
 All artifacts live in `.docs/plans/<name>/`:
 
 ```

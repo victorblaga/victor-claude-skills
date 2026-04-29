@@ -53,6 +53,14 @@ When the user asks for it ("give me the gaps", "wrap up", "what's missing", "dum
 
 **Location**: `.docs/cross-examine/<timestamp>-<id>-gaps.md` where timestamp is `YYYY-MM-DD` and id is a short random hex string (6 chars).
 
+**Gitignore preflight**: Before writing the gaps file, check that `.docs/` is in `.gitignore`:
+
+```bash
+grep -qE '^\.docs/?$' .gitignore 2>/dev/null || echo "ADD_NEEDED"
+```
+
+If missing, ask the user: "Append `.docs/` to `.gitignore`? (recommended — gap dumps are local artifacts)". On yes: append and commit `chore: ignore .docs cross-examine artifacts`.
+
 **Format**:
 
 ```markdown
