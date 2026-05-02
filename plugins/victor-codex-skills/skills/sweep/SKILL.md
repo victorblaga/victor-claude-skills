@@ -13,7 +13,7 @@ description: >
 
 # Sweep
 
-Proactive multi-dimensional codebase hygiene. Eight parallel `gpt-5.4` review subagents analyze the repo, a Calibrator dedupes and assigns blast radius per finding, LOW-blast findings auto-apply via per-file Appliers, and HIGH-blast findings get walked through conversationally with the user. Polyglot, Python-leaning, with per-language tool detection.
+Proactive multi-dimensional codebase hygiene. Eight parallel review subagents analyze the repo, a Calibrator dedupes and assigns blast radius per finding, LOW-blast findings auto-apply via per-file Appliers, and HIGH-blast findings get walked through conversationally with the user. Polyglot, Python-leaning, with per-language tool detection. Always use the latest available Codex model for every subagent.
 
 **CRITICAL RULES:**
 - **Preflight is strict** — no dirty git, no auto-run on dev/main, baseline test check. See Phase 1.
@@ -62,9 +62,9 @@ Read only the phase you're entering. Do not preload all references.
 | Phase | Purpose | Reference |
 |-------|---------|-----------|
 | **1 — Preflight** | git clean, branch choice, `.gitignore` for `.docs`, language detection, tool probe + install offers, baseline tests | `references/phase-1-preflight.md` |
-| **2 — Analyze** | 8 parallel `gpt-5.4` dimension subagents produce findings | `references/phase-2-analyze.md` |
-| **3 — Calibrate** | Single `gpt-5.4` calibrator: cross-agent dedup + blast radius per finding | `references/phase-3-calibrate.md` |
-| **4 — Auto-apply** | Per-file `gpt-5.4` Applier subagents for LOW-blast; dimension-grouped commit reword | `references/phase-4-auto-apply.md` |
+| **2 — Analyze** | 8 parallel dimension subagents produce findings | `references/phase-2-analyze.md` |
+| **3 — Calibrate** | Single calibrator: cross-agent dedup + blast radius per finding | `references/phase-3-calibrate.md` |
+| **4 — Auto-apply** | Per-file Applier subagents for LOW-blast; dimension-grouped commit reword | `references/phase-4-auto-apply.md` |
 | **5 — Triage** | Conversational walkthrough of HIGH-blast findings with accept / reject / defer / modify verdicts | `references/phase-5-triage.md` |
 | **6 — Verify** | Post-apply test run; final CI-equivalent; 3-attempt fix cycle | `references/phase-6-verify.md` |
 | **7 — Report** | Final summary + marker-age nudge + optional test-sweep nudge | `references/phase-7-report.md` |
@@ -76,14 +76,21 @@ Phase transitions: announce explicitly (*"Phase 1 complete, entering Phase 2."*)
 - `references/tool-registry.md` — per-language tool table, install commands, config bootstrap, degradation policy
 - `references/markers.md` — `cleanup-sweep-skip` syntax per language, placement rules, age-nudge format
 
-## Model Tiers
+## Reasoning Tiers
 
-| Role | Model | Reasoning effort | Rationale |
-|------|-------|------------------|-----------|
-| 8 dimension agents (Phase 2) | `gpt-5.4` | `high` | Each agent makes "is this cruft or intentional?" judgment calls across one dimension without needing the slowest setting. |
-| Calibrator (Phase 3) | `gpt-5.4` | `xhigh` | Blast-radius judgment and cross-agent dedup are the highest-leverage reasoning step. |
-| Applier (Phase 4) | `gpt-5.4` | `medium` | Per-file application is narrower and more mechanical, but still benefits from the full model. |
-| Final report (Phase 7) | `gpt-5.4` | `medium` | Formatting and statistics aggregation are structured tasks. |
+Always use the latest available Codex model for every subagent. Vary only `reasoning_effort` based on the cognitive load of the role:
+
+- `xhigh` — most intense thinking. Cross-agent dedup and blast-radius judgment that gates every downstream step.
+- `high` — significant judgment. "Cruft or intentional?" calls inside a single dimension.
+- `medium` — moderate reasoning. Reserved for explorers tracing cross-file behavior.
+- `low` — mechanical execution. Per-file applies of an explicit finding, structured aggregation and formatting.
+
+| Role | Reasoning effort | Rationale |
+|------|------------------|-----------|
+| 8 dimension agents (Phase 2) | `high` | Each agent makes "is this cruft or intentional?" judgment calls across one dimension. |
+| Calibrator (Phase 3) | `xhigh` | Blast-radius judgment and cross-agent dedup are the highest-leverage reasoning step. |
+| Applier (Phase 4) | `low` | Per-file application of an explicit finding is mechanical. |
+| Final report (Phase 7) | `low` | Formatting and statistics aggregation are structured tasks. |
 
 Main-thread orchestration (triage walkthrough with user) inherits the session model.
 

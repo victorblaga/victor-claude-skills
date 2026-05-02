@@ -166,25 +166,30 @@ When CI fails (after PR creation or during local checks):
 
 This skill relies heavily on subagents to keep work in fresh contexts. Here's how to use them:
 
-### Model tiers for subagents
+### Reasoning tiers for subagents
 
-Use `gpt-5.4` for every subagent in this workflow. Vary only `reasoning_effort` based on the importance and ambiguity of the task:
+Always use the latest available Codex model for every subagent in this workflow. Vary only `reasoning_effort` based on the cognitive load of the task:
 
-| Task type | Model | Reasoning effort | Rationale |
-|-----------|-------|------------------|-----------|
-| **Phase 1**: Discovery / proposal writing | `gpt-5.4` | `xhigh` | Root-cause analysis and proposal synthesis drive the rest of the workflow |
-| **Phase 2.1**: Proposal review | `gpt-5.4` | `xhigh` | Independent critical evaluation should be as sharp as possible |
-| **Phase 2.2**: Resolving review findings | `gpt-5.4` | `high` | Structured judgment and trade-off analysis |
-| **Phase 3.1**: Implementation planning | `gpt-5.4` | `xhigh` | Architectural decisions and task decomposition benefit from maximum reasoning depth |
-| **Phase 3.2**: Plan validation | `gpt-5.4` | `xhigh` | Catching plan gaps early is high leverage |
-| **Phase 4**: Task implementation | `gpt-5.4` | `high` | Strong implementation judgment with lower overhead than `xhigh` |
-| **Phase 4**: Task verification | `gpt-5.4` | `medium` | Checking implementation against plan is narrower and more mechanical |
-| **Phase 5.1**: Final validation audit | `gpt-5.4` | `xhigh` | Proposal-to-implementation coverage review is a high-stakes audit |
-| **Phase 6**: Doc discovery + reconciliation | `gpt-5.4` | `high` | Requires judgment about what changed and how much to update |
-| **Phase 7**: PR creation, cleanup | `gpt-5.4` | `medium` | Mostly structured git and PR operations |
-| Codebase exploration | `gpt-5.4` | `medium` | Search and retrieval still benefit from the full model, but don't need maximum effort |
+- `xhigh` — most intense thinking. Open-ended synthesis, root-cause analysis, architectural decisions, high-stakes audits.
+- `high` — significant judgment. Trade-off analysis, doc reconciliation, decisions inside a known frame.
+- `medium` — moderate reasoning. Codebase exploration, structured search, narrow checks.
+- `low` — mechanical execution. Applying a known plan, formatting, structured git/PR operations, verifying against an explicit spec.
 
-**The principle:** standardize on `gpt-5.4` for consistency and quality. Use `xhigh` for planning and audit phases, `high` for implementation and decision-heavy discussion, and `medium` for verification, exploration, and cleanup.
+| Task type | Reasoning effort | Rationale |
+|-----------|------------------|-----------|
+| **Phase 1**: Discovery / proposal writing | `xhigh` | Root-cause analysis and proposal synthesis drive the rest of the workflow |
+| **Phase 2.1**: Proposal review | `xhigh` | Independent critical evaluation should be as sharp as possible |
+| **Phase 2.2**: Resolving review findings | `high` | Structured judgment and trade-off analysis |
+| **Phase 3.1**: Implementation planning | `xhigh` | Architectural decisions and task decomposition benefit from maximum reasoning depth |
+| **Phase 3.2**: Plan validation | `xhigh` | Catching plan gaps early is high leverage |
+| **Phase 4**: Task implementation | `low` | Plan is explicit; execution is mechanical translation of task spec into code |
+| **Phase 4**: Task verification | `low` | Checking implementation against an explicit spec is mechanical |
+| **Phase 5.1**: Final validation audit | `xhigh` | Proposal-to-implementation coverage review is a high-stakes audit |
+| **Phase 6**: Doc discovery + reconciliation | `high` | Requires judgment about what changed and how much to update |
+| **Phase 7**: PR creation, cleanup | `low` | Structured git and PR operations |
+| Codebase exploration | `medium` | Search and retrieval, no architectural judgment |
+
+**The principle:** `xhigh` for planning and audit phases that drive everything downstream, `high` for decision-heavy work inside a known frame, `medium` for exploration, `low` for mechanical implementation and structured operations. If a Phase 4 task turns out to need real judgment (ambiguous spec, surprise complexity), bump it up rather than forcing the tier.
 
 ### When to spawn a subagent
 - Phase 2.1: proposal review
@@ -196,8 +201,8 @@ Use `gpt-5.4` for every subagent in this workflow. Vary only `reasoning_effort` 
 
 ### How to spawn
 Spawn a subagent with a clear, self-contained prompt. The subagent has no access to your conversation history — everything it needs must be in the prompt. Include:
-- The `model` parameter set to `gpt-5.4`
-- The `reasoning_effort` parameter set according to the model tiers table above
+- The model set to the latest available Codex model
+- The `reasoning_effort` parameter set according to the tiers table above
 - The specific task and expected output format
 - Paths to relevant documents (proposal, plan, etc.)
 - The project's working directory

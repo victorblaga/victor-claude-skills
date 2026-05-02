@@ -4,7 +4,7 @@ The proposal from Phase 1 was written collaboratively — you and the user built
 
 ## Phase 2.1: Independent Review
 
-Launch a **subagent with fresh context** (model: `gpt-5.4`) to review the proposal. The subagent receives:
+Launch a **subagent with fresh context** (latest available Codex model, `reasoning_effort: xhigh`) to review the proposal. The subagent receives:
 - The proposal document path
 - Access to the full codebase
 - Access to any architectural docs or knowledge base or notes references mentioned in the proposal
@@ -97,7 +97,7 @@ If during discussion you discover something that changes the proposal fundamenta
 
 Once all findings are resolved, apply the decisions to the proposal:
 
-1. Launch a subagent (model: `gpt-5.4`, or do it yourself if the changes are straightforward) to update `proposal.md` incorporating all resolved findings
+1. Launch a subagent (latest available Codex model, `reasoning_effort: high`, or do it yourself if the changes are straightforward) to update `proposal.md` incorporating all resolved findings
 2. The changes should reflect the decisions made during Phase 2.2 discussion — not the raw findings, but the agreed-upon resolutions
 3. Output a brief summary of what changed: "Updated proposal with: [list of key changes]"
 4. Commit the amended proposal

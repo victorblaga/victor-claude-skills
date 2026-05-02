@@ -21,7 +21,7 @@ Re-run the baseline test command from Phase 1. If red, abort auto-apply — some
 
 ### 3. Launch Applier subagents in parallel
 
-For each file with ≥1 LOW-blast finding, launch a `gpt-5.4` subagent with `reasoning_effort: medium` in parallel. Bound concurrency at 8 parallel Appliers; if there are more files, batch them.
+For each file with ≥1 LOW-blast finding, launch a subagent on the latest available Codex model with `reasoning_effort: low` in parallel. Bound concurrency at 8 parallel Appliers; if there are more files, batch them.
 
 ### 4. Reword commits after all Appliers finish
 
@@ -39,7 +39,7 @@ Update `status.md`, announce, read `references/phase-5-triage.md`, proceed.
 
 ## Applier Agent Prompt
 
-Launch with `model: "gpt-5.4"` and `reasoning_effort: "medium"` per file. Substitute `{FILE}`, `{FINDING_IDS}`, `{FINDING_DETAILS}` (pull the full finding text for each ID from `calibration.md`), `{OUTPUT_DIR}`.
+Launch on the latest available Codex model with `reasoning_effort: "low"` per file. Substitute `{FILE}`, `{FINDING_IDS}`, `{FINDING_DETAILS}` (pull the full finding text for each ID from `calibration.md`), `{OUTPUT_DIR}`.
 
 ```
 You are a sweep Applier. You apply pre-analyzed, pre-calibrated LOW-blast findings to a single file. You have veto authority to reject individual findings back to triage if you see subtlety the Calibrator missed.

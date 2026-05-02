@@ -124,7 +124,7 @@ The mega-review `report.md` — contains findings across 8 dimensions, calibrati
 
 ### Transformation
 
-Launch a **subagent with fresh context** (model: `gpt-5.4`) that receives:
+Launch a **subagent with fresh context** (latest available Codex model, `reasoning_effort: xhigh`) that receives:
 - The mega-review report path
 - Access to the full codebase
 - Project conventions from `AGENTS.md` or `CLAUDE.md`

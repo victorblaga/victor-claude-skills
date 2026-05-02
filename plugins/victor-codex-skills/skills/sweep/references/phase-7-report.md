@@ -4,7 +4,7 @@ Final summary. Three components: report file, marker-age nudge, optional test-sw
 
 ## Generate `report.md`
 
-Launch a `gpt-5.4` subagent with `reasoning_effort: medium` to produce the final report. It's mechanical aggregation.
+Launch a subagent on the latest available Codex model with `reasoning_effort: low` to produce the final report. It's mechanical aggregation.
 
 ### Report Agent Prompt
 

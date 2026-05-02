@@ -8,7 +8,7 @@ Phase 3.2 validates the **plan** against the proposal. Per-task verification in 
 
 ## Phase 5.1: Proposal Coverage Audit
 
-Launch a **subagent with fresh context** (model: `gpt-5.4`) that receives:
+Launch a **subagent with fresh context** (latest available Codex model, `reasoning_effort: xhigh`) that receives:
 - The amended proposal (`.docs/plans/<feature-name>/proposal.md`)
 - The implementation plan (`.docs/plans/<feature-name>/implementation-plan.md`)
 - The full diff from the base branch (`git diff <base-branch>...HEAD`)

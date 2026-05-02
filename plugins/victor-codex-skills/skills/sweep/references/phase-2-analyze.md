@@ -1,6 +1,6 @@
 # Phase 2 — Analyze
 
-Launch 8 parallel subagents in a single batch. Use `gpt-5.4` with `reasoning_effort: high` so they run concurrently with consistent review quality. Each agent:
+Launch 8 parallel subagents in a single batch. Use the latest available Codex model with `reasoning_effort: high` so they run concurrently with consistent review quality. Each agent:
 
 - Receives the target scope, detected languages, tool outputs (if any), project conventions, and the known `cleanup-sweep-skip` marker list
 - Has a primary focus but is explicitly permitted to flag cross-dimension findings (breadth over precision — Calibrator dedupes in Phase 3)
@@ -378,11 +378,11 @@ Blast radius is almost always LOW for this dimension (comments don't affect runt
 
 ## Launching the 8 Agents
 
-Use subagents with `model: "gpt-5.4"` and `reasoning_effort: "high"` for each. Launch all 8 in one parallel batch. Example pattern:
+Use subagents on the latest available Codex model with `reasoning_effort: "high"` for each. Launch all 8 in one parallel batch. Example pattern:
 
 ```
-spawn_agent(agent_type="default", model="gpt-5.4", reasoning_effort="high", message="<Agent 1 prompt with substitutions>")
-spawn_agent(agent_type="default", model="gpt-5.4", reasoning_effort="high", message="<Agent 2 prompt>")
+spawn_agent(agent_type="default", model="<latest>", reasoning_effort="high", message="<Agent 1 prompt with substitutions>")
+spawn_agent(agent_type="default", model="<latest>", reasoning_effort="high", message="<Agent 2 prompt>")
 ... (all 8 in one message)
 ```
 

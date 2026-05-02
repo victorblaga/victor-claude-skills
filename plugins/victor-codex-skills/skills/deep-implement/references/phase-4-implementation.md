@@ -21,7 +21,7 @@ Now we build. The execution follows the strategy defined in the plan.
      - justify any intentional exceptions to the protocol's batching or data-structure defaults
      - report any performance-sensitive decisions back in the task summary
 
-2. **The implementing agent** (model: `gpt-5.4`):
+2. **The implementing agent** (latest available Codex model, `reasoning_effort: low` — the plan is explicit; bump to `medium` only if the task spec turns out to be ambiguous):
    - Reads the relevant parts of the codebase
    - **Assesses whether the code is performance-sensitive** (per the implementation agent protocol)
    - If performance-sensitive: writes a pseudocode/comment sketch first, maps out Big O complexity and I/O calls, identifies and resolves bottlenecks, THEN implements
@@ -32,7 +32,7 @@ Now we build. The execution follows the strategy defined in the plan.
    - Reports back: what was done, what files were changed, any performance decisions made, any concerns
 
 3. **Verify** — the level of verification depends on task complexity:
-   - **Complex tasks** (multi-file changes, architectural modifications, tricky logic): Spawn a **fresh verification subagent** (model: `gpt-5.4-mini`) that independently reviews the implementation — does it match the task spec? Do verification criteria pass? Any obvious issues?
+   - **Complex tasks** (multi-file changes, architectural modifications, tricky logic): Spawn a **fresh verification subagent** (latest available Codex model, `reasoning_effort: low`) that independently reviews the implementation — does it match the task spec? Do verification criteria pass? Any obvious issues?
    - **Simple tasks** (single-file, small diff, straightforward logic): CI checks from step 2 are sufficient. Skip the verification subagent.
 
 4. **Commit** the task's changes with a clear commit message describing what was done

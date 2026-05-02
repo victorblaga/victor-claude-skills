@@ -111,25 +111,30 @@ If the user specifies focus areas, map them to these dimensions and only run the
 
 Before launching subagents, read the repository's instruction file if one exists, such as `AGENTS.md`, `CLAUDE.md`, or similar. If it references additional guideline or convention documents, read those too. Summarize the project conventions relevant to each dimension and pass them to each subagent as `{PROJECT_CONVENTIONS}`. Each subagent must respect these conventions when evaluating code.
 
-### Model And Effort Tiers for Subagents
+### Reasoning Tiers for Subagents
 
-Use `gpt-5.4` for every review phase. Vary only `reasoning_effort` based on the importance and ambiguity of the step:
+Always use the latest available Codex model for every review phase. Vary only `reasoning_effort` based on the cognitive load of the step:
 
-| Step | Model | Reasoning effort | Rationale |
-|------|-------|------------------|-----------|
-| Dimension subagents (Step 2) | `gpt-5.4` | `high` | First-pass review determines what enters the pipeline; missing subtle issues here is expensive |
-| Verification subagents (Step 3, Phase 1) | `gpt-5.4` | `medium` | Factual cross-checking is narrower and more mechanical, but still benefits from the full model |
-| Calibrator (Step 3, Phase 2) | `gpt-5.4` | `xhigh` | Severity calibration requires careful trade-off analysis and disciplined judgment |
-| Architectural Synthesis (Step 4) | `gpt-5.4` | `xhigh` | Meta-analysis across dimensions is the most synthesis-heavy step |
-| Consolidator (Step 5) | `gpt-5.4` | `high` | Terminal step — must follow the write-file instruction reliably; a silent skip throws away the work of every other agent |
+- `xhigh` — most intense thinking. Cross-dimension synthesis, severity calibration, judgment-heavy meta-analysis.
+- `high` — significant judgment inside a single dimension. First-pass review where missing subtle issues is expensive.
+- `medium` — moderate reasoning. Tracing control flow, exploring code across files.
+- `low` — mechanical execution. Factual cross-checking against quoted code, structured aggregation, formatting.
 
-**Nested explorer subagents:** if a dimension reviewer, verifier, calibrator, or synthesis agent spawns an explorer subagent, that explorer should also use `gpt-5.4`. Default to `medium`; raise to `high` when tracing subtle control flow, architectural assumptions, or cross-file behavior.
+| Step | Reasoning effort | Rationale |
+|------|------------------|-----------|
+| Dimension subagents (Step 2) | `high` | First-pass review determines what enters the pipeline; missing subtle issues here is expensive |
+| Verification subagents (Step 3, Phase 1) | `low` | Cross-checking quoted facts against the source is mechanical |
+| Calibrator (Step 3, Phase 2) | `xhigh` | Severity calibration requires careful trade-off analysis and disciplined judgment |
+| Architectural Synthesis (Step 4) | `xhigh` | Meta-analysis across dimensions is the most synthesis-heavy step |
+| Consolidator (Step 5) | `low` | Mechanical aggregation; must follow the write-file instruction reliably without rethinking severity |
 
-**The principle:** standardize on `gpt-5.4` for quality and consistency. Use `xhigh` for judgment-heavy synthesis, `high` for primary review work, and `medium` for verification and formatting-oriented steps.
+**Nested explorer subagents:** if a dimension reviewer, verifier, calibrator, or synthesis agent spawns an explorer subagent, default to `medium`; raise to `high` when tracing subtle control flow, architectural assumptions, or cross-file behavior.
+
+**The principle:** `xhigh` for judgment-heavy synthesis and calibration that drives the report, `high` for primary review work, `medium` for exploration, `low` for mechanical verification and formatting-oriented steps.
 
 ### Step 2: Launch Dimension Subagents (in parallel)
 
-Launch all applicable dimension subagents in parallel. Use `gpt-5.4` with `reasoning_effort: high` for these first-pass reviews. If the harness does not support subagents, run the dimensions sequentially yourself while preserving the same output structure.
+Launch all applicable dimension subagents in parallel. Use the latest available Codex model with `reasoning_effort: high` for these first-pass reviews. If the harness does not support subagents, run the dimensions sequentially yourself while preserving the same output structure.
 
 **Important:** Each subagent must be told:
 - It is READ-ONLY — do not modify any source code
