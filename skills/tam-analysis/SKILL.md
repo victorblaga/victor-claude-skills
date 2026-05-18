@@ -140,6 +140,31 @@ Accept the user's number after they name a mechanism. Log the mechanism in `sour
 
 This applies to: pool anchors, mature share, monetization metric, real pricing CAGR.
 
+## Domain-Expert Subagent (On-Demand)
+
+When the user wants an expert opinion, sanity check, or pressure-test on a specific question — most commonly while sizing a speculative layer, contesting a mature-share precedent, or judging real pricing power — dispatch the domain-expert subagent (`agents/domain-expert.md`).
+
+Trigger phrases from the user:
+
+- "Ask an expert about X"
+- "Get a domain expert opinion on this"
+- "What would a [X] analyst say?"
+- "Pressure-test this with an expert"
+- "Is this layer credible? Get an expert take."
+- "Confirm this with someone who knows the space"
+
+The skill **may also proactively offer** dispatch when a speculative layer is being sized or a contested precedent surfaces:
+
+> "Want me to dispatch a [specific persona] to pressure-test the speculative cloud-services layer before we size it?"
+
+Dispatch is always user-confirmed — never run silently.
+
+**Persona is picked by the main flow** to match the specific question, not the company overall. AMZN's ad-network layer → ad-tech expert. AMZN's logistics moat → supply-chain operator. The persona composition pattern: "veteran [primary domain] analyst + ex-[adjacent operator role]" — forces triangulation between markets view and operator view. Full persona examples in `agents/domain-expert.md`.
+
+Model tier: opus xhigh. This subagent is purchased for judgment.
+
+Output is saved (appended) to `~/.investing/companies/<TICKER>/<DATE>/expert-opinions.md` for later reference. The opinion is presented to the user immediately and may shift the analysis — log how it shifted in `dialogue.md`.
+
 ## Math-Checker
 
 Dispatched to a fresh Sonnet subagent (`agents/math-checker.md`). Runs at:
@@ -228,5 +253,6 @@ These hold for every turn:
 | `references/state-schema.md` | `state.json` structure, `sources.md` / `dialogue.md` / `handoff.md` formats, resume contract |
 | `agents/anchor-researcher.md` | Subagent prompt for cited anchor lookup |
 | `agents/math-checker.md` | Subagent prompt for code-validated math discipline |
+| `agents/domain-expert.md` | On-demand opus-xhigh subagent for expert opinion / pressure-test (persona picked per question) |
 
 Read references on demand — do not preload everything. Read `references/layer-protocols.md` at Step 0 (you need it to propose the layer structure). Read `references/per-layer-protocol.md` when you enter Layer 1. Read `references/multiplication-protocol.md` at the multiplication step. Read `references/handoff-format.md` at hand-off. Read `references/state-schema.md` once at session start (you need the schema to write `state.json` correctly).
