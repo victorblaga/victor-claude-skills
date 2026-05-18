@@ -109,19 +109,48 @@ The revenue path is already settled by TAM — don't reopen it. Per-anchor confi
 
 Pacing commands inherited from `/tam-analysis`: `faster`, `autopilot`, `pause`, `back`. Same semantics.
 
-## Step 0 — Load TAM, Verify, Sanity-Check
+## Step 0 — Load TAM, Verify, Sanity-Check (HARD-FAIL ON INCONSISTENCY)
 
 First message of every fresh DCF session:
 
 1. **Load** `~/.investing/companies/<TICKER>/<DATE>/handoff.md` and `state.json`. Parse the hand-off block (section G) into structured form.
-2. **Summarize** the user's TAM interpretation: company, currency, hand-off horizon (Y`<N>`), revenue at maturity bear/base/bull, period CAGRs, growth shape, dominant Fermi drivers, bear mechanism, bull adjacencies, speculative weighting.
-3. **Sanity-check** the hand-off internally. Detect:
-   - **Two-bases pathology**: if the TAM output mentions an "alternative haircut base" or "analyst-conservative base" alongside the bottom-up base, surface this to the user as a TAM-side error. The DCF cannot proceed with two bases. Stop and ask: "Which base is the actual base? The TAM should have resolved this — either revise the TAM (run `/tam-analysis resume <TICKER>`) or pick one for this DCF run and we'll proceed."
-   - **Internal arithmetic inconsistency**: revenue at maturity nominal vs today's-$ × inflation^N — must reconcile.
-   - **Smooth-fade where stacked-S claimed**: period CAGRs don't match the stated shape.
-   - **Bear/base/bull non-monotonic** (bear ≥ base or base ≥ bull).
-4. If any check fails, **flag explicitly** to user before proceeding. Don't silently work around a broken TAM.
-5. Ask: "Hand-off looks consistent. Ready to start the DCF assumptions? Same per-anchor pacing as `/tam-analysis`."
+2. **Summarize** the user's TAM interpretation: company, currency, hand-off horizon (Y`<N>`), revenue at maturity bear/base/bull, **per-scenario period CAGRs** (bear/base/bull rows), growth shape per scenario, dominant Fermi drivers, bear mechanism, bull adjacencies, speculative weighting.
+3. **Run hand-off verification checks**. Any failure HALTS the DCF — do not silently work around:
+
+   **3a. Per-scenario CAGRs present.** Hand-off must carry bear/base/bull period CAGRs (5 periods each = 15 CAGRs total). If only a single CAGR set exists ("legacy" hand-off from earlier TAM runs):
+
+   > Hand-off carries only a single period-CAGR set, but the bear / base / bull endpoints differ by `<X>×`. Cannot compound a single CAGR set to multiple endpoints — that would silently rescale and produce shape artifacts (e.g., bull-case mid-cycle reacceleration above early peak, violating stacked-S claim).
+   >
+   > Options:
+   > (a) Run `/tam-analysis resume <TICKER>` to regenerate per-scenario CAGRs from layer ramps (recommended).
+   > (b) Provide per-scenario CAGRs inline for this DCF run only — I'll prompt you for bear/bull triplets.
+   > (c) Abandon this DCF and rerun TAM with the updated skill.
+
+   **3b. Hand-off contract test (per scenario).** For each scenario, verify the stated period CAGRs compound to the stated endpoint within 2%. If any scenario fails:
+
+   > Bear case: hand-off CAGRs compound to $X.XB at Y`<N>`, but stated endpoint is $Y.YB (delta `<Z>`%). The CAGRs and endpoint disagree.
+   >
+   > Options:
+   > (a) Revise TAM bear endpoint (`/tam-analysis resume <TICKER>`).
+   > (b) Revise TAM bear CAGRs.
+   > (c) Provide explicit annual revenue series for bear (overrides both).
+
+   Do not pick silently. Force user choice. (Critically: do NOT silently rescale CAGRs to fit endpoint — that's the bug this rule exists to prevent.)
+
+   **3c. Shape sanity (per scenario).** Identify the peak-growth year per scenario. Verify post-peak CAGRs are monotonically decreasing UNLESS a TAM layer's `activation_year` or `peak_growth_year` falls inside the violating period (legitimate mid-cycle reacceleration from a turning-on layer). Flag U/W-shapes lacking layer-activation justification:
+
+   > Bull case shows mid-cycle reacceleration: Y6-10 CAGR = 18%, Y11-20 CAGR = 27% (>Y6-10), Y21-25 CAGR = 2%. Peak is Y15. After peak, CAGRs should decel.
+   >
+   > Is there a TAM layer activating around Y10-15 that would justify the reacceleration? If not, this is a math artifact from the TAM hand-off — halt and fix in TAM.
+
+   **3d. Two-bases pathology.** If the TAM output mentions an "alternative haircut base" or "analyst-conservative base" alongside the bottom-up base, surface as TAM-side error. DCF cannot proceed with two bases.
+
+   **3e. Internal arithmetic.** Revenue at maturity nominal vs today's-$ × inflation^N — must reconcile. Bear/base/bull monotonic.
+
+4. If any check fails, **HALT and prompt user with the specific options** for that failure. Never silently work around. Never silently rescale.
+5. Once all checks pass, ask: "Hand-off verified consistent across all scenarios. Ready to start the DCF assumptions? Same per-anchor pacing as `/tam-analysis`."
+
+**This step is the firewall between TAM and DCF.** A broken TAM should never produce a DCF artifact silently. Either the TAM is fixed or the DCF refuses to run.
 
 ## Step 1 — Data Snapshot (Current Financials)
 

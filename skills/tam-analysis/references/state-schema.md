@@ -103,6 +103,19 @@ The session can be reconstructed entirely from these four files.
         "base": 220000000000,
         "bull": 295000000000
       },
+      "ramp_schedule": {
+        "shared_across_scenarios": true,
+        "activation_year": 0,
+        "peak_growth_year": 5,
+        "maturity_year": 15,
+        "curve_shape": "s_curve",
+        "per_scenario_overrides": null
+      },
+      "annual_revenue_today_$": {
+        "bear": [125e9, 132e9, 140e9, "..."],
+        "base": [125e9, 138e9, 152e9, "..."],
+        "bull": [125e9, 145e9, 168e9, "..."]
+      },
       "math_check_status": "passed",
       "math_check_log": ".math-check.log"
     }
@@ -114,10 +127,36 @@ The session can be reconstructed entirely from these four files.
   "aggregated": {
     "revenue_at_maturity_today_$": {"bear": "...", "base": "...", "bull": "..."},
     "revenue_at_maturity_nominal_$": {"bear": "...", "base": "...", "bull": "..."},
-    "growth_path_cagrs": {
-      "y1_3": 0.10, "y4_5": 0.11, "y6_10": 0.09, "y11_20": 0.06, "y21_maturity": 0.04
+    "annual_revenue_today_$_per_scenario": {
+      "bear": [1.62e9, 1.85e9, 2.10e9, "..."],
+      "base": [1.62e9, 1.96e9, 2.30e9, "..."],
+      "bull": [1.62e9, 2.05e9, 2.50e9, "..."]
     },
-    "growth_shape": "stacked S-curves"
+    "growth_path_cagrs_per_scenario": {
+      "bear": {"y1_3": 0.05, "y4_5": 0.06, "y6_10": 0.07, "y11_20": 0.06, "y21_maturity": 0.02},
+      "base": {"y1_3": 0.17, "y4_5": 0.20, "y6_10": 0.18, "y11_20": 0.11, "y21_maturity": 0.02},
+      "bull": {"y1_3": 0.22, "y4_5": 0.25, "y6_10": 0.22, "y11_20": 0.16, "y21_maturity": 0.02}
+    },
+    "growth_shape_per_scenario": {
+      "bear": "front_loaded",
+      "base": "stacked S-curves",
+      "bull": "stacked S-curves"
+    },
+    "peak_growth_year_per_scenario": {
+      "bear": 1,
+      "base": 5,
+      "bull": 5
+    },
+    "handoff_contract_test": {
+      "bear": {"compounded_endpoint": 6.97e9, "stated_endpoint": 6.97e9, "delta_pct": 0.0, "status": "passed"},
+      "base": {"compounded_endpoint": 31.11e9, "stated_endpoint": 31.11e9, "delta_pct": 0.0, "status": "passed"},
+      "bull": {"compounded_endpoint": 106.09e9, "stated_endpoint": 106.09e9, "delta_pct": 0.0, "status": "passed"}
+    },
+    "shape_sanity_test": {
+      "bear": {"status": "passed", "notes": "monotonic decel after Y1 peak"},
+      "base": {"status": "passed", "notes": "stacked-S with SP-A activation Y4 + SP-F Y6 explains mid-cycle plateau"},
+      "bull": {"status": "passed", "notes": "stacked-S; mid-cycle elevation Y11-15 traceable to SP-A peak Y10 + SP-F peak Y12"}
+    }
   },
   "pacing_mode": "per_anchor",
   "history": [

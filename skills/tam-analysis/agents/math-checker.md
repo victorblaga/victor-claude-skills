@@ -91,16 +91,77 @@ Validate:
 
 3. **Per-layer contribution at hand-off horizon**: for each layer, contribution = mature revenue if layer_maturity ≤ hand_off_horizon, else still-ramping projection at hand_off_horizon. Verify.
 
-4. **Period CAGRs**: derive the implied revenue path from layer-by-layer ramps, compute per-period CAGRs (y1_3, y4_5, y6_10, y11_20, y21_maturity), compare against `aggregated.growth_path_cagrs`.
+4. **Per-scenario annual revenue derivation** (NEW). For each layer, compute the annual revenue series from `ramp_schedule` × layer endpoint per scenario:
 
-5. **Scenario monotonicity**: bear < base < bull for headline revenue. Speculative layers contribute zero in bear.
+   ```python
+   def layer_annual(year, activation, peak, maturity, endpoint, curve_shape):
+       if year < activation:
+           return 0
+       if year >= maturity:
+           return endpoint
+       progress = (year - activation) / (maturity - activation)
+       if curve_shape == "s_curve":
+           # Logistic sigmoid centered on the normalized peak position
+           peak_norm = (peak - activation) / (maturity - activation)
+           k = 6.0  # steepness — gives clean S
+           factor = 1 / (1 + math.exp(-k * (progress - peak_norm)))
+           # Normalize so factor(0)=0 and factor(1)=1
+           f0 = 1 / (1 + math.exp(k * peak_norm))
+           f1 = 1 / (1 + math.exp(-k * (1 - peak_norm)))
+           factor = (factor - f0) / (f1 - f0)
+       elif curve_shape == "linear":
+           factor = progress
+       elif curve_shape == "front_loaded":
+           factor = progress ** 0.5
+       elif curve_shape == "back_loaded":
+           factor = progress ** 2
+       elif curve_shape == "stepped":
+           # Provided step years in ramp_schedule.steps
+           factor = compute_step_factor(year, ramp_schedule.steps)
+       return endpoint * factor
+   ```
 
-6. **Three-error check** (also surfaced in handoff):
-   - Headline numbers reconcile to layer table (no silent haircut).
-   - Real and inflation accounted for separately (no double-apply).
-   - Growth path matches the layer thesis (stacked S-curves shouldn't produce a smooth fade).
+   Aggregate per scenario: `revenue_series(year, scenario) = Σ over layers of layer_annual(year, layer, scenario)`. Save to `aggregated.annual_revenue_today_$_per_scenario`.
 
-7. **Single-base check**: scan `state.json` and any draft hand-off for the presence of two distinct base totals (e.g., "bottom-up base" alongside "analyst-haircut base" or "conservative alternative base"). If found, FAIL the check and report which scenarios are duplicating. There is exactly one bear, one base, one bull. Expert disagreements get resolved by revising the actual layer numbers or strengthening the bear — never by carrying parallel bases.
+5. **Per-scenario period CAGRs**. From the annual revenue series, compute CAGRs for y1_3, y4_5, y6_10, y11_20, y21_maturity. Save to `aggregated.growth_path_cagrs_per_scenario.{bear,base,bull}`. These are the numbers the hand-off block emits.
+
+6. **HAND-OFF CONTRACT TEST** (NEW — critical). For each scenario, verify the derived period CAGRs compound to the scenario's stated endpoint within 2%:
+
+   ```python
+   compounded = revenue_y0
+   for period, cagr in growth_path_cagrs[scenario].items():
+       years_in_period = period_length(period, maturity_year)
+       compounded *= (1 + cagr) ** years_in_period
+   delta_pct = abs(compounded - stated_endpoint) / stated_endpoint
+   assert delta_pct < 0.02
+   ```
+
+   Run for bear, base, AND bull independently. Save results to `aggregated.handoff_contract_test`. FAIL if any scenario exceeds 2%.
+
+7. **SHAPE SANITY TEST** (NEW). For each scenario, identify the peak-growth year (year of fastest %-growth). After the peak, period CAGRs must be monotonically decreasing UNLESS a layer's `activation_year` or `peak_growth_year` falls inside the violating period (legitimate mid-cycle reacceleration from a turning-on layer).
+
+   Save to `aggregated.shape_sanity_test`. FAIL if mid-cycle reacceleration has no layer-activation justification. Report the violating period and which layers could explain it (if any).
+
+8. **PRECEDENT FLAG** (NEW — informational, not blocking). For the bull scenario, if any period's CAGR exceeds the empirical 95th-percentile threshold for the company's starting revenue scale, FLAG (do not fail):
+
+   | Starting revenue | 95th-pct CAGR sustained 5+ years | Note |
+   |------------------|----------------------------------|------|
+   | < $100M | 60% | Hard to compare; pre-revenue exits common |
+   | $100M-$1B | 40% | NVDA 2003-2008, Shopify 2015-2019 |
+   | $1B-$10B | 25% | NVDA 2020-2024, Atlassian 2017-2021 |
+   | $10B-$50B | 20% | AAPL 2010-2014, FB 2012-2016 |
+   | > $50B | 15% | Sustained super-growth at scale is rare |
+
+   If flagged: prompt user to either (a) reduce bull endpoint, (b) name the specific layer / catalyst that justifies above-precedent growth, or (c) accept with explicit "above-precedent" tag in `handoff.md`. **This is informational, not a hard block** — NVDA-style outliers exist and the analyst is allowed to argue for them; the check ensures the argument is explicit.
+
+9. **Scenario monotonicity**: bear < base < bull for headline revenue. Speculative layers contribute zero in bear.
+
+10. **Three-error check** (also surfaced in handoff):
+    - Headline numbers reconcile to layer table (no silent haircut).
+    - Real and inflation accounted for separately (no double-apply).
+    - Growth path matches the layer thesis (stacked S-curves shouldn't produce a smooth fade — verified by shape sanity test).
+
+11. **Single-base check**: scan `state.json` and any draft hand-off for the presence of two distinct base totals. If found, FAIL.
 
 ## Output Format
 

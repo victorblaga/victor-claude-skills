@@ -107,11 +107,12 @@ This is the slot that catches the "core retailer building datacenters for itself
 
 ## Per-Layer Protocol
 
-Walk each layer through these seven steps. Full details and examples in `references/per-layer-protocol.md`. Summary:
+Walk each layer through these eight steps. Full details and examples in `references/per-layer-protocol.md`. Summary:
 
 1. **Define the demand unit precisely**. What's counted? Who buys? What drives usage? How is it monetized? Confirm with user.
 2. **Build the pool today**. Top-down from authoritative sources via anchor-researcher. Cite. Show ranges. For consumer / retail, ground in regional demographic decomposition (population × per-capita usage by region) before aggregating.
 3. **Project to per-layer maturity**. Pool growth = population × per-capita usage × structural shifts. Show pool today, Y10, Y20, at this layer's maturity. Per-layer maturity year is set here, not globally. Confidence label per driver. Math-checker validates compounding.
+3.5. **Set the layer ramp schedule**. Each layer captures `activation_year` (when revenue begins), `peak_growth_year` (fastest %-growth), `maturity_year`, and `curve_shape` (s_curve / linear / front_loaded / back_loaded / stepped). Most layers share the ramp across bear/base/bull — only differ when a specific catalyst drives different timing per scenario. **Why this matters**: per-scenario revenue paths are derived bottom-up from layer ramps × layer endpoints, not from a single declared period-CAGR set. Eliminates downstream rescale artifacts (e.g., bull case U-shape with mid-cycle reacceleration above early peak).
 4. **Propose 2-3 scope options** — tight / plausible / aggressive. Explain the structural difference, not just the number. Don't pick — user picks.
 5. **Wait for user scope**. Geography, segment, product breadth, adjacency inclusion are judgment calls dependent on the thesis.
 6. **Size with explicit confidence**. high / moderate / low / unknown per anchor. Push back when user is too generous AND when user is too conservative (silent conservatism is as bad as wishful thinking).
@@ -128,7 +129,15 @@ Only after ALL layers are pool-sized. Four sub-steps per layer per scenario (bea
 3. **Real pricing power per year (above inflation)**. Per layer. Express as fading profile in real %: e.g., +2.5% / +2% / +1.5% over decades 1/2/3 for high-pricing-power layers; ~0% for commodity layers; negative for commoditizing tech. Math-checker validates compounding.
 4. **Inflation overlay (apply LAST)**. Today's-$ output → nominal $ at the per-layer maturity year. Anchor inflation on the long-run expectation for the reporting currency (central-bank target or break-even). Math-checker validates real→nominal conversion.
 
-Dispatch math-checker after each layer's multiplication. Dispatch again at final aggregation to validate the cross-layer sum and growth-path CAGRs.
+Dispatch math-checker after each layer's multiplication. Dispatch again at final aggregation to:
+
+- Validate the cross-layer sum per scenario.
+- Derive per-scenario annual revenue series from per-layer ramps × per-scenario endpoints.
+- Compute per-scenario period CAGRs (Y1-3, Y4-5, Y6-10, Y11-20, Y21-maturity) from those series.
+- Run the **hand-off contract test**: per-scenario CAGRs must compound to per-scenario endpoint within 2%. Fail-stop if any scenario violates.
+- Run the **shape sanity check**: identify peak-growth-year per scenario; flag mid-cycle reacceleration (later-period CAGR > earlier-period CAGR after peak) unless traceable to a named layer activating at that year.
+
+The hand-off block in `handoff.md` emits per-scenario period CAGRs (bear/base/bull rows), not a single CAGR set. Downstream `/tam-dcf` consumes per-scenario CAGRs directly — no silent rescaling permitted.
 
 ## Pushback Discipline
 

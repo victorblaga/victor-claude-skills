@@ -257,18 +257,32 @@ The stacked-S-curve inflections from the TAM hand-off MUST be visible in the rev
 - **Does not output a per-year discounted FCFF ledger.** The dcf-prompt forbids it; the output is structured PV-by-period in the EV bridge.
 - **Does not output a "DCF margin of safety" final-value haircut.** Margin of safety lives in scenario design + sensitivity + reverse-DCF required return.
 - **Does not adjust the TAM revenue path** to "be more conservative." If the TAM is wrong, the user fixes it via `/tam-analysis resume <TICKER>`.
+- **DOES NOT SILENTLY RESCALE TAM CAGRs to fit per-scenario endpoints.** If TAM provides a single CAGR set and three different endpoints, the math forces a rescale that produces shape artifacts (U/W-shapes, mid-cycle reacceleration above early peak). The skill halts at Step 0 and forces the user to fix TAM rather than carry the artifact downstream.
 
 ## What This Skill REQUIRES from TAM
 
 The hand-off block (section G of `handoff.md`) must contain:
 
-- Revenue at maturity, today's $ + nominal $, bear/base/bull
-- Period CAGRs (Y1-3, Y4-5, Y6-10, Y11-20, Y21-maturity)
-- Growth shape (stacked-S vs smooth fade)
+- Revenue at maturity, today's $ + nominal $, **per scenario** (bear / base / bull)
+- **Per-scenario period CAGRs**: bear / base / bull rows, each with Y1-3, Y4-5, Y6-10, Y11-20, Y21-maturity (15 CAGRs total)
+- **Per-scenario growth shape** (stacked-S vs smooth fade vs front-loaded vs back-loaded)
+- **Per-scenario peak-growth year** (used by shape sanity check)
+- **Optional but recommended: per-scenario annual revenue series** for highest-fidelity DCF consumption (no derivation needed)
+- **Per-layer ramp schedules**: activation_year, peak_growth_year, maturity_year, curve_shape, per-scenario overrides
 - Dominant Fermi drivers (for sensitivity matrix #2)
 - Bear mechanism + bull adjacencies
 - Per-layer maturity years
 - Real pricing CAGR per layer
 - Inflation assumption used
 
-If any of these are missing or malformed, halt at Step 0 and ask user to re-run TAM.
+If any of these are missing, halt at Step 0 and ask user to re-run TAM with the updated skill. Legacy hand-offs (with a single CAGR set) are not supported; the rescale they'd require is the bug this contract exists to prevent.
+
+## Hand-off Contract Test (Inherited from TAM)
+
+When TAM math-checker emits the hand-off, it runs a contract test: per-scenario CAGRs must compound to per-scenario endpoint within 2%. DCF re-runs this test at Step 0 as a sanity check — if it fails on the DCF side, that means either:
+
+- TAM math-checker has a bug.
+- The hand-off was edited after TAM ran.
+- The CAGRs and endpoints were never reconciled.
+
+Whatever the cause: HALT. Force user to resolve in TAM before DCF proceeds.

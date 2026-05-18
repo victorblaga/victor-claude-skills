@@ -103,12 +103,24 @@ def fcff(ebit, tax_rate, da, capex, delta_nwc):
     return nopat + da - capex - delta_nwc
 ```
 
-### Revenue path from TAM
+### Revenue path from TAM — NO SILENT RESCALING
 
-The TAM hand-off gives period CAGRs (Y1-3, Y4-5, Y6-10, Y11-20, Y21-maturity). Convert to annual revenue series:
+The TAM hand-off MUST provide **per-scenario period CAGRs** (bear/base/bull rows). The dcf-math subagent consumes them directly per scenario. **NEVER silently rescale a single CAGR set to fit a different endpoint — that's the bug this skill exists to prevent.**
+
+Input preference order, highest fidelity first:
+
+1. **TAM hand-off includes per-scenario annual revenue series** (most reliable; computed by TAM math-checker from layer ramps × per-scenario endpoints). Use directly.
 
 ```python
-def revenue_path(rev_y0, period_cagrs, maturity_year):
+def revenue_path_from_annual_series(annual_series_per_scenario, scenario):
+    # Just return the TAM-provided annual series
+    return annual_series_per_scenario[scenario]
+```
+
+2. **TAM hand-off includes per-scenario period CAGRs only** (next-best). Build annual series per scenario:
+
+```python
+def revenue_path_from_per_scenario_cagrs(rev_y0, period_cagrs_per_scenario, scenario, maturity_year):
     series = [rev_y0]
     period_specs = [
         ("y1_3",     1, 3),
@@ -117,14 +129,65 @@ def revenue_path(rev_y0, period_cagrs, maturity_year):
         ("y11_20",   11, 20),
         ("y21_maturity", 21, maturity_year),
     ]
+    cagrs = period_cagrs_per_scenario[scenario]
     for key, start, end in period_specs:
-        cagr = period_cagrs[key]
+        cagr = cagrs[key]
         for y in range(start, end + 1):
             series.append(series[-1] * (1 + cagr))
-    return series  # series[i] = revenue at year i
+    # CRITICAL: verify the compounded endpoint matches the stated endpoint
+    # within 2%. If not, HALT and surface to main thread. Do NOT rescale.
+    compounded_endpoint = series[maturity_year]
+    stated_endpoint = stated_endpoint_per_scenario[scenario]
+    delta_pct = abs(compounded_endpoint - stated_endpoint) / stated_endpoint
+    if delta_pct > 0.02:
+        raise HandoffContractViolation(
+            f"Scenario {scenario}: per-scenario CAGRs compound to ${compounded_endpoint:.2f}, "
+            f"stated endpoint ${stated_endpoint:.2f} (delta {delta_pct*100:.1f}%). "
+            f"Halt. Do not silently rescale."
+        )
+    return series
 ```
 
-Cross-check: `series[maturity_year] ≈ revenue_at_maturity_today_$` (from TAM hand-off). If off by >2%, FAIL and report.
+3. **TAM hand-off has only a single CAGR set** (legacy / broken). HALT IMMEDIATELY and surface to main thread. Do not rescale. Main thread prompts user with the 3 options (rerun TAM / provide per-scenario CAGRs / abandon).
+
+```python
+def revenue_path_from_single_cagr_set(rev_y0, single_cagrs, scenario_endpoints, scenario, maturity_year):
+    # DO NOT IMPLEMENT THIS PATH. Halt immediately.
+    raise LegacyHandoffError(
+        "Hand-off carries only a single CAGR set, but scenarios have different endpoints. "
+        "Silent rescaling produces shape artifacts (e.g., bull case U-shape with mid-cycle "
+        "reacceleration above early peak). Halt. Main thread prompts user to fix TAM."
+    )
+```
+
+### Shape sanity check (per scenario)
+
+```python
+def shape_sanity_check(annual_series, scenario, tam_layer_activations):
+    # Identify peak-growth year
+    growth_rates = [(annual_series[y+1] / annual_series[y] - 1) for y in range(len(annual_series) - 1)]
+    peak_year = growth_rates.index(max(growth_rates))
+
+    # After peak, growth should be monotonically decreasing
+    violations = []
+    for y in range(peak_year + 1, len(growth_rates)):
+        if growth_rates[y] > growth_rates[y-1] + 0.005:  # 50bps tolerance
+            # Check if a TAM layer activates around year y
+            layer_activations_in_period = [
+                layer for layer in tam_layer_activations
+                if abs(layer["activation_year"] - y) <= 2 or abs(layer["peak_growth_year"] - y) <= 2
+            ]
+            if not layer_activations_in_period:
+                violations.append({
+                    "year": y,
+                    "growth_rate": growth_rates[y],
+                    "prior_growth": growth_rates[y-1],
+                    "explanation_needed": True,
+                })
+    return {"peak_year": peak_year, "violations": violations}
+```
+
+Violations are surfaced to main thread for user resolution — do not silently ignore.
 
 ### Margin / reinvestment ramp
 
@@ -257,6 +320,9 @@ Run all of these after every computation:
 6. **WACC floor** correctly applied. For USD-listed: `wacc_used >= max(calculated, 0.085)`. For non-USD: `wacc_used >= max(calculated, 0.085 + (currency_inflation - 0.02))`. Verify against `dcf-state.json.assumptions.wacc.wacc_floor_local`.
 7. **No magic-haircut text** in `dcf.md`: grep for "haircut," "conservative alternative base," "applied a X% reduction," "for margin of safety we cut," "discount the base by." Any match = FAIL.
 8. **Single base case**: ensure no two distinct "base" totals appear in `dcf-state.json` or `dcf.md`.
+9. **Hand-off contract**: per-scenario CAGRs compound to per-scenario endpoint within 2% PER SCENARIO. FAIL if violated for any scenario. **No silent rescaling.**
+10. **Shape sanity per scenario**: peak-growth year identified; post-peak monotonically decreasing OR mid-cycle reacceleration explainable by TAM layer activation. FAIL if unexplained reacceleration.
+11. **No `revenue_path_adjustment` in `.dcf-check.log`** (the diagnostic key that exposed the silent-rescale bug in earlier versions). If you ever find yourself computing a "g1=27.01%" style adjustment to fit endpoint, you're rescaling — HALT instead.
 
 Failures: do NOT proceed to save the final outputs. Return failure status to main thread with the discrepancy. Main thread surfaces to user.
 
