@@ -26,13 +26,13 @@ Existing anchors in this layer (for context, do not duplicate research):
 
 ## What to Do
 
-1. **Research the anchor.** Tool preference order:
-   - **agent-browser (primary)** — local Rust CLI + Chrome via CDP. Use for: search queries (it drives Google/DuckDuckGo and returns the accessibility tree), dynamic / JS-heavy pages (Statista, paywalled-soft-walls, industry-report pages, company IR with JS), and any site where WebFetch returns errors or empty. Invoke via the `agent-browser` skill. Returns accessibility tree with element refs (@e1, @e2) — ~82% fewer tokens than screenshot tools.
-   - **WebFetch (fallback)** — only for known-static public URLs (US Census .gov pages, BLS, BEA, FRED, SEC EDGAR XBRL filings, UN data portals). Free and text-only. If WebFetch returns an error or stripped content, escalate to agent-browser.
+1. **Research the anchor.** Tool preference order — start cheap, escalate on failure:
+   - **WebSearch + WebFetch** — try first when the anchor is a quick, well-defined public lookup (e.g., a US Census figure, a known SEC filing URL, a recent industry-body statistic). Cheap and fast when it works.
+   - **agent-browser** — escalate here on WebSearch / WebFetch failure (errors, empty content, anti-bot walls, JS-only rendering). Also use directly when the source is known to be dynamic / JS-heavy (Statista, paywalled-soft-walls, industry-report pages, company IR with heavy JS). Invoke via the `agent-browser` skill — drives Chrome via CDP, returns the accessibility tree with element refs, ~82% fewer tokens than screenshot tools.
    - **pdftotext (for PDFs)** — for downloadable PDFs (10-Ks, 20-Fs, regulatory reports). Don't try to render PDFs in the browser; use `pdftotext -layout <path> -`.
    - **MCP / context7** — for authoritative library / framework / official-document content if relevant.
    - For peer financials, fetch the company's latest 10-K / 20-F / annual report from SEC EDGAR or company IR page. Do not rely on summarizing blogs.
-   - **Do NOT use WebSearch** — it has been unreliable in this skill's runs. Drive search through agent-browser instead.
+   - **Failure pattern**: if WebSearch / WebFetch return empty, malformed, or anti-bot output for the same source twice, switch to agent-browser and stay there for that source.
 
 2. **Resolve to a value + range**. Authoritative sources often disagree on definition (e.g., "books read per year" varies by survey method). Surface the disagreement. Pick a defensible point estimate within a defensible range.
 
