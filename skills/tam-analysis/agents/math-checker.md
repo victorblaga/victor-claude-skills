@@ -100,6 +100,8 @@ Validate:
    - Real and inflation accounted for separately (no double-apply).
    - Growth path matches the layer thesis (stacked S-curves shouldn't produce a smooth fade).
 
+7. **Single-base check**: scan `state.json` and any draft hand-off for the presence of two distinct base totals (e.g., "bottom-up base" alongside "analyst-haircut base" or "conservative alternative base"). If found, FAIL the check and report which scenarios are duplicating. There is exactly one bear, one base, one bull. Expert disagreements get resolved by revising the actual layer numbers or strengthening the bear — never by carrying parallel bases.
+
 ## Output Format
 
 ### Math-Check Log Entry (appended to `.math-check.log`)

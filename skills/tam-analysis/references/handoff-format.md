@@ -89,8 +89,9 @@ Before emitting the hand-off block, confirm:
 1. **Did we pass the Fermi output through as actual revenue at maturity, or silently haircut it further?** ✅ / ❌
 2. **Did we account for real pricing power AND inflation separately?** ✅ / ❌
 3. **Does the growth path reflect stacked S-curves matching the layer thesis, or did we force a smooth fade?** ✅ / ❌
+4. **Does the output contain exactly ONE bear, ONE base, ONE bull — with no parallel "alternative haircut base", "analyst-conservative base", or other duplicate scenarios?** ✅ / ❌
 
-All three must pass. If any fails, fix the underlying model first, re-run math-checker, then re-emit.
+All four must pass. If any fails, fix the underlying model first, re-run math-checker, then re-emit. For check #4 specifically: if an expert review pushed the base down and the user accepted, the layer numbers must be updated in `state.json` and the old numbers removed from `handoff.md` — never both preserved.
 
 ## G. Hand-Off Block (DCF Input)
 
@@ -154,6 +155,7 @@ Run the math-checker one last time before saving `handoff.md`:
 - Period CAGRs reconcile against the implied revenue path.
 - Bear / base / bull spreads non-degenerate (bear < base < bull).
 - Speculative layers zero in bear.
+- Hand-off contains exactly one bear, one base, one bull. No parallel "alternative haircut base" or duplicate scenarios anywhere in the document. If math-checker finds two distinct base totals, fail the check and force resolution.
 
 Math-checker writes its validation report to `~/.investing/companies/<TICKER>/<DATE>/.math-check.log`. Reference it in `handoff.md` footer.
 

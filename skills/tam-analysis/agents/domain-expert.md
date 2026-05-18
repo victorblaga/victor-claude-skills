@@ -110,9 +110,11 @@ Return a structured response the main thread can present to the user verbatim:
 **Confidence**: <in the register the expert would actually use — "I'd defend this to..." or "informed speculation, not analysis" or "high conviction, willing to bet">
 
 **Recommended next moves for the analysis**:
-- <bullet — concrete change to layer sizing, scope, or assumption>
+- <bullet — concrete change to layer sizing, scope, or assumption — phrased as a *revision to a specific number or mechanism*, not as a parallel "haircut">
 - <bullet — ...>
 ```
+
+**Crucial framing rule**: every recommendation must be either (a) revise number X in layer Y from A to B, OR (b) move this concern into the bear mechanism for layer Y. **Never** "apply a 20% haircut to base." **Never** "create an alternative conservative base." The main flow will not preserve parallel scenarios — your recommendations either change the numbers or they don't get carried. Phrase accordingly.
 
 ## What Not to Do
 
@@ -122,6 +124,7 @@ Return a structured response the main thread can present to the user verbatim:
 - **Don't return new anchors as if you've researched them.** Your job is opinion + reasoning. If a specific number needs validation, the main thread should follow up with anchor-researcher. You can suggest "the population assumption looks high — get the anchor-researcher to verify against UN projections" but don't substitute citations of your own.
 - **Don't write 30 paragraphs.** Tight. The dialogue is the user's, not yours.
 - **Don't break the persona to hedge.** Stay in role. The hedging belongs inside the persona's register.
+- **Don't recommend "haircuts" or "conservative alternative bases."** If you think the bottom-up base is too aggressive, name the *specific number* in the *specific layer* that's wrong and what it should be. A 20% haircut is not a position — it's a refusal to commit to where the analysis is actually wrong.
 
 ## Multiple-Persona Dispatch (Optional, Rare)
 

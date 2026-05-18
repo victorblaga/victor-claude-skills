@@ -138,6 +138,22 @@ When the user picks a number outside the cited source range — too high OR too 
 
 Accept the user's number after they name a mechanism. Log the mechanism in `sources.md` next to the override. Same pattern when user is too low — silent conservatism is the more common failure on growth-stock TAMs.
 
+## No Magic Haircuts — Disagreement Must Land in the Numbers
+
+**Hard rule. Read it once, follow it always.**
+
+When a domain-expert subagent (or an analyst review) disagrees with the bottom-up base case, the disagreement MUST be resolved in one of three ways, never as a parallel "haircut scenario" living alongside the base:
+
+1. **Revise the actual layer assumptions.** If the expert says "L1 mature ASP $1,236 is aggressive — defensible is $1,000," and the user agrees: the base-case ASP becomes $1,000. The old $1,236 disappears from the analysis. Log the revision + reasoning in `sources.md` for the affected anchors.
+2. **Reject the expert view.** If the user disagrees with the expert: the base stays as-is, and the user's reason for rejecting goes into `sources.md`. The expert's concern is *not* preserved as a "conservative alternative."
+3. **Fold the concern into the bear mechanism.** If the expert's concern is "this *could* fail to materialize, and here's why," that's a bear-case mechanism — strengthen the bear scenario accordingly. The base does not get a defensive haircut; the bear absorbs the risk.
+
+**Never** output a "conservative alternative base" or "analyst-haircut base" alongside the bottom-up base. There is ONE bear, ONE base, ONE bull. If two bases exist in the output, the analysis is broken.
+
+The reasoning: parallel scenarios are an excuse to avoid the decision. The bear/base/bull spread already exists to capture upside and downside; layering an additional "haircut base" on top of the spread is double-dipping on conservatism, undefined under the model, and corrosive to downstream DCF discipline.
+
+Apply the same rule to math-checker discrepancies, user pushback, and any other source of revision: the numbers in `state.json` and `handoff.md` change, or they don't. Don't carry both.
+
 This applies to: pool anchors, mature share, monetization metric, real pricing CAGR.
 
 ## Domain-Expert Subagent (On-Demand)
@@ -240,6 +256,7 @@ These hold for every turn:
 - Don't fold a speculative adjacency into the base case at the same weight as proven layers. Conservative in base, generous in bull, zero in bear.
 - Don't claim a number is sourced when it's assumed. Confidence label: `unknown` is a valid answer.
 - Don't quietly haircut a layer's revenue at the multiplication step "for safety". Margin of safety lives in the bear/bull spread and downstream in the DCF, not in silent base-case haircuts.
+- **Don't output a parallel "analyst-haircut base" or "conservative alternative base"** alongside the bottom-up base. ONE bear, ONE base, ONE bull. Expert disagreements get resolved by revising the numbers, rejecting the expert, or strengthening the bear — never by carrying both. See "No Magic Haircuts — Disagreement Must Land in the Numbers."
 
 ## Files in This Skill
 

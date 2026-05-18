@@ -156,5 +156,18 @@ Math-checker validates the period CAGRs against the aggregated revenue path.
 1. **Did we pass the Fermi output through as actual revenue at maturity, or silently haircut?** Compare summary numbers to the aggregated layer table. They must match.
 2. **Did we account for real pricing AND inflation separately?** Check `state.json` — both fields populated per layer, neither one folded into the other.
 3. **Does the growth path reflect stacked S-curves matching the layer thesis, or did we force a smooth fade?** Plot or tabulate the per-year revenue from the aggregated layers. If it's smooth where the thesis is layered, the math is wrong.
+4. **Is there exactly ONE base case, not two?** Search the state and any draft hand-off for a "conservative alternative base," "analyst-haircut base," "haircut to X%," or similar parallel scenario. If found, it's an error. Either the underlying numbers were revised (and the old ones should be gone) or the disagreement got folded into bear/bull (and the alternative scenario should be gone). Never carry both.
 
-Math-checker runs all three. Any failure must be surfaced to user and resolved before emitting the hand-off block.
+Math-checker runs all four. Any failure must be surfaced to user and resolved before emitting the hand-off block.
+
+## Handling Expert / Analyst Disagreement (Without Magic Haircuts)
+
+When a domain-expert subagent or analyst review pushes back on the bottom-up base, the resolution path is strict:
+
+1. Identify the **specific layer + specific number** the expert disagrees with (e.g., "SP-A mature monetization $8.1B is overstated by ~50%").
+2. Present to user: "Expert recommends `<layer>.<field>` go from `<old>` to `<new>`. Reasoning: `<one line>`. Three options: (a) accept revision — layer numbers update, old value disappears; (b) reject — keep current, log rejection reasoning; (c) move into bear mechanism — base stays, but bear absorbs the concern."
+3. Apply the user's choice. State must end with one of: revised number, recorded rejection, or strengthened bear. Never all three. Never a parallel scenario.
+
+The handoff.md output never contains both the original number and a "haircut alternative." If the user changes their mind later, they revise the state again — they don't accumulate alternatives.
+
+The discipline reasoning: a TAM with two bases is undefined. Downstream DCF can't choose; the analyst (and the future self) can't remember which number was the "real" base; the bear-bull spread becomes meaningless because the conservative case is already baked into a parallel base. The whole point of the bear/base/bull structure is that the bear absorbs adverse paths — it should not need a haircut overlay.
