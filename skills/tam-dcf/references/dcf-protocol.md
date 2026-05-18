@@ -50,21 +50,122 @@ Compare mature margin assumption to:
 
 If the mature assumption sits above best-in-class peer, **name the structural reason** (asset-backed moat, network effect, data flywheel, regulatory protection). Without a reason, push the assumption down to peer average.
 
-## WACC Mechanics
+## WACC Mechanics — Required-Return Framework
+
+WACC is framed as **required return**, not derived from CAPM. The conventional `r_e = r_f + β × ERP` produces a falsely precise number from noisy backward-looking statistics. This skill replaces that with a transparent additive composition over preferences the user actually controls:
 
 ```
-WACC = (E / (E + D)) × Cost of Equity + (D / (E + D)) × Cost of Debt × (1 − Tax Rate)
+WACC ≈ required_real_return + reporting_currency_inflation + jurisdictional_risk_premium + sector_nudge
 ```
 
-Anchors:
+Then blend with cost of debt only if material:
 
-- **Cost of equity**: 10% unless user specifies otherwise. (This is the "required return" convention — DCFs anchored to a target return rather than CAPM β.)
-- **Cost of debt**: current YTM on the company's outstanding bonds, or BBB-rated equivalent + 50-100bps credit spread for the rating. After-tax = pre-tax × (1 − tax rate).
-- **Tax rate**: long-run normalized. US default ~25%. Adjust for jurisdiction mix.
-- **Capital structure weights**: target weights at maturity, not current. Growers tend toward 70-90% equity at maturity (operating cash flow self-funds). Use TAM-implied maturity-year capital structure if disclosed; otherwise default to current weights.
-- **WACC floor**: 8.5%. If calculated WACC < 8.5%, use 8.5% unless user has a specific reason. Show BOTH the calculated and the used WACC in the output.
+```
+WACC_final = (E / (E + D)) × required_return_composed + (D / (E + D)) × cost_of_debt_after_tax
+```
 
-The floor exists because long-horizon DCFs are sensitive to WACC, and very low discount rates produce intrinsic values that don't survive even modest risk. 8.5% is a defensible floor for long-duration equity claims under any reasonable monetary regime.
+For mostly-equity-financed growers (90%+ equity weight), `WACC_final ≈ required_return_composed`. Don't sweat the debt blending unless capital structure is material.
+
+### Component 1 — Required Real Return
+
+What you want to earn **after inflation**. Default 8%. Conservative buy-and-hold investors anchor 6-7%; aggressive growth investors anchor 9-10%. Floor 6% (below that it's a savings account, not equity risk-taking).
+
+### Component 2 — Reporting Currency Inflation
+
+| Currency | Long-run anchor | Source |
+|----------|-----------------|--------|
+| USD / EUR / GBP / CAD / AUD / SGD | 2% | Central-bank targets, well-anchored |
+| CHF | 1% | SNB target |
+| JPY | 1-2% | BoJ target |
+| PLN / CZK / ILS | 3% | Stable EM |
+| MXN | 4% | Banxico target 3%, realized ~4-5% |
+| RON / HUF | 5% | Mid-tier EM, persistent above-target |
+| BRL / ZAR / INR | 5-7% | Mid-tier EM |
+| TRY (current) / ARS / EGP | 15%+ | Fragile EM, anchor on realized |
+
+Use central-bank target where credible; 10-year realized average where it isn't.
+
+### Component 3 — Jurisdictional Risk Premium
+
+| Jurisdiction tier | Examples | Premium |
+|-------------------|----------|---------|
+| Developed markets | US, UK, EU-core, JP, CH, CA, AU, SG, KR | 0% |
+| Stable EMs | MX, PL, CZ, IL, TW, CL | 1-2% |
+| Mid-tier EMs | RO, BR, IN, ID, ZA, MY, TH | 2-4% |
+| Fragile EMs / political risk | TR, EG, AR, NG, VN | 4-6% |
+| Distressed / sanctioned | RU, IR, VE, MM | 6%+ or uninvestable |
+
+Apply once at the listing-jurisdiction level. For multi-jurisdiction businesses (e.g., US-listed but 80% of revenue from Mexico + India), nudge up 1-2% to reflect operating exposure.
+
+### Component 4 — Sector / Business-Quality Nudge (Optional)
+
+- Regulated infrastructure / staples / utilities: -0.5% to -1%
+- Quality compounders with proven track record: -0.5%
+- High-growth unprofitable tech: +0.5% to +1%
+- Cyclical commodity / shipping / semis: +1% to +2%
+- Speculative biotech / pre-revenue: +2% to +3%
+- Micro-cap (< $500M): +0.5% to +1%
+
+Don't stack adjustments aggressively. ±3% from base of 10% is a sign of motivated reasoning — push back on the assumption set rather than the discount rate.
+
+### Floor
+
+**8.5% USD-equivalent floor** unless exceptionally justified. The floor exists because long-horizon DCFs are sensitive to WACC; very low discount rates produce intrinsic values that don't survive modest risk.
+
+For non-USD reporting currencies: `floor_local = 8.5% + (currency_inflation − 2%)` to preserve the real-return basis. E.g., RON-listed floor = 8.5% + 3% = 11.5%; BRL-listed floor ≈ 12.5%.
+
+Show BOTH the composed WACC and the used WACC in `dcf.md` if the floor is invoked.
+
+### Reference Compositions
+
+| Setup | Composition | WACC |
+|-------|-------------|------|
+| USD-listed quality compounder, US ops | 8% + 2% + 0% − 0.5% | 9.5% |
+| USD-listed durable growth, US ops | 8% + 2% + 0% + 0% | 10% (default) |
+| USD-listed speculative growth | 8% + 2% + 0% + 1% | 11% |
+| USD-listed, 80% EM operations | 8% + 2% + 2% + 0% | 12% |
+| EUR-listed European compounder | 8% + 2% + 0% − 0.5% | 9.5% |
+| GBP-listed UK staples | 8% + 2% + 0% − 1% | 9% |
+| MXN-listed Mexican retailer | 8% + 4% + 1% + 0% | 13% |
+| RON-listed Romanian growth | 8% + 5% + 2% + 0% | 15% |
+| BRL-listed Brazilian compounder | 8% + 6% + 3% − 0.5% | 16.5% |
+| INR-listed Indian SaaS | 8% + 5% + 3% + 0% | 16% |
+| TRY-listed (current) | 8% + 18% + 5% + 0% | 31% (heavily inflation-dominated) |
+
+### Cost of Debt
+
+Only material if D/(E+D) > 20%. For mostly-equity-financed growers, skip the blending — `WACC_final = required_return_composed`.
+
+When material:
+- Cost of debt = current YTM on the company's outstanding bonds, OR
+- Investment-grade equivalent (BBB) yield + 50-150bps credit spread for the rating
+- After-tax = pre-tax × (1 − tax rate)
+
+### Tax Rate
+
+Long-run normalized:
+- US: ~25% (Federal 21% + state-adjusted)
+- EU-core (FR, DE, IT): 25-30%
+- UK: 25%
+- Ireland: 12.5%
+- Singapore: 17%
+- EMs: country-specific (BR ~34%, IN ~25%, MX ~30%)
+
+### Capital Structure Weights
+
+Target weights at maturity, not current. Most growers tend toward 70-90% equity at maturity (operating cash flow self-funds). Use TAM-implied maturity-year capital structure if disclosed; otherwise default to current weights and explicit-forecast convergence.
+
+### What This Framework Replaces
+
+The skill explicitly does NOT compute or use:
+
+- **Beta** (Cov / Var regression on historical returns).
+- **Risk-free rate from current Treasury yields** (snapshot of the wrong-duration rate).
+- **Equity risk premium** as a multiplicative input to beta.
+- **CAPM-derived cost of equity** as the primary build.
+- **Damodaran-style country-risk-premium tables derived from CDS spreads.** (The jurisdictional premium here is preference-based, transparent, and anchored on the user's tolerance — not a derivation from credit markets.)
+
+This is a deliberate choice. CAPM produces a precise-looking number from inputs that are themselves noisy and contested. The required-return framework is honest about the fact that the discount rate is fundamentally a preference, then adjusts it for the real-world frictions (inflation, jurisdiction, sector risk) that the user can actually reason about.
 
 ## Lease Framework — Pick ONE
 

@@ -164,17 +164,110 @@ Don't apply mature margins too early. Don't assume harvest-mode maximums. If a l
 
 ## Step 4 — WACC + Discount Mechanics
 
-1. **Cost of equity**: 10% unless user specifies. (Required-return convention.)
-2. **Cost of debt**: current yield on the company's bonds, or BBB-rated equivalent + credit spread. Times `(1 - tax rate)` for after-tax cost.
-3. **Normalized tax rate**: long-run effective. US default ~25% (Federal 21% + state-adjusted).
-4. **Capital structure**: target weights, not current. Most growers tend toward 70-90% equity at maturity.
-5. **WACC floor**: 8.5% unless exceptionally justified. Show **both** the calculated and the used WACC if floor is invoked.
-6. **Lease framework choice** — must pick ONE and apply consistently:
+WACC in this skill is framed as **required return**, not derived from CAPM. CAPM-derived betas are noisy, backward-looking, and produce a precise-looking number that obscures the fundamental question: *what real return do you require for taking equity risk, after adjusting for the currency you'll be paid back in and the jurisdiction you're exposed to?*
+
+The framework is additive and transparent:
+
+```
+WACC ≈ required_real_return + reporting_currency_inflation + jurisdictional_risk_premium + sector_nudge
+```
+
+Step 4 walks through these four components, then applies the floor.
+
+### 4a — Required Real Return (Anchor)
+
+What you want to earn **after inflation**, in compensation for taking equity risk.
+
+Default: **8%**. This matches the historical equity-risk-premium-implied real return for developed-market equities, but here it's a *preference*, not a derivation. You're saying "I require 8% real to deploy capital into a long-horizon equity claim."
+
+Override only with a stated reason. Conservative buy-and-hold investors sometimes anchor at 6-7%; aggressive growth investors at 9-10%. Don't drop below 6% — that's not equity risk-taking, that's a savings account.
+
+### 4b — Reporting Currency Inflation Anchor
+
+The DCF outputs nominal dollars (or local-currency equivalent). The discount rate must contain the long-run inflation expectation for that currency:
+
+| Currency | Long-run inflation anchor | Notes |
+|----------|---------------------------|-------|
+| USD / EUR / GBP / CAD / AUD / SGD | 2% | Central-bank targets, well-anchored |
+| CHF | 1% | SNB target, historically undershoots |
+| JPY | 1-2% | BoJ target, post-2022 trending higher |
+| PLN / CZK / ILS | 3% | Stable EM, central-bank-targeted |
+| MXN | 4% | Banxico target 3%, realized ~4-5% |
+| RON / HUF | 5% | Mid-tier EM, persistent above-target |
+| BRL / ZAR / INR / TRY (post-2025-recovery) | 5-7% | Mid-tier EM, BCB / SARB / RBI targeted but realized higher |
+| TRY (current) / ARS / EGP | 15%+ | Fragile EM, anchoring on realized rather than targeted |
+
+Anchor on the central bank's long-run target where credible; on the 10-year realized average where the target isn't credible.
+
+### 4c — Jurisdictional Risk Premium
+
+Equity in a Romania-listed company isn't the same risk as equity in a US-listed company even if the operations are identical. Currency convertibility, capital controls, judicial reliability, accounting integrity, political volatility — all real risks that don't go away just because the company has good unit economics.
+
+| Jurisdiction tier | Examples | Premium |
+|-------------------|----------|---------|
+| Developed markets, deep capital markets | US, UK, EU-core, JP, CH, CA, AU, SG, KR | 0% |
+| Stable EMs with reliable institutions | MX, PL, CZ, IL, TW, CL | 1-2% |
+| Mid-tier EMs with idiosyncratic risk | RO, BR, IN, ID, ZA, MY, TH | 2-4% |
+| Fragile EMs / political risk | TR, EG, AR, NG, VN, CN-post-2024 | 4-6% |
+| Distressed / capital controls / sanctions | RU, IR, VE, MM | 6%+ or uninvestable |
+
+Apply once per company at the listing-jurisdiction level. For multi-jurisdiction businesses (e.g., a US-listed company with 80% of revenue from Mexico + India), nudge upward by 1-2% to reflect the operating exposure.
+
+### 4d — Sector / Business-Quality Nudge (Optional)
+
+Last 0.5-1% adjustment for sector-specific risk. Optional — only use if the sector materially differs from average equity risk:
+
+- **Regulated infrastructure / staples / utilities**: -0.5% to -1% (lower volatility, regulated returns).
+- **Quality compounders with proven track record**: -0.5% (durable moat reduces risk).
+- **High-growth unprofitable tech**: +0.5% to +1% (cash-burn risk).
+- **Cyclical commodity / shipping / semis**: +1% to +2% (earnings volatility).
+- **Speculative biotech / pre-revenue / single-product**: +2% to +3% (binary outcomes).
+- **Micro-cap (< $500M)**: +0.5% to +1% (illiquidity).
+
+Don't stack adjustments aggressively. If you find yourself adjusting +3% from a base of 10%, you're probably trying to make the DCF give a specific answer — push back on the assumption set instead.
+
+### 4e — Compose + Floor
+
+```
+WACC = required_real_return + currency_inflation + jurisdiction_premium + sector_nudge
+```
+
+Apply the **8.5% floor (USD-equivalent)** unless exceptionally justified. The floor exists because long-duration equity claims need a minimum discount rate even for ultra-safe businesses — terminal-value math is too sensitive otherwise. For non-USD reporting currencies, the floor is `8.5% + (currency_inflation - 2%)` to keep the real-return basis consistent.
+
+Show **both** the composed WACC and the used WACC if the floor is invoked.
+
+### Reference Anchors (Sanity Check)
+
+| Setup | Composed WACC | Real basis |
+|-------|---------------|------------|
+| USD-listed quality compounder (US ops) | 8% + 2% + 0% − 0.5% = **9.5%** | 8% real |
+| USD-listed durable growth (US ops) | 8% + 2% + 0% + 0% = **10%** | 8% real |
+| USD-listed speculative growth | 8% + 2% + 0% + 1% = **11%** | 8% real |
+| USD-listed, 80% EM ops | 8% + 2% + 2% + 0% = **12%** | 8% real |
+| RON-listed (Romania) durable growth | 8% + 5% + 2% + 0% = **15%** | 8% real |
+| BRL-listed quality compounder | 8% + 6% + 3% − 0.5% = **16.5%** | 8% real |
+
+If the user's company is USD-listed durable growth and they don't override, the default is **10%**. The skill announces the composition: "Defaulting to WACC = 10% (8% real + 2% USD inflation + 0% jurisdiction). Say so to override any component."
+
+### Remaining DCF Mechanics
+
+The rest of Step 4 follows after WACC is locked:
+
+1. **Cost of debt** (only matters if material): current yield on the company's bonds, or BBB-rated equivalent + credit spread. After-tax = pre-tax × (1 − tax rate). For mostly-equity-financed growers, this barely moves the answer.
+2. **Normalized tax rate**: long-run effective. US default ~25% (Federal 21% + state-adjusted).
+3. **Capital structure weights**: target weights at maturity, not current. Growers tend toward 70-90% equity at maturity. WACC blends accordingly.
+4. **Lease framework choice** — must pick ONE and apply consistently:
    - **Operating-cost approach**: lease payments stay in opex; lease liabilities excluded from EV bridge + capital. WACC uses equity + financial debt only.
    - **Capitalized approach**: ROU depreciation in D&A; lease capex in total capex; lease liabilities in EV bridge + WACC weights.
    - **Do not mix.** Frequent failure mode in real DCFs.
-7. **SBC treatment**: real economic expense. Reverse any SBC-excluded "adjusted" margins from peer benchmarks. Avoid the double-count trap (expensing SBC in P&L AND counting dilution).
-8. **Diluted share count**: current + economically relevant dilutive instruments (RSUs vesting, in-the-money options, convertibles at conversion).
+5. **SBC treatment**: real economic expense. Reverse any SBC-excluded "adjusted" margins from peer benchmarks. Avoid the double-count trap (expensing SBC in P&L AND counting dilution).
+6. **Diluted share count**: current + economically relevant dilutive instruments (RSUs vesting, in-the-money options, convertibles at conversion).
+
+### What the Skill Does NOT Do
+
+- **Does not compute beta.** No `Cov(R_stock, R_market) / Var(R_market)` regression. Beta is a noisy backward-looking statistic that produces a falsely precise discount rate. The required-return framework is more honest.
+- **Does not pull risk-free rate from current Treasury yields.** The DCF horizon is 25-40 years; a snapshot of the 10-year yield isn't the right input. The "risk-free baseline" is implicit in the required-real-return + currency-inflation composition.
+- **Does not "build up" cost of equity from CAPM components.** Composed from preference + inflation + jurisdiction + sector. Transparent. Anchor-on-stuff-the-user-actually-controls.
 
 Per-anchor confirmation. WACC and lease/SBC choices are sticky — flag them as binding for the whole DCF.
 

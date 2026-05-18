@@ -63,13 +63,24 @@ Files in `~/.investing/companies/<TICKER>/<DATE>/`:
       "y15": 0.24, "y20": 0.25, "y25": 0.25
     },
     "wacc": {
-      "cost_of_equity": 0.10,
+      "framework": "required_return",
+      "components": {
+        "required_real_return": 0.08,
+        "reporting_currency_inflation": 0.02,
+        "jurisdictional_risk_premium": 0.00,
+        "sector_nudge": 0.00,
+        "sector_nudge_reason": null
+      },
+      "composed_required_return": 0.10,
       "cost_of_debt_pretax": 0.055,
+      "cost_of_debt_after_tax": 0.041,
       "tax_rate": 0.25,
       "capital_structure": {"equity_weight": 0.90, "debt_weight": 0.10},
       "wacc_calculated": 0.094,
+      "wacc_floor_local": 0.085,
       "wacc_used": 0.094,
-      "floor_invoked": false
+      "floor_invoked": false,
+      "framework_notes": "USD-listed durable growth, US ops; composition 8% + 2% + 0% + 0% = 10% required-return anchor."
     },
     "lease_framework": "operating_cost",
     "sbc_treatment": "real_economic_expense",

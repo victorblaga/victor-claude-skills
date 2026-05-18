@@ -168,6 +168,27 @@ def pv_terminal(terminal_value, wacc, maturity_year):
 
 Sanity: `terminal_growth_nominal < wacc` (mathematical requirement). FAIL if violated.
 
+### WACC composition (required-return framework)
+
+The skill uses the required-return framework, not CAPM. The math engine consumes the pre-composed WACC from `dcf-state.json` — it does NOT compute beta or pull a risk-free rate. Concretely:
+
+```python
+def compose_required_return(required_real, currency_inflation, jurisdiction_premium, sector_nudge):
+    return required_real + currency_inflation + jurisdiction_premium + sector_nudge
+
+def wacc_local_floor(currency_inflation, usd_floor=0.085, usd_inflation=0.02):
+    # Floor scales with currency inflation to preserve real-return basis
+    return usd_floor + (currency_inflation - usd_inflation)
+
+def final_wacc(required_return_composed, cost_of_debt_after_tax, equity_weight, debt_weight, floor_local):
+    blended = equity_weight * required_return_composed + debt_weight * cost_of_debt_after_tax
+    return max(blended, floor_local)
+```
+
+The script validates that the components in `dcf-state.json.assumptions.wacc.components` sum (after debt-blend) to the `wacc_used` field, within 5bps tolerance. FAIL if they don't.
+
+The script must NOT silently compute a CAPM-style cost of equity if a component is missing — instead, FAIL with a clear message that the missing component needs to be set in `dcf-state.json` first.
+
 ### EV → equity → per share
 
 ```python
@@ -233,7 +254,7 @@ Run all of these after every computation:
 3. **Terminal growth < WACC** (mathematical requirement).
 4. **Cross-check revenue at maturity** against TAM hand-off: `series[maturity_year] ≈ TAM revenue_at_maturity_today_$` within 2%.
 5. **Reinvestment-rate × ROIC ≈ growth** at maturity. Within 1pp. Flag if off.
-6. **WACC floor** correctly applied (if calculated < 8.5%, used = 8.5%).
+6. **WACC floor** correctly applied. For USD-listed: `wacc_used >= max(calculated, 0.085)`. For non-USD: `wacc_used >= max(calculated, 0.085 + (currency_inflation - 0.02))`. Verify against `dcf-state.json.assumptions.wacc.wacc_floor_local`.
 7. **No magic-haircut text** in `dcf.md`: grep for "haircut," "conservative alternative base," "applied a X% reduction," "for margin of safety we cut," "discount the base by." Any match = FAIL.
 8. **Single base case**: ensure no two distinct "base" totals appear in `dcf-state.json` or `dcf.md`.
 
