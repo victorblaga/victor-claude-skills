@@ -30,7 +30,7 @@ The session can be reconstructed entirely from these four files.
     {"wedge": "AWS scale + breadth", "evidence": "#1 cloud share; 200+ services; data gravity"},
     {"wedge": "1P shopper data + ad surface", "evidence": "$50bn+ ad revenue at high margin"}
   ],
-  "directional_thesis": "uncertain - challenge me",
+  "user_supplied_adjacencies": ["AWS-style cloud spin-out", "ad network on shopper data"],
   "current_step": "layer_3_pool_projection",
   "layers": [
     {

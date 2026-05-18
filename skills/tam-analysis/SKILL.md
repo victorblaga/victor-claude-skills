@@ -84,7 +84,9 @@ First message of every fresh session. Confirm the following before proposing any
 1. **Company identification**. Name, ticker, exchange, reporting currency. Always confirm: "To confirm, this is the `<TICKER>` stock — `<short company description>`?" Wait for user yes.
 2. **Current state**. Last reported annual revenue and the geographic + product footprint. Source from the latest 10-K, 20-F, or annual report. Cite. This is the anchor today's-$ figure.
 3. **Asset-backed wedge today**. What does the company have that others don't? Run through the standard inventory: customer relationships, data, distribution, installed base, real estate, regulatory position, brand, technology, network effects, payments / financial flows, workflow ownership. Surface 2-3 strongest wedges; ask user to confirm or correct. The wedge inventory drives the speculative layer later — do not skip.
-4. **Directional thesis**. Ask: "Going in — bull, bear, or 'uncertain, challenge me'? And are there specific adjacencies you already want to size, or should I surface them?"
+4. **Adjacencies on the user's mind (optional)**. Ask: "Any adjacencies you already want me to size for this company, or should I surface them as we go?" This is the only optional input — if the user has nothing in mind, say "no" and the skill surfaces adjacencies organically from the asset-backed wedge inventory.
+
+**Do NOT ask for a directional thesis (bull / bear / uncertain).** The point of this skill is to *discover* a thesis through the bottom-up build, not to defend a prior. Default to "challenge me" mode — push back on both wishful thinking and silent conservatism for every anchor.
 
 **Do NOT pick the maturity horizon here.** Horizon is proposed at the END, after all layers and per-layer maturities are known.
 

@@ -103,7 +103,7 @@ Example:
 > - **Plausible**: Adds EU + Japan. Pool ~250M households, but localization, regulation, and last-mile fulfillment differ materially. Mature share lower than US.
 > - **Aggressive**: Adds China + India + Latam. Pool ~1.5B households, but competitive density is severe (local incumbents with stronger network effects); margin structure differs.
 >
-> Which one fits the thesis?
+> Which scope feels right for this layer?
 
 Do NOT pick. Wait for user.
 
@@ -111,7 +111,7 @@ If the user picks aggressive, push back on the realistic share / monetization fo
 
 ## Step 5 — Wait for User Scope
 
-Geography, segment, product breadth, adjacency inclusion are judgment calls dependent on the thesis. The skill is not authorized to pick.
+Geography, segment, product breadth, and adjacency inclusion are user judgment calls. The skill is not authorized to pick — these decisions shape the analysis fundamentally and depend on what the user finds plausible after seeing the structural differences between scopes.
 
 If the user is genuinely undecided, propose a base-case scope to anchor on, then offer scenario branches in the multiplication step. Don't lock scope without explicit user input.
 
