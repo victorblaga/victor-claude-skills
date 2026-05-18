@@ -26,10 +26,13 @@ Existing anchors in this layer (for context, do not duplicate research):
 
 ## What to Do
 
-1. **Research the anchor.** Use the best tool available:
-   - **WebSearch + WebFetch** for current public statistics.
-   - **MCP / context7** for authoritative library / framework / official-document content if relevant.
-   - For peer financials, fetch the company's latest 10-K / 20-F / annual report from SEC or company IR page — do not rely on summarizing blogs.
+1. **Research the anchor.** Tool preference order:
+   - **agent-browser (primary)** — local Rust CLI + Chrome via CDP. Use for: search queries (it drives Google/DuckDuckGo and returns the accessibility tree), dynamic / JS-heavy pages (Statista, paywalled-soft-walls, industry-report pages, company IR with JS), and any site where WebFetch returns errors or empty. Invoke via the `agent-browser` skill. Returns accessibility tree with element refs (@e1, @e2) — ~82% fewer tokens than screenshot tools.
+   - **WebFetch (fallback)** — only for known-static public URLs (US Census .gov pages, BLS, BEA, FRED, SEC EDGAR XBRL filings, UN data portals). Free and text-only. If WebFetch returns an error or stripped content, escalate to agent-browser.
+   - **pdftotext (for PDFs)** — for downloadable PDFs (10-Ks, 20-Fs, regulatory reports). Don't try to render PDFs in the browser; use `pdftotext -layout <path> -`.
+   - **MCP / context7** — for authoritative library / framework / official-document content if relevant.
+   - For peer financials, fetch the company's latest 10-K / 20-F / annual report from SEC EDGAR or company IR page. Do not rely on summarizing blogs.
+   - **Do NOT use WebSearch** — it has been unreliable in this skill's runs. Drive search through agent-browser instead.
 
 2. **Resolve to a value + range**. Authoritative sources often disagree on definition (e.g., "books read per year" varies by survey method). Surface the disagreement. Pick a defensible point estimate within a defensible range.
 
