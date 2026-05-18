@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly REPO="${REPO:-$HOME/work/personal/victor-claude-skills/victor-claude-skills}"
+readonly REPO="${REPO:-$HOME/work/tools/victor-claude-skills}"
 readonly OPENCODE_SKILLS_DIR="$HOME/.config/opencode/skills"
 readonly CODEX_INSTALL_DIR="$HOME/plugins/victor-codex-skills"
 readonly CODEX_CACHE_ROOT="$HOME/.codex/plugins/cache/victor-local-plugins/victor-codex-skills"
+readonly CODEX_MARKETPLACE_PLUGIN="$HOME/.codex/local-marketplaces/victor-local-plugins/plugins/victor-codex-skills"
 readonly CODEX_LEGACY_SKILLS_DIR="$HOME/.codex/skills"
 readonly OLD_REPO_PATH="$HOME/.local/share/opencode/repos/victor-claude-skills"
 
@@ -79,6 +80,17 @@ version=$(plugin_version "$src_bundle")
 
 sync_dir_contents "$src_bundle" "$CODEX_INSTALL_DIR"
 sync_dir_contents "$src_bundle" "$CODEX_CACHE_ROOT/$version"
+sync_dir_contents "$src_bundle" "$CODEX_MARKETPLACE_PLUGIN"
+
+codex_cache_pruned=0
+if [[ -d "$CODEX_CACHE_ROOT" ]]; then
+  for entry in "$CODEX_CACHE_ROOT"/*; do
+    [[ -d "$entry" ]] || continue
+    [[ "$(basename "$entry")" == "$version" ]] && continue
+    rm -rf "$entry"
+    codex_cache_pruned=$((codex_cache_pruned + 1))
+  done
+fi
 
 codex_pruned=0
 if [[ -d "$CODEX_LEGACY_SKILLS_DIR" ]]; then
@@ -99,4 +111,7 @@ printf 'Codex bundle:    synced v%s\n' "$version"
 printf 'Codex cache:     %s/%s\n' "$CODEX_CACHE_ROOT" "$version"
 if [[ "$codex_pruned" -gt 0 ]]; then
   printf 'Legacy symlinks pruned: %d\n' "$codex_pruned"
+fi
+if [[ "$codex_cache_pruned" -gt 0 ]]; then
+  printf 'Stale cache versions pruned: %d\n' "$codex_cache_pruned"
 fi
