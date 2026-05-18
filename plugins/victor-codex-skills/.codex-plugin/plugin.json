@@ -21,13 +21,23 @@
     "llm-council",
     "long-form-article",
     "argument-structure",
-    "sweep"
+    "sweep",
+    "tam-analysis",
+    "tam-dcf",
+    "tam",
+    "dcf",
+    "fermi",
+    "valuation",
+    "growth-stock",
+    "finance",
+    "fcff",
+    "intrinsic-value"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Victor Codex Skills",
     "shortDescription": "Codex-native workflow skills derived from canonical Claude prompts",
-    "longDescription": "Install Victor Blaga's workflow skills for Codex, including deep implementation, multi-dimensional review, review triage, architecture planning, structural refactoring, whole-codebase cleanup sweeps, codebase cross-examination, and long-form writing support.",
+    "longDescription": "Install Victor Blaga's workflow skills for Codex, including deep implementation, multi-dimensional review, review triage, architecture planning, structural refactoring, whole-codebase cleanup sweeps, codebase cross-examination, long-form writing support, conversational bottom-up Fermi TAM analysis for growth stocks, and long-horizon FCFF DCF anchored to those TAM outputs.",
     "developerName": "Victor Blaga",
     "category": "Coding",
     "capabilities": [
