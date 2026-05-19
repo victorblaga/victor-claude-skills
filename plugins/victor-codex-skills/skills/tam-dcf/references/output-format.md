@@ -94,7 +94,7 @@ Columns (per scenario, base case shown in detail; bear and bull in supplementary
 | Year | Revenue | Growth% | TAM_share | EBIT margin | NOPAT | D&A | Capex | ΔNWC | FCFF | ROIC | Reinv rate |
 |------|---------|---------|-----------|-------------|-------|-----|-------|------|------|------|-----------|
 
-**The stacked-S-curve inflection points from TAM MUST be visible in the Growth% column.** If the column shows smooth fade where TAM said stacked-S, the math is wrong — re-run dcf-math.
+**The per-scenario growth path declared in TAM (period CAGRs + growth shape label) MUST be visible in the Growth% column.** If TAM declared `stay-elevated` and the column shows smooth fade, the math is wrong — re-run dcf-math. Same the other way: if TAM declared `smooth-fade` and the column shows mid-cycle elevation, also wrong.
 
 #### Revenue Path Method Disclosure (REQUIRED)
 
@@ -103,16 +103,15 @@ At the top of Section 5, before the per-scenario tables, include an explicit met
 ```markdown
 **Revenue path method**: <one of>
 
-- "Per-scenario annual revenue series sourced directly from TAM hand-off (highest fidelity, no derivation needed)."
-- "Per-scenario annual revenue series derived from TAM per-scenario period CAGRs (Y1-3 / Y4-5 / Y6-10 / Y11-20 / Y21-maturity). Hand-off contract test PASS per scenario (CAGRs compound to endpoint within 2%)."
-- "[HALT MODE — do not generate dcf.md if this applies] TAM hand-off provided only a single CAGR set; cannot proceed without per-scenario CAGRs."
+- "Per-scenario annual revenue series sourced directly from TAM hand-off (preferred — derived in TAM via linear interp in growth-rate space, anchored on last_reported_yoy_growth at Y0)."
+- "Per-scenario annual revenue series re-derived locally from TAM per-scenario period CAGRs (Y1-3 / Y4-5 / Y6-10 / Y11-20 / Y21-maturity). Hand-off contract test PASS per scenario (CAGRs compound to endpoint within 2%). Y0 anchoring verified against data snapshot."
 
 **Per-scenario path shape**:
-- Bear: <stacked-S / smooth fade / front-loaded / back-loaded>, peak year Y<N>
+- Bear: <stay-elevated / smooth-fade / front-loaded / back-loaded>, peak year Y<N>
 - Base: <...>
 - Bull: <...>
 
-**Shape sanity**: <PASS / FAIL>. If any mid-cycle reacceleration above an earlier peak, it must be traceable to a named TAM layer activating at that year. Otherwise FAIL and halt before dcf.md emission.
+**Layer-schedule consistency**: <PASS / FAIL>. Read from `aggregated.layer_schedule_consistency_test` in TAM state. If FAIL, halt before dcf.md emission.
 ```
 
 The disclosure must appear in every `dcf.md` output. No silent revenue-path generation. The user should be able to read the disclosure and know exactly how the revenue path was constructed.
@@ -262,7 +261,7 @@ Run dcf-math one last time with the "final pass" check:
 6. PV-by-period sums to total EV.
 7. Terminal value flag set correctly (> 50% of EV → flagged in section 6).
 8. **Revenue path method disclosure** present in Section 5. If missing → FAIL.
-9. **No `revenue_path_adjustment` entries** in `.dcf-check.log`. Their presence indicates silent rescaling occurred — should have HALTED at Step 0. FAIL the final pass.
-10. **Per-scenario shape sanity** PASS. If any scenario's path shows unexplained mid-cycle reacceleration above an earlier peak → FAIL.
+9. **Layer-schedule consistency (carried from TAM)** PASS per scenario. If any scenario has unresolved violations → FAIL the final pass.
+10. **Y0 anchoring** verified: consumed series Y0 == `data_snapshot.current_revenue_today_$` within 50bps.
 
 Failures: surface to user before declaring the output done.

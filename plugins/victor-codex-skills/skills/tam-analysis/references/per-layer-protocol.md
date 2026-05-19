@@ -91,71 +91,41 @@ pool_at_year_N = pool_today
 
 If the compounding produces a number that surprises the user, that's a feature — it surfaces the mechanism. Don't smooth or pre-haircut.
 
-## Step 3.5 — Layer Ramp Schedule (NEW)
+## Step 3.5 — Layer Activation Schedule
 
-Each layer contributes revenue over time, not just at maturity. The layer's revenue trajectory between today and its maturity year is the **ramp schedule** — when the layer activates, when it peaks in growth, when it saturates.
-
-This step exists because the aggregated revenue path at the company level is **derived from layer ramps**, not declared. The single biggest discipline bug in earlier versions of this skill: emitting a single period-CAGR set ("Y1-3: 17%, Y4-5: 20%, ...") that downstream consumers had to silently rescale to fit per-scenario endpoints. The rescale produced shape artifacts (e.g., bull case with 27% growth in Y11-20 above an 18% peak in Y6-10 — a U-shape that violated the stacked-S claim). Layer ramp schedules eliminate the rescale: per-scenario revenue paths are derived bottom-up from layer activation timing.
+Each layer carries metadata describing **when** it contributes meaningful revenue. This is discipline metadata only — the consolidated company-level revenue path is declared per scenario at the multiplication step (Y1-3 / Y4-5 / Y6-10 / Y11-20 / Y21-maturity CAGRs per scenario, anchored on management guidance). The layer activation schedule feeds a downstream **consistency check** that flags when the declared CAGRs are incompatible with the layer thesis.
 
 ### Fields per layer
 
-For each layer, capture:
-
-- **`activation_year`**: the year revenue begins contributing meaningfully (≥1% of layer maturity revenue). For core layers already shipping, `activation_year = 0` (today). For speculative or to-be-launched layers, may be Y2-Y10.
-- **`peak_growth_year`**: the year of fastest %-growth contribution. For S-curve shapes this is roughly the midpoint between activation and maturity.
-- **`maturity_year`** (already in Step 3): when growth slows to terminal pace.
-- **`curve_shape`**: one of:
-  - **`s_curve`** — slow start, accelerating mid-life, decelerating to maturity. Default for most product/market layers.
-  - **`linear`** — steady growth from activation to maturity. For predictable installed-base layers.
-  - **`front_loaded`** — fastest growth early, fading rapidly. For under-penetrated categories with imminent saturation pressure.
-  - **`back_loaded`** — slow early, accelerating late. For speculative layers with technology/regulatory unlock years out.
-  - **`stepped`** — discrete jumps (regulatory cliffs, contract awards). Rare; specify the step years.
+- **`activation_year`**: year revenue begins contributing meaningfully (≥1% of layer maturity revenue). Core layers already shipping: `0` (today). Speculative or to-be-launched: typically Y2-Y10.
+- **`peak_contribution_year`**: year the layer contributes the most to consolidated *%-growth*. For S-shaped layer ramps this is roughly the midpoint between activation and maturity, but the user picks it based on the layer thesis (e.g., AWS peak-contribution year is when its still-growing revenue × its share of total parent revenue is highest — not necessarily when the layer's own growth rate is highest).
+- **`maturity_year`** (already in Step 3): when the layer's revenue is mostly built out and growth slows toward terminal pace.
 
 ### Per-scenario differences
 
-Most layers share the same ramp across bear/base/bull — what differs is the **endpoint** at maturity, not the shape of getting there. A handful of layers may have scenario-specific ramps:
+Most layers share the same schedule across bear/base/bull — endpoint differences drive the scenario spread, not timing. A handful of layers may have scenario-specific schedules:
 
-- A speculative layer that's *never activated* in bear (e.g., SP-B = $0 in bear): `bear.activation_year = null`.
-- A layer that arrives *earlier* in bull because of a specific catalyst (e.g., regulatory acceleration in bull): `bull.activation_year < base.activation_year`.
+- Speculative layer never activated in bear: `bear.activation_year = null`.
+- Layer arriving earlier in bull due to a specific catalyst (e.g., regulatory unlock): `bull.activation_year < base.activation_year`.
 
-When in doubt, share the ramp across scenarios and let the endpoint difference drive the per-scenario shape. Only differentiate ramps when there's a clear catalyst behind the difference.
+Share the schedule by default. Only differentiate when there's a named catalyst.
 
-### Math-checker derives annual revenue per layer per scenario
+### Why the schedule is metadata, not a generator
 
-```python
-def layer_annual_revenue(activation, peak, maturity, endpoint, curve_shape, year):
-    if year < activation:
-        return 0
-    if year >= maturity:
-        return endpoint
-    # Sigmoid for s_curve; linear for linear; etc.
-    progress = (year - activation) / (maturity - activation)
-    factor = curve_function(progress, curve_shape)
-    return endpoint * factor
-```
+The consolidated company-level revenue path is **declared per scenario** at the multiplication step (Y1-3 / Y4-5 / Y6-10 / Y11-20 / Y21-maturity CAGRs per scenario), anchored on management guidance + consensus for Y1-3 and on the layer thesis for later periods. The path is not algorithmically derived from per-layer ramps.
 
-Implemented in `agents/math-checker.md`. Aggregated to per-scenario revenue path: `revenue(year, scenario) = sum over layers of layer_annual_revenue(layer, scenario, year)`.
+The activation schedule's job is to enforce *consistency* between the declared path and the layer thesis. If a layer activates Y4 contributing ≥15% of scenario endpoint but the user's declared Y4-5 CAGR is below Y1-3 CAGR, the layer is invisible in the path — math-checker flags this and the user resolves (revise CAGRs, revise the layer contribution, or name an offsetting mechanism). Conversely: if no layer activates after Y3 contributing ≥15%, post-Y3 CAGRs must be monotonically decreasing (smooth fade); a user who declares mid-cycle elevation with no layer behind it gets flagged.
 
-### Why this matters
-
-With per-layer ramps:
-
-- Stacked-S-curve growth shapes emerge naturally from sequential layer activation (e.g., core peaks at Y5, adjacent activates at Y3 and peaks at Y10, speculative activates at Y6 and peaks at Y15 → multi-peak compounded shape).
-- A mid-cycle reacceleration is now LEGITIMATE if a big new layer activates at that year (e.g., AWS contribution in 2010-2015 reaccelerating Amazon's growth). The reacceleration is *traceable to a named layer*, not an arithmetic artifact.
-- Bear cases that exclude speculative layers produce naturally-decelerating paths (no mid-cycle bump because no speculative layer turns on).
-- Bull cases with multiple speculative layers produce extended elevation (because each turns on at a different year).
+The path itself comes from the user, anchored on guidance + thesis. The layer schedule keeps the thesis honest.
 
 ### What this skill captures in state.json
 
-Each layer gets the ramp schedule as a top-level field (in addition to all existing fields):
-
 ```json
-"ramp_schedule": {
+"activation_schedule": {
   "shared_across_scenarios": true,
   "activation_year": 0,
-  "peak_growth_year": 5,
+  "peak_contribution_year": 5,
   "maturity_year": 18,
-  "curve_shape": "s_curve",
   "per_scenario_overrides": {
     "bear": null,
     "base": null,
@@ -164,7 +134,7 @@ Each layer gets the ramp schedule as a top-level field (in addition to all exist
 }
 ```
 
-When `shared_across_scenarios = true`, `per_scenario_overrides` is null (or empty). When a scenario has a specific catalyst, the override block carries the per-scenario fields.
+When `shared_across_scenarios = true`, `per_scenario_overrides` is null. When a scenario has a specific catalyst, the override block carries the per-scenario fields.
 
 ## Step 4 — Propose 2-3 Plausible Scopes
 

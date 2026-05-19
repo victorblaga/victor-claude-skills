@@ -114,17 +114,14 @@ Pacing commands inherited from `/tam-analysis`: `faster`, `autopilot`, `pause`, 
 First message of every fresh DCF session:
 
 1. **Load** `~/.investing/companies/<TICKER>/<DATE>/handoff.md` and `state.json`. Parse the hand-off block (section G) into structured form.
-2. **Summarize** the user's TAM interpretation: company, currency, hand-off horizon (Y`<N>`), revenue at maturity bear/base/bull, **per-scenario period CAGRs** (bear/base/bull rows), growth shape per scenario, dominant Fermi drivers, bear mechanism, bull adjacencies, speculative weighting.
+2. **Summarize** the user's TAM interpretation: company, currency, hand-off horizon (Y`<N>`), last reported revenue + YoY growth, revenue at maturity bear/base/bull, **per-scenario period CAGRs** (bear/base/bull rows), Y1-3 guidance anchor, growth shape per scenario, dominant Fermi drivers, bear mechanism, bull adjacencies, speculative weighting, layer activation schedule.
 3. **Run hand-off verification checks**. Any failure HALTS the DCF — do not silently work around:
 
-   **3a. Per-scenario CAGRs present.** Hand-off must carry bear/base/bull period CAGRs (5 periods each = 15 CAGRs total). If only a single CAGR set exists ("legacy" hand-off from earlier TAM runs):
+   **3a. Required fields present.** Hand-off must carry: per-scenario period CAGRs (bear/base/bull, 5 periods each = 15 CAGRs); per-scenario endpoints (today's $ + nominal $); last reported revenue + last reported YoY growth; Y1-3 guidance anchor; per-layer activation schedule; growth shape + peak-growth year per scenario. If anything is missing:
 
-   > Hand-off carries only a single period-CAGR set, but the bear / base / bull endpoints differ by `<X>×`. Cannot compound a single CAGR set to multiple endpoints — that would silently rescale and produce shape artifacts (e.g., bull-case mid-cycle reacceleration above early peak, violating stacked-S claim).
+   > Hand-off is missing `<field>`. Cannot proceed without it — the contract requires the full per-scenario growth path plus Y0 anchoring plus the layer activation schedule.
    >
-   > Options:
-   > (a) Run `/tam-analysis resume <TICKER>` to regenerate per-scenario CAGRs from layer ramps (recommended).
-   > (b) Provide per-scenario CAGRs inline for this DCF run only — I'll prompt you for bear/bull triplets.
-   > (c) Abandon this DCF and rerun TAM with the updated skill.
+   > Run `/tam-analysis resume <TICKER>` and re-emit the hand-off, or provide the missing field inline.
 
    **3b. Hand-off contract test (per scenario).** For each scenario, verify the stated period CAGRs compound to the stated endpoint within 2%. If any scenario fails:
 
@@ -135,17 +132,21 @@ First message of every fresh DCF session:
    > (b) Revise TAM bear CAGRs.
    > (c) Provide explicit annual revenue series for bear (overrides both).
 
-   Do not pick silently. Force user choice. (Critically: do NOT silently rescale CAGRs to fit endpoint — that's the bug this rule exists to prevent.)
+   Do not pick silently. Force user choice. Do NOT silently rescale CAGRs to fit endpoint.
 
-   **3c. Shape sanity (per scenario).** Identify the peak-growth year per scenario. Verify post-peak CAGRs are monotonically decreasing UNLESS a TAM layer's `activation_year` or `peak_growth_year` falls inside the violating period (legitimate mid-cycle reacceleration from a turning-on layer). Flag U/W-shapes lacking layer-activation justification:
+   **3c. Y1-3 anchor test.** Verify each scenario's Y1-3 CAGR is within ±3pp of `aggregated.y1_3_guidance_anchor.midpoint`, OR carries a logged `override_reason`. Failure:
 
-   > Bull case shows mid-cycle reacceleration: Y6-10 CAGR = 18%, Y11-20 CAGR = 27% (>Y6-10), Y21-25 CAGR = 2%. Peak is Y15. After peak, CAGRs should decel.
+   > Base case Y1-3 CAGR is `<X>%`; management guidance midpoint is `<Y>%` (delta `<Z>pp`). No override_reason logged. The path starts off-anchor.
    >
-   > Is there a TAM layer activating around Y10-15 that would justify the reacceleration? If not, this is a math artifact from the TAM hand-off — halt and fix in TAM.
+   > Resolve in TAM: revise Y1-3 to within ±3pp of guidance, or log the mechanism justifying the deviation.
 
-   **3d. Two-bases pathology.** If the TAM output mentions an "alternative haircut base" or "analyst-conservative base" alongside the bottom-up base, surface as TAM-side error. DCF cannot proceed with two bases.
+   **3d. Layer-schedule consistency.** Re-read `aggregated.layer_schedule_consistency_test`. Refuse to proceed if any scenario has unresolved violations. Surface the issue and require resolution in TAM.
 
-   **3e. Internal arithmetic.** Revenue at maturity nominal vs today's-$ × inflation^N — must reconcile. Bear/base/bull monotonic.
+   **3e. Y0 anchoring.** Verify the consumed annual series Y0 equals `last_reported_revenue_today_$` within 50bps. Mismatch → halt.
+
+   **3f. Two-bases pathology.** If the TAM output mentions an "alternative haircut base" or "analyst-conservative base" alongside the bottom-up base, surface as TAM-side error. DCF cannot proceed with two bases.
+
+   **3g. Internal arithmetic.** Revenue at maturity nominal vs today's-$ × inflation^N — must reconcile. Bear/base/bull monotonic.
 
 4. If any check fails, **HALT and prompt user with the specific options** for that failure. Never silently work around. Never silently rescale.
 5. Once all checks pass, ask: "Hand-off verified consistent across all scenarios. Ready to start the DCF assumptions? Same per-anchor pacing as `/tam-analysis`."
@@ -329,7 +330,7 @@ Sections in order. Spec in `references/output-format.md`.
 2. **Data snapshot** — from Step 1.
 3. **TAM hand-off summary** — one paragraph; reference `handoff.md`, don't redo.
 4. **Key assumptions with evidence** — margins, ROIC, WACC components, reinvestment, tax. Cite.
-5. **Explicit forecast** — annual to Y10; periodic to maturity. Stacked-S-curve inflections visible.
+5. **Explicit forecast** — annual to Y10; periodic to maturity. Per-scenario growth-shape inflections (declared by TAM) visible in the Growth% column.
 6. **WACC and EV → equity bridge** — PV bucketed by period. Flag residual > 50% EV.
 7. **Reverse DCF** — per scenario + 10%-clearing case.
 8. **Sensitivity matrices** — three matrices, cells as `value-per-share / implied unlevered CAGR%`.
@@ -381,4 +382,4 @@ Within a session, survives context compaction the same way: re-read `dcf-state.j
 | `references/output-format.md` | `dcf.md` section spec + `dcf.html` schema (self-contained, inline assets) |
 | `references/state-schema.md` | `dcf-state.json` structure, resume contract |
 | `agents/dcf-math.md` | Python-driven FCFF + WACC + reverse-DCF + sensitivity subagent |
-| `agents/domain-expert.md` | On-demand `xhigh`-effort subagent for margin / ROIC / WACC / peer-benchmark opinions |
+| `agents/domain-expert.md` | On-demand opus-xhigh subagent for margin / ROIC / WACC / peer-benchmark opinions |

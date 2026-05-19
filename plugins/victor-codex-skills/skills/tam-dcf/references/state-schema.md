@@ -28,15 +28,23 @@ Files in `~/.investing/companies/<TICKER>/<DATE>/`:
     "revenue_at_maturity_today_$": {"bear": 6970000000, "base": 31110000000, "bull": 106090000000},
     "revenue_at_maturity_nominal_$": {"bear": 11440000000, "base": 51040000000, "bull": 174050000000},
     "inflation_assumption_pct": 0.02,
-    "growth_shape": "stacked_s_curves",
-    "period_cagrs": {"y1_3": 0.17, "y4_5": 0.20, "y6_10": 0.18, "y11_20": 0.108, "y21_maturity": 0.018},
+    "last_reported_revenue_today_$": 1618600000,
+    "last_reported_yoy_growth": 0.31,
+    "y1_3_guidance_anchor": {"midpoint": 0.27, "range": [0.23, 0.30], "consensus_midpoint": 0.26},
+    "growth_shape_per_scenario": {"bear": "smooth_fade", "base": "stay_elevated", "bull": "stay_elevated"},
+    "peak_growth_year_per_scenario": {"bear": 1, "base": 4, "bull": 6},
+    "period_cagrs_per_scenario": {
+      "bear": {"y1_3": 0.22, "y4_5": 0.18, "y6_10": 0.12, "y11_20": 0.07, "y21_maturity": 0.03},
+      "base": {"y1_3": 0.27, "y4_5": 0.24, "y6_10": 0.20, "y11_20": 0.12, "y21_maturity": 0.04},
+      "bull": {"y1_3": 0.30, "y4_5": 0.28, "y6_10": 0.25, "y11_20": 0.17, "y21_maturity": 0.05}
+    },
     "dominant_drivers": [
       {"name": "L1 mature share", "range": [0.18, 0.28, 0.40]},
       {"name": "SP-A monetization", "range": [1.3e9, 8.1e9, 18.7e9]},
       {"name": "L1 mature ASP", "range": [631, 1236, 1950]}
     ],
     "consistency_check": "passed | failed",
-    "consistency_notes": ["No two-bases pathology", "Period CAGRs reconcile to revenue path"]
+    "consistency_notes": ["No two-bases pathology", "Per-scenario CAGRs compound to per-scenario endpoint (handoff contract test PASS)", "Y1-3 anchor test PASS", "Layer-schedule consistency PASS"]
   },
   "data_snapshot": {
     "as_of_date": "2026-05-18",

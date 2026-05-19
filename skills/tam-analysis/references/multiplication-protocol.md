@@ -135,27 +135,80 @@ Per-layer maturity differences: at the chosen hand-off horizon, some layers are 
 
 Math-checker validates both cases.
 
-## Growth Path Shape (Feeds DCF)
+## Growth Path Declaration (Per Scenario)
 
-After aggregation, derive the period-by-period CAGRs for the hand-off block:
+After aggregation, declare the **per-scenario period CAGRs** that compound from current revenue to each scenario's endpoint. These CAGRs are the contract the downstream DCF consumes. They are user-confirmed inputs, not generated from layer ramps.
 
-| Period | CAGR meaning |
-|--------|--------------|
-| Y1-3 | Near-term ramp; should reconcile to consensus / guidance. Discrepancies flagged. |
-| Y4-5 | First adjacency starting to contribute |
-| Y6-10 | Multi-layer compounding peak |
-| Y11-20 | Layered maturity unfolds — different layers saturate at different times |
-| Y21-maturity | Speculative layers finishing their ramp; core layers in pricing-only growth |
+### Y1-3 Anchor — Mandatory
 
-If the layer thesis is stacked S-curves (sequential: core saturates → adjacent compounds → international → speculative), the growth path stays elevated longer than a smooth geometric fade. Surface this explicitly to the user.
+Before declaring per-scenario CAGRs, dispatch anchor-researcher for management guidance + consensus analyst expectations on Y1-3 revenue growth. The dispatch is mandatory — Y1-3 cannot be picked without this anchor in `aggregated.y1_3_guidance_anchor`.
 
-Math-checker validates the period CAGRs against the aggregated revenue path.
+Dispatch payload:
+
+> "For `<TICKER>`, fetch: (a) latest official management guidance for next-FY revenue (range + midpoint, with source: 10-K, latest 10-Q, latest earnings press release, latest investor-day deck); (b) 2-3 year consensus analyst revenue estimates (median or mean, source: Bloomberg, Refinitiv, or whatever public aggregator is accessible — Yahoo Finance, Seeking Alpha summary, Koyfin). Express both as implied YoY growth rates from the last reported FY. Return midpoint + range + source URLs + retrieval date."
+
+The skill then offers the user this anchor as the default Y1-3 base-case CAGR. Bear and bull get reasoned spreads (typical bear: -3 to -5pp below midpoint with named mechanism; typical bull: +1 to +3pp above midpoint with named catalyst).
+
+**Tolerance**: Y1-3 CAGRs per scenario must fall within `±3pp of guidance midpoint`. Out-of-tolerance picks require a named override mechanism logged in `sources.md` (same pushback discipline as any other anchor). Common legitimate overrides: turnaround company where guidance lags catalyst; post-IPO company where guidance is sandbagged; pre-revenue or hyper-cyclical company where guidance is meaningless.
+
+### Per-Period Declaration
+
+Walk through each scenario (bear / base / bull). For each, declare:
+
+1. **Y1-3** — anchored on guidance (above). Same number for all 3 years within the period.
+2. **Y4-5** — first adjacency / first new layer starts contributing if the layer thesis is stacked. User declares; math-checker validates against activation schedule.
+3. **Y6-10** — multi-layer compounding phase. For stay-elevated theses (adjacency layers contributing materially through this period), often elevated vs Y1-3. For smooth-fade theses, fading.
+4. **Y11-20** — layer maturities unfold; core saturates while later-stage adjacencies still contribute. Typically below Y6-10.
+5. **Y21-maturity** — speculative layers finishing their ramp; core in pricing-only growth. Typically the lowest period CAGR (approaches terminal nominal growth = real terminal + inflation).
+
+### Validation by Math-Checker
+
+Three checks, all mandatory:
+
+1. **Hand-off contract test (compound-to-endpoint).** For each scenario, the declared period CAGRs must compound to the scenario's stated endpoint within 2%. If not, halt — force user to revise CAGRs, revise endpoint, or revise interpretation. No silent rescaling.
+2. **Y1-3 anchor test.** Each scenario's Y1-3 CAGR must be within ±3pp of `y1_3_guidance_anchor.midpoint`, OR carry a named `override_reason` logged in `sources.md`.
+3. **Layer-schedule consistency test.** For each scenario, given the per-layer `activation_schedule` and per-scenario endpoint contribution per layer:
+   - If a layer activates in period P, contributes ≥15% of scenario endpoint, the CAGR in period P (and in the period containing `peak_contribution_year`) must be ≥ Y1-3 CAGR − 1pp. Otherwise the layer is invisible in the path — flag.
+   - If NO layer activates after Y3 contributing ≥15%, the post-Y3 CAGRs (Y4-5, Y6-10, Y11-20, Y21-maturity) must be monotonically decreasing. Otherwise the user has declared elevation with no layer behind it — flag.
+   - Violations surface to the main thread; user resolves by revising CAGRs, revising the layer schedule, or naming an offsetting mechanism.
+
+## Annual Revenue Series (Derived)
+
+For each scenario, the annual revenue series Y0 → Y_maturity is **derived** from the declared period CAGRs by linear interpolation in **growth-rate space**, anchored on the last reported FY YoY growth at Y0. This eliminates kinks at period boundaries while preserving the stated period CAGRs exactly.
+
+Math-checker computes this with the following recipe:
+
+```python
+def annual_series_from_period_cagrs(rev_y0, last_year_growth, period_cagrs, maturity_year):
+    # period_cagrs keys: y1_3, y4_5, y6_10, y11_20, y21_maturity
+    # Step 1: place rate-anchors at period midpoints
+    anchors = {
+        0: last_year_growth,
+        2: period_cagrs["y1_3"],
+        4.5: period_cagrs["y4_5"],
+        8: period_cagrs["y6_10"],
+        15.5: period_cagrs["y11_20"],
+        (21 + maturity_year) / 2: period_cagrs["y21_maturity"],
+    }
+    # Step 2: interpolate growth rate per year (linear between consecutive anchors)
+    series = [rev_y0]
+    for y in range(1, maturity_year + 1):
+        g = interpolate_linear(anchors, y)
+        series.append(series[-1] * (1 + g))
+    # Step 3: renormalize each period so the stated CAGR matches exactly
+    series = renormalize_periods(series, period_cagrs, maturity_year)
+    return series
+```
+
+The renormalization step applies a small constant adjustment per period so that `(series[period_end] / series[period_start])^(1/period_years) - 1` matches the stated period CAGR exactly. This preserves smoothness within periods while honoring the stated CAGRs at period boundaries.
+
+Saved to `aggregated.annual_revenue_today_$_per_scenario` with a `_provenance` key recording that the series is derived and regenerable from the CAGRs. The CAGRs are the contract.
 
 ## Three-Error Check (Run Before Hand-Off)
 
 1. **Did we pass the Fermi output through as actual revenue at maturity, or silently haircut?** Compare summary numbers to the aggregated layer table. They must match.
 2. **Did we account for real pricing AND inflation separately?** Check `state.json` — both fields populated per layer, neither one folded into the other.
-3. **Does the growth path reflect stacked S-curves matching the layer thesis, or did we force a smooth fade?** Plot or tabulate the per-year revenue from the aggregated layers. If it's smooth where the thesis is layered, the math is wrong.
+3. **Does the declared per-scenario growth path match the layer activation schedule?** A stacked-thesis (adjacencies activating Y4+ contributing ≥15% of endpoint) must show CAGR elevation in the activation period — not fade. A smooth-fade thesis (no late activators) must show post-Y3 CAGRs monotonically decreasing. Verified by `layer_schedule_consistency_test` in math-checker.
 4. **Is there exactly ONE base case, not two?** Search the state and any draft hand-off for a "conservative alternative base," "analyst-haircut base," "haircut to X%," or similar parallel scenario. If found, it's an error. Either the underlying numbers were revised (and the old ones should be gone) or the disagreement got folded into bear/bull (and the alternative scenario should be gone). Never carry both.
 
 Math-checker runs all four. Any failure must be surfaced to user and resolved before emitting the hand-off block.

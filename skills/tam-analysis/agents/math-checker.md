@@ -91,58 +91,171 @@ Validate:
 
 3. **Per-layer contribution at hand-off horizon**: for each layer, contribution = mature revenue if layer_maturity ≤ hand_off_horizon, else still-ramping projection at hand_off_horizon. Verify.
 
-4. **Per-scenario annual revenue derivation** (NEW). For each layer, compute the annual revenue series from `ramp_schedule` × layer endpoint per scenario:
+4. **Y1-3 guidance anchor test.** Verify each scenario's declared Y1-3 CAGR is within ±3pp of the management-guidance midpoint stored in `aggregated.y1_3_guidance_anchor.midpoint`, OR carries an `override_reason` in the corresponding `y1_3_anchor_test` entry. The anchor itself must exist — if `y1_3_guidance_anchor` is missing, halt and prompt main thread to dispatch anchor-researcher for it.
 
    ```python
-   def layer_annual(year, activation, peak, maturity, endpoint, curve_shape):
-       if year < activation:
-           return 0
-       if year >= maturity:
-           return endpoint
-       progress = (year - activation) / (maturity - activation)
-       if curve_shape == "s_curve":
-           # Logistic sigmoid centered on the normalized peak position
-           peak_norm = (peak - activation) / (maturity - activation)
-           k = 6.0  # steepness — gives clean S
-           factor = 1 / (1 + math.exp(-k * (progress - peak_norm)))
-           # Normalize so factor(0)=0 and factor(1)=1
-           f0 = 1 / (1 + math.exp(k * peak_norm))
-           f1 = 1 / (1 + math.exp(-k * (1 - peak_norm)))
-           factor = (factor - f0) / (f1 - f0)
-       elif curve_shape == "linear":
-           factor = progress
-       elif curve_shape == "front_loaded":
-           factor = progress ** 0.5
-       elif curve_shape == "back_loaded":
-           factor = progress ** 2
-       elif curve_shape == "stepped":
-           # Provided step years in ramp_schedule.steps
-           factor = compute_step_factor(year, ramp_schedule.steps)
-       return endpoint * factor
+   def y1_3_anchor_test(period_cagrs_per_scenario, guidance_anchor):
+       # guidance_anchor: {"midpoint": float, "range": [float, float], "consensus_midpoint": float}
+       results = {}
+       for scenario in ("bear", "base", "bull"):
+           pick = period_cagrs_per_scenario[scenario]["y1_3"]
+           midpoint = guidance_anchor["midpoint"]
+           delta_pp = (pick - midpoint) * 100
+           status = "passed" if abs(delta_pp) <= 3.0 else "override"
+           results[scenario] = {
+               "pick": pick,
+               "guidance_midpoint": midpoint,
+               "delta_pp": delta_pp,
+               "status": status,
+           }
+       return results
    ```
 
-   Aggregate per scenario: `revenue_series(year, scenario) = Σ over layers of layer_annual(year, layer, scenario)`. Save to `aggregated.annual_revenue_today_$_per_scenario`.
+   Out-of-tolerance scenarios without a logged `override_reason` fail the check. With a logged mechanism, pass.
 
-5. **Per-scenario period CAGRs**. From the annual revenue series, compute CAGRs for y1_3, y4_5, y6_10, y11_20, y21_maturity. Save to `aggregated.growth_path_cagrs_per_scenario.{bear,base,bull}`. These are the numbers the hand-off block emits.
-
-6. **HAND-OFF CONTRACT TEST** (NEW — critical). For each scenario, verify the derived period CAGRs compound to the scenario's stated endpoint within 2%:
+5. **Hand-off contract test**: per-scenario declared CAGRs compound to per-scenario endpoint within 2%.
 
    ```python
-   compounded = revenue_y0
-   for period, cagr in growth_path_cagrs[scenario].items():
-       years_in_period = period_length(period, maturity_year)
-       compounded *= (1 + cagr) ** years_in_period
-   delta_pct = abs(compounded - stated_endpoint) / stated_endpoint
-   assert delta_pct < 0.02
+   def handoff_contract_test(rev_y0, period_cagrs_per_scenario, scenario_endpoints, maturity_year):
+       period_years = {"y1_3": 3, "y4_5": 2, "y6_10": 5, "y11_20": 10, "y21_maturity": max(0, maturity_year - 20)}
+       results = {}
+       for scenario in ("bear", "base", "bull"):
+           compounded = rev_y0
+           for period, years in period_years.items():
+               compounded *= (1 + period_cagrs_per_scenario[scenario][period]) ** years
+           stated = scenario_endpoints[scenario]
+           delta_pct = abs(compounded - stated) / stated
+           results[scenario] = {
+               "compounded_endpoint": compounded,
+               "stated_endpoint": stated,
+               "delta_pct": delta_pct,
+               "status": "passed" if delta_pct < 0.02 else "failed",
+           }
+       return results
    ```
 
    Run for bear, base, AND bull independently. Save results to `aggregated.handoff_contract_test`. FAIL if any scenario exceeds 2%.
 
-7. **SHAPE SANITY TEST** (NEW). For each scenario, identify the peak-growth year (year of fastest %-growth). After the peak, period CAGRs must be monotonically decreasing UNLESS a layer's `activation_year` or `peak_growth_year` falls inside the violating period (legitimate mid-cycle reacceleration from a turning-on layer).
+6. **Layer-schedule consistency test.** For each scenario, verify the declared period CAGRs are compatible with the per-layer activation schedule. Two checks:
 
-   Save to `aggregated.shape_sanity_test`. FAIL if mid-cycle reacceleration has no layer-activation justification. Report the violating period and which layers could explain it (if any).
+   - **Late-activator check**: a layer activating in period P contributing ≥15% of scenario endpoint requires the CAGR in P (and in the period containing `peak_contribution_year`) to be ≥ Y1-3 CAGR − 1pp. Otherwise the layer is invisible in the path.
+   - **Smooth-fade check**: if NO layer activates after Y3 contributing ≥15% of scenario endpoint, post-Y3 CAGRs (Y4-5, Y6-10, Y11-20, Y21-maturity) must be monotonically non-increasing.
 
-8. **PRECEDENT FLAG** (NEW — informational, not blocking). For the bull scenario, if any period's CAGR exceeds the empirical 95th-percentile threshold for the company's starting revenue scale, FLAG (do not fail):
+   ```python
+   PERIODS = {"y1_3": (1, 3), "y4_5": (4, 5), "y6_10": (6, 10), "y11_20": (11, 20), "y21_maturity": (21, None)}
+   PERIOD_ORDER = ["y1_3", "y4_5", "y6_10", "y11_20", "y21_maturity"]
+
+   def period_containing(year, maturity_year):
+       for period, (start, end) in PERIODS.items():
+           end_eff = end if end is not None else maturity_year
+           if start <= year <= end_eff:
+               return period
+       return None
+
+   def layer_schedule_consistency(scenario, period_cagrs, layers, scenario_endpoint, maturity_year):
+       violations = []
+       late_activator_present = False
+       for layer in layers:
+           if scenario == "bear" and layer.get("speculative"):
+               continue  # speculative layers off in bear
+           sched = layer["activation_schedule"]
+           act = sched["activation_year"]
+           peak = sched["peak_contribution_year"]
+           contrib = layer["layer_revenue_at_maturity_today_$"][scenario] / scenario_endpoint
+           if contrib < 0.15:
+               continue
+           if act >= 4:
+               late_activator_present = True
+           for y in (act, peak):
+               p = period_containing(y, maturity_year)
+               if p in (None, "y1_3"):
+                   continue
+               if period_cagrs[p] < period_cagrs["y1_3"] - 0.01:
+                   violations.append({
+                       "layer": layer["id"],
+                       "scenario": scenario,
+                       "issue": (
+                           f"Layer activates/peaks in {p} contributing {contrib:.0%} of endpoint, "
+                           f"but {p} CAGR ({period_cagrs[p]:.1%}) is below Y1-3 CAGR "
+                           f"({period_cagrs['y1_3']:.1%}) − 1pp. Layer is invisible in the growth path."
+                       ),
+                   })
+       if not late_activator_present:
+           for i, p in enumerate(PERIOD_ORDER[1:-1], start=1):
+               prev = PERIOD_ORDER[i - 1]
+               if period_cagrs[p] > period_cagrs[prev] + 0.005:
+                   violations.append({
+                       "scenario": scenario,
+                       "issue": (
+                           f"No layer activates after Y3 with ≥15% contribution, but {p} CAGR "
+                           f"({period_cagrs[p]:.1%}) > {prev} CAGR ({period_cagrs[prev]:.1%}). "
+                           f"Path requires monotone fade — declared CAGRs declare elevation with no layer behind it."
+                       ),
+                   })
+       return violations
+   ```
+
+   Save to `aggregated.layer_schedule_consistency_test`. Surface violations to main thread for user resolution (revise CAGRs, revise layer contributions, or name an offsetting mechanism).
+
+7. **Annual revenue series derivation.** For each scenario, derive the annual series via linear interpolation in growth-rate space, anchored on `aggregated.last_reported_yoy_growth` at Y0, with per-period renormalization to honor each stated CAGR exactly.
+
+   ```python
+   def interpolate_linear(anchors, x):
+       # anchors: dict {x_position: rate}; linear interp between adjacent anchors
+       xs = sorted(anchors.keys())
+       if x <= xs[0]:
+           return anchors[xs[0]]
+       if x >= xs[-1]:
+           return anchors[xs[-1]]
+       for i in range(len(xs) - 1):
+           if xs[i] <= x <= xs[i + 1]:
+               t = (x - xs[i]) / (xs[i + 1] - xs[i])
+               return anchors[xs[i]] * (1 - t) + anchors[xs[i + 1]] * t
+
+   def renormalize_periods(series, period_cagrs, maturity_year):
+       # For each period, scale the within-period rates by a constant factor
+       # so that (series[end] / series[start]) ** (1 / years) - 1 == stated_cagr.
+       period_bounds = [("y1_3", 0, 3), ("y4_5", 3, 5), ("y6_10", 5, 10),
+                        ("y11_20", 10, 20), ("y21_maturity", 20, maturity_year)]
+       adjusted = list(series)
+       for period, start, end in period_bounds:
+           if end > maturity_year:
+               end = maturity_year
+           if start >= end:
+               continue
+           target_ratio = (1 + period_cagrs[period]) ** (end - start)
+           current_ratio = adjusted[end] / adjusted[start]
+           scale_factor = target_ratio / current_ratio
+           per_year_scale = scale_factor ** (1 / (end - start))
+           # apply compounding adjustment, preserving series[start]
+           running = adjusted[start]
+           for y in range(start + 1, end + 1):
+               raw_growth = adjusted[y] / adjusted[y - 1] - 1
+               adjusted_growth = (1 + raw_growth) * per_year_scale - 1
+               running *= (1 + adjusted_growth)
+               adjusted[y] = running
+       return adjusted
+
+   def annual_series_from_period_cagrs(rev_y0, last_year_growth, period_cagrs, maturity_year):
+       anchors = {
+           0: last_year_growth,
+           2: period_cagrs["y1_3"],
+           4.5: period_cagrs["y4_5"],
+           8: period_cagrs["y6_10"],
+           15.5: period_cagrs["y11_20"],
+           (21 + maturity_year) / 2: period_cagrs["y21_maturity"],
+       }
+       series = [rev_y0]
+       for y in range(1, maturity_year + 1):
+           g = interpolate_linear(anchors, y)
+           series.append(series[-1] * (1 + g))
+       series = renormalize_periods(series, period_cagrs, maturity_year)
+       return series
+   ```
+
+   Run per scenario. Save results to `aggregated.annual_revenue_today_$_per_scenario` with a `_provenance` key noting the series is derived and regenerable from the CAGRs.
+
+8. **Precedent flag** (informational, not blocking). For the bull scenario, if any period's CAGR exceeds the empirical 95th-percentile threshold for the company's starting revenue scale, FLAG (do not fail):
 
    | Starting revenue | 95th-pct CAGR sustained 5+ years | Note |
    |------------------|----------------------------------|------|
@@ -159,7 +272,7 @@ Validate:
 10. **Three-error check** (also surfaced in handoff):
     - Headline numbers reconcile to layer table (no silent haircut).
     - Real and inflation accounted for separately (no double-apply).
-    - Growth path matches the layer thesis (stacked S-curves shouldn't produce a smooth fade — verified by shape sanity test).
+    - Declared per-scenario CAGRs are consistent with the layer activation schedule (verified by `layer_schedule_consistency_test`).
 
 11. **Single-base check**: scan `state.json` and any draft hand-off for the presence of two distinct base totals. If found, FAIL.
 

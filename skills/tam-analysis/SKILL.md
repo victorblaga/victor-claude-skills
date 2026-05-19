@@ -112,7 +112,7 @@ Walk each layer through these eight steps. Full details and examples in `referen
 1. **Define the demand unit precisely**. What's counted? Who buys? What drives usage? How is it monetized? Confirm with user.
 2. **Build the pool today**. Top-down from authoritative sources via anchor-researcher. Cite. Show ranges. For consumer / retail, ground in regional demographic decomposition (population × per-capita usage by region) before aggregating.
 3. **Project to per-layer maturity**. Pool growth = population × per-capita usage × structural shifts. Show pool today, Y10, Y20, at this layer's maturity. Per-layer maturity year is set here, not globally. Confidence label per driver. Math-checker validates compounding.
-3.5. **Set the layer ramp schedule**. Each layer captures `activation_year` (when revenue begins), `peak_growth_year` (fastest %-growth), `maturity_year`, and `curve_shape` (s_curve / linear / front_loaded / back_loaded / stepped). Most layers share the ramp across bear/base/bull — only differ when a specific catalyst drives different timing per scenario. **Why this matters**: per-scenario revenue paths are derived bottom-up from layer ramps × layer endpoints, not from a single declared period-CAGR set. Eliminates downstream rescale artifacts (e.g., bull case U-shape with mid-cycle reacceleration above early peak).
+3.5. **Set the layer activation schedule**. Each layer captures `activation_year` (when revenue begins ≥1% of layer maturity), `peak_contribution_year` (year of peak %-contribution to consolidated growth), and `maturity_year`. Most layers share the schedule across bear/base/bull — only differ when a specific catalyst drives different timing per scenario. **Why this matters**: the per-scenario growth path is declared per scenario at the multiplication step (period CAGRs), and the activation schedule feeds a math-checker consistency test that flags when declared CAGRs are incompatible with the layer thesis (e.g., a layer activating Y4 contributing ≥15% of endpoint but Y4-5 CAGR < Y1-3 — layer is invisible).
 4. **Propose 2-3 scope options** — tight / plausible / aggressive. Explain the structural difference, not just the number. Don't pick — user picks.
 5. **Wait for user scope**. Geography, segment, product breadth, adjacency inclusion are judgment calls dependent on the thesis.
 6. **Size with explicit confidence**. high / moderate / low / unknown per anchor. Push back when user is too generous AND when user is too conservative (silent conservatism is as bad as wishful thinking).
@@ -129,15 +129,19 @@ Only after ALL layers are pool-sized. Four sub-steps per layer per scenario (bea
 3. **Real pricing power per year (above inflation)**. Per layer. Express as fading profile in real %: e.g., +2.5% / +2% / +1.5% over decades 1/2/3 for high-pricing-power layers; ~0% for commodity layers; negative for commoditizing tech. Math-checker validates compounding.
 4. **Inflation overlay (apply LAST)**. Today's-$ output → nominal $ at the per-layer maturity year. Anchor inflation on the long-run expectation for the reporting currency (central-bank target or break-even). Math-checker validates real→nominal conversion.
 
+Before declaring per-scenario CAGRs, **dispatch anchor-researcher for Y1-3 guidance + consensus** (mandatory). The dispatch payload: "For `<TICKER>`, fetch (a) latest management revenue guidance for next FY (range + midpoint, with source), (b) 2-3 year consensus analyst revenue estimates. Express both as implied YoY growth rates from the last reported FY." Result saved to `aggregated.y1_3_guidance_anchor`. Y1-3 per-scenario CAGRs are then picked within ±3pp of guidance midpoint, OR with a named `override_reason` logged in `sources.md`.
+
+Walk the user through declaring per-scenario period CAGRs (Y1-3, Y4-5, Y6-10, Y11-20, Y21-maturity), one period at a time across bear/base/bull. Per-anchor confirm. Bear typically -3 to -5pp below midpoint Y1-3 with a named bear mechanism; bull typically +1 to +3pp above with a named catalyst. Later periods reflect the layer thesis (stay-elevated when adjacencies activate; smooth-fade when no late activators).
+
 Dispatch math-checker after each layer's multiplication. Dispatch again at final aggregation to:
 
 - Validate the cross-layer sum per scenario.
-- Derive per-scenario annual revenue series from per-layer ramps × per-scenario endpoints.
-- Compute per-scenario period CAGRs (Y1-3, Y4-5, Y6-10, Y11-20, Y21-maturity) from those series.
-- Run the **hand-off contract test**: per-scenario CAGRs must compound to per-scenario endpoint within 2%. Fail-stop if any scenario violates.
-- Run the **shape sanity check**: identify peak-growth-year per scenario; flag mid-cycle reacceleration (later-period CAGR > earlier-period CAGR after peak) unless traceable to a named layer activating at that year.
+- Run the **hand-off contract test**: per-scenario declared CAGRs compound to per-scenario endpoint within 2%. Fail-stop if any scenario violates.
+- Run the **Y1-3 anchor test**: each scenario's Y1-3 CAGR within ±3pp of guidance midpoint, OR carries a named override mechanism.
+- Run the **layer-schedule consistency test**: for each scenario, the declared CAGRs are compatible with the per-layer activation schedule (late-activator check + smooth-fade check, see `agents/math-checker.md`).
+- Derive per-scenario annual revenue series via linear interpolation in growth-rate space, anchored on `last_reported_yoy_growth`, with per-period renormalization. Saved to `aggregated.annual_revenue_today_$_per_scenario` as a derived artifact regenerable from the CAGRs.
 
-The hand-off block in `handoff.md` emits per-scenario period CAGRs (bear/base/bull rows), not a single CAGR set. Downstream `/tam-dcf` consumes per-scenario CAGRs directly — no silent rescaling permitted.
+The hand-off block in `handoff.md` emits per-scenario period CAGRs (bear/base/bull rows) as the contract. Downstream `/tam-dcf` consumes the CAGRs and the derived annual series directly — no silent rescaling permitted.
 
 ## Pushback Discipline
 
@@ -219,9 +223,9 @@ Save to `handoff.md`. Structure:
 - **A. Layer summary table** — pool today (range, confidence), pool at maturity, mature share (bear/base/bull), mature monetization in today's $, real pricing CAGR, layer revenue at maturity in today's $ (bear/base/bull).
 - **B. Headline numbers** — total revenue at maturity in today's $ (bear/base/bull); same in nominal $ at Y`<N>`; implied share of total addressed pool at maturity.
 - **C. Dominant Fermi drivers** — the 2-3 inputs that move the answer most.
-- **D. Growth path shape** — stacked S-curves vs smooth fade; period-by-period dominance (Y1-3 / Y4-5 / Y6-10 / Y11-20 / Y21-maturity).
+- **D. Growth path declaration** — per-scenario period CAGRs (bear/base/bull rows) for Y1-3 / Y4-5 / Y6-10 / Y11-20 / Y21-maturity. Y1-3 anchored on management guidance + consensus. Per-scenario growth shape labels (stay-elevated / smooth-fade / front-loaded / back-loaded). Layer activation schedule listed alongside for the consistency check.
 - **E. Bear and bull mechanisms** — bear specifies substitution / commoditization / disintermediation / regulatory / value-pool-migration / customer-insourcing path; bull names each adjacency with its asset-backed wedge.
-- **F. Three-error check** — did we silently haircut? real-vs-nominal accounted for separately? growth path stacked S-curves vs forced smooth fade? Fix before emitting hand-off.
+- **F. Three-error check** — did we silently haircut? real-vs-nominal accounted for separately? do declared CAGRs match the layer activation schedule (layer-schedule consistency)? Fix before emitting hand-off.
 - **G. Hand-off block** — the clean DCF-ingestible block. Exact format in `references/handoff-format.md`.
 
 Tell user: "Hand-off saved to `<path>/handoff.md`. Pass that block into your DCF prompt. Sources in `sources.md`, full transcript in `dialogue.md`. Want me to dispatch a final math-check?"

@@ -13,7 +13,6 @@ The session can be reconstructed entirely from these four files.
 
 ```json
 {
-  "schema_version": "1.0",
   "company": {
     "name": "Amazon",
     "ticker": "AMZN",
@@ -103,18 +102,12 @@ The session can be reconstructed entirely from these four files.
         "base": 220000000000,
         "bull": 295000000000
       },
-      "ramp_schedule": {
+      "activation_schedule": {
         "shared_across_scenarios": true,
         "activation_year": 0,
-        "peak_growth_year": 5,
+        "peak_contribution_year": 5,
         "maturity_year": 15,
-        "curve_shape": "s_curve",
         "per_scenario_overrides": null
-      },
-      "annual_revenue_today_$": {
-        "bear": [125e9, 132e9, 140e9, "..."],
-        "base": [125e9, 138e9, 152e9, "..."],
-        "bull": [125e9, 145e9, 168e9, "..."]
       },
       "math_check_status": "passed",
       "math_check_log": ".math-check.log"
@@ -125,37 +118,52 @@ The session can be reconstructed entirely from these four files.
     "rationale": "Speculative robotics layer matures Y25; sets the hand-off horizon."
   },
   "aggregated": {
+    "last_reported_revenue_today_$": 638000000000,
+    "last_reported_yoy_growth": 0.092,
+    "y1_3_guidance_anchor": {
+      "midpoint": 0.095,
+      "range": [0.085, 0.105],
+      "source_id": "src_company_guidance_2026",
+      "consensus_midpoint": 0.093,
+      "consensus_source_id": "src_consensus_2026"
+    },
     "revenue_at_maturity_today_$": {"bear": "...", "base": "...", "bull": "..."},
     "revenue_at_maturity_nominal_$": {"bear": "...", "base": "...", "bull": "..."},
-    "annual_revenue_today_$_per_scenario": {
-      "bear": [1.62e9, 1.85e9, 2.10e9, "..."],
-      "base": [1.62e9, 1.96e9, 2.30e9, "..."],
-      "bull": [1.62e9, 2.05e9, 2.50e9, "..."]
-    },
     "growth_path_cagrs_per_scenario": {
       "bear": {"y1_3": 0.05, "y4_5": 0.06, "y6_10": 0.07, "y11_20": 0.06, "y21_maturity": 0.02},
-      "base": {"y1_3": 0.17, "y4_5": 0.20, "y6_10": 0.18, "y11_20": 0.11, "y21_maturity": 0.02},
-      "bull": {"y1_3": 0.22, "y4_5": 0.25, "y6_10": 0.22, "y11_20": 0.16, "y21_maturity": 0.02}
+      "base": {"y1_3": 0.095, "y4_5": 0.105, "y6_10": 0.10, "y11_20": 0.09, "y21_maturity": 0.05},
+      "bull": {"y1_3": 0.12, "y4_5": 0.16, "y6_10": 0.18, "y11_20": 0.14, "y21_maturity": 0.06}
     },
     "growth_shape_per_scenario": {
-      "bear": "front_loaded",
-      "base": "stacked S-curves",
-      "bull": "stacked S-curves"
+      "bear": "smooth_fade",
+      "base": "stay_elevated",
+      "bull": "stay_elevated"
     },
     "peak_growth_year_per_scenario": {
       "bear": 1,
-      "base": 5,
-      "bull": 5
+      "base": 4,
+      "bull": 8
+    },
+    "annual_revenue_today_$_per_scenario": {
+      "_provenance": "DERIVED via linear interpolation in growth-rate space; anchored on last_reported_yoy_growth at Y0 and on period-CAGR midpoints. Period CAGRs are the contract; this series is regenerable.",
+      "bear": [638e9, 670e9, 710e9, "..."],
+      "base": [638e9, 698e9, 770e9, "..."],
+      "bull": [638e9, 715e9, 830e9, "..."]
     },
     "handoff_contract_test": {
       "bear": {"compounded_endpoint": 6.97e9, "stated_endpoint": 6.97e9, "delta_pct": 0.0, "status": "passed"},
       "base": {"compounded_endpoint": 31.11e9, "stated_endpoint": 31.11e9, "delta_pct": 0.0, "status": "passed"},
       "bull": {"compounded_endpoint": 106.09e9, "stated_endpoint": 106.09e9, "delta_pct": 0.0, "status": "passed"}
     },
-    "shape_sanity_test": {
-      "bear": {"status": "passed", "notes": "monotonic decel after Y1 peak"},
-      "base": {"status": "passed", "notes": "stacked-S with SP-A activation Y4 + SP-F Y6 explains mid-cycle plateau"},
-      "bull": {"status": "passed", "notes": "stacked-S; mid-cycle elevation Y11-15 traceable to SP-A peak Y10 + SP-F peak Y12"}
+    "y1_3_anchor_test": {
+      "bear": {"pick": 0.05, "guidance_midpoint": 0.095, "delta_pp": -4.5, "status": "override", "override_reason": "bear assumes bear-mechanism partial materialization in Y2-3"},
+      "base": {"pick": 0.095, "guidance_midpoint": 0.095, "delta_pp": 0.0, "status": "passed"},
+      "bull": {"pick": 0.12, "guidance_midpoint": 0.095, "delta_pp": 2.5, "status": "passed", "override_reason": "bull assumes faster Y2-3 acceleration from already-announced state enterprise contracts"}
+    },
+    "layer_schedule_consistency_test": {
+      "bear": {"status": "passed", "notes": "no late activator; post-Y3 CAGRs monotone decreasing"},
+      "base": {"status": "passed", "notes": "SP-A activates Y4 (contributes 18% of base endpoint); Y4-5 CAGR 10.5% > Y1-3 9.5% — consistent"},
+      "bull": {"status": "passed", "notes": "SP-A activates Y4, SP-F activates Y6; Y6-10 elevation justified"}
     }
   },
   "pacing_mode": "per_anchor",
@@ -185,6 +193,11 @@ The session can be reconstructed entirely from these four files.
   - `horizon_proposed`
   - `handoff_emitted`
 - **`anchors[]`**: every confirmed anchor logged here, with `source_id` linking to `sources.md`. `user_confirmed: true` means the user accepted (after pushback if any). If user overrode the source range, `override_reason` is populated.
+- **`activation_schedule`** (per layer): metadata describing when the layer contributes meaningful revenue (`activation_year`), the year of peak %-contribution to consolidated growth (`peak_contribution_year`), and the year the layer is mostly built out (`maturity_year`). This is **discipline metadata**, not a revenue-path generator — the consolidated growth path is declared per scenario via `aggregated.growth_path_cagrs_per_scenario`. The math-checker runs a `layer_schedule_consistency_test` that flags when the declared CAGRs are incompatible with the activation schedule (e.g., a layer activating Y4 with ≥15% contribution but Y4-5 CAGR < Y1-3 CAGR — layer would be invisible).
+- **`aggregated.last_reported_revenue_today_$`** + **`aggregated.last_reported_yoy_growth`**: today's actuals. Anchor the Y0 point of the derived annual revenue series. Must be cited (latest 10-K/20-F).
+- **`aggregated.y1_3_guidance_anchor`**: mandatory anchor researched at the multiplication step. Management guidance midpoint + range + consensus midpoint. Y1-3 CAGRs per scenario are constrained to ±3pp of `midpoint` unless an `override_reason` is logged.
+- **`aggregated.growth_path_cagrs_per_scenario`**: the contract. User-confirmed period CAGRs per scenario (bear/base/bull), declared at the multiplication step, validated by math-checker against (a) `handoff_contract_test` (compound-to-endpoint), (b) `y1_3_anchor_test` (within tolerance or with named mechanism), (c) `layer_schedule_consistency_test` (compatible with activation schedule).
+- **`aggregated.annual_revenue_today_$_per_scenario`**: DERIVED via linear interpolation in growth-rate space between period-CAGR midpoints, anchored on `last_reported_yoy_growth` at Y0, with per-period renormalization to hit each stated CAGR exactly. Provided for DCF-consumer convenience. Regenerable from the CAGRs.
 - **`math_check_status`**: `pending` / `passed` / `failed`. If `failed`, surface to user immediately.
 - **`history[]`**: append-only log of completed steps. Useful for debugging resume.
 

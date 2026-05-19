@@ -249,7 +249,7 @@ Detail in `sensitivity-matrices.md`.
 
 For each row, the dcf-math subagent computes: revenue (from TAM ramp), revenue growth, EBIT margin, NOPAT, D&A, capex, ΔNWC, FCFF, ROIC, reinvestment rate.
 
-The stacked-S-curve inflections from the TAM hand-off MUST be visible in the revenue-growth column. If the growth column shows a smooth fade where TAM said stacked-S, the dcf-math is wrong — fail the math check.
+The per-scenario growth path declared in the TAM hand-off (period CAGRs + growth shape label per scenario) MUST be visible in the revenue-growth column. If the TAM hand-off declares a `stay-elevated` shape and the DCF growth column shows a smooth fade, dcf-math has applied the wrong revenue path — fail the math check. Conversely, if TAM declares `smooth-fade` and the DCF growth column shows mid-cycle elevation, also fail.
 
 ## What This Skill Does NOT Do
 
@@ -257,25 +257,29 @@ The stacked-S-curve inflections from the TAM hand-off MUST be visible in the rev
 - **Does not output a per-year discounted FCFF ledger.** The dcf-prompt forbids it; the output is structured PV-by-period in the EV bridge.
 - **Does not output a "DCF margin of safety" final-value haircut.** Margin of safety lives in scenario design + sensitivity + reverse-DCF required return.
 - **Does not adjust the TAM revenue path** to "be more conservative." If the TAM is wrong, the user fixes it via `/tam-analysis resume <TICKER>`.
-- **DOES NOT SILENTLY RESCALE TAM CAGRs to fit per-scenario endpoints.** If TAM provides a single CAGR set and three different endpoints, the math forces a rescale that produces shape artifacts (U/W-shapes, mid-cycle reacceleration above early peak). The skill halts at Step 0 and forces the user to fix TAM rather than carry the artifact downstream.
+- **DOES NOT SILENTLY RESCALE TAM CAGRs to fit per-scenario endpoints.** Per-scenario CAGRs and per-scenario endpoints are both first-class hand-off inputs; any reconciliation discrepancy halts at Step 0 and is resolved in TAM, not silently absorbed.
+- **Does not generate a per-layer revenue ramp.** Neither this skill nor the TAM skill generates per-layer annual revenue. The growth path is declared per scenario in TAM (period CAGRs anchored on guidance + thesis), validated by `layer_schedule_consistency_test` against the layer activation schedule, and consumed here directly.
 
 ## What This Skill REQUIRES from TAM
 
 The hand-off block (section G of `handoff.md`) must contain:
 
 - Revenue at maturity, today's $ + nominal $, **per scenario** (bear / base / bull)
+- **Last reported revenue (Y0, today's $)** and **last reported YoY growth** (anchors the derived annual series interpolation)
 - **Per-scenario period CAGRs**: bear / base / bull rows, each with Y1-3, Y4-5, Y6-10, Y11-20, Y21-maturity (15 CAGRs total)
-- **Per-scenario growth shape** (stacked-S vs smooth fade vs front-loaded vs back-loaded)
-- **Per-scenario peak-growth year** (used by shape sanity check)
-- **Optional but recommended: per-scenario annual revenue series** for highest-fidelity DCF consumption (no derivation needed)
-- **Per-layer ramp schedules**: activation_year, peak_growth_year, maturity_year, curve_shape, per-scenario overrides
+- **Y1-3 guidance anchor**: management guidance midpoint + range, consensus analyst midpoint
+- **Per-scenario growth shape** (stay-elevated / smooth-fade / front-loaded / back-loaded)
+- **Per-scenario peak-growth year** (used by sanity checks)
+- **Per-scenario derived annual revenue series** (preferred consumption form; regenerable from the CAGRs via linear interp in growth-rate space)
+- **Per-layer activation schedule**: activation_year, peak_contribution_year, maturity_year (drives the layer-schedule consistency check; not a revenue-path generator)
+- **Layer-schedule consistency test results** per scenario (must be passed)
 - Dominant Fermi drivers (for sensitivity matrix #2)
 - Bear mechanism + bull adjacencies
 - Per-layer maturity years
 - Real pricing CAGR per layer
 - Inflation assumption used
 
-If any of these are missing, halt at Step 0 and ask user to re-run TAM with the updated skill. Legacy hand-offs (with a single CAGR set) are not supported; the rescale they'd require is the bug this contract exists to prevent.
+If any of these are missing, halt at Step 0 and ask user to re-run TAM.
 
 ## Hand-off Contract Test (Inherited from TAM)
 

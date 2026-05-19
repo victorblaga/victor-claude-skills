@@ -105,89 +105,102 @@ def fcff(ebit, tax_rate, da, capex, delta_nwc):
 
 ### Revenue path from TAM — NO SILENT RESCALING
 
-The TAM hand-off MUST provide **per-scenario period CAGRs** (bear/base/bull rows). The dcf-math subagent consumes them directly per scenario. **NEVER silently rescale a single CAGR set to fit a different endpoint — that's the bug this skill exists to prevent.**
+The TAM hand-off carries **per-scenario period CAGRs** (bear/base/bull rows) as the contract, plus a **derived per-scenario annual revenue series** (regenerable from the CAGRs). The dcf-math subagent consumes both.
 
 Input preference order, highest fidelity first:
 
-1. **TAM hand-off includes per-scenario annual revenue series** (most reliable; computed by TAM math-checker from layer ramps × per-scenario endpoints). Use directly.
+1. **TAM hand-off includes per-scenario annual revenue series** (preferred). Use directly. The series is anchored on `last_reported_revenue_today_$` at Y0 and on the per-scenario period CAGRs (linear interpolation in growth-rate space + per-period renormalization).
 
 ```python
-def revenue_path_from_annual_series(annual_series_per_scenario, scenario):
-    # Just return the TAM-provided annual series
-    return annual_series_per_scenario[scenario]
+def revenue_path_from_annual_series(annual_series_per_scenario, scenario, data_snapshot_y0):
+    series = annual_series_per_scenario[scenario]
+    # Y0 anchoring check: catches the case where TAM and DCF disagree on Y0.
+    if abs(series[0] - data_snapshot_y0) / data_snapshot_y0 > 0.005:
+        raise HandoffY0Mismatch(
+            f"Scenario {scenario}: TAM series Y0 ${series[0]:.2f} does not match "
+            f"DCF data snapshot Y0 ${data_snapshot_y0:.2f} (delta > 50bps). "
+            f"TAM and DCF are anchored on different starting revenues. Halt."
+        )
+    return series
 ```
 
-2. **TAM hand-off includes per-scenario period CAGRs only** (next-best). Build annual series per scenario:
+2. **TAM hand-off includes per-scenario period CAGRs only** (re-derive locally). Same algorithm as TAM math-checker: linear interp in growth-rate space, anchored on `last_reported_yoy_growth` at Y0, renormalized per period to honor each stated CAGR exactly.
 
 ```python
-def revenue_path_from_per_scenario_cagrs(rev_y0, period_cagrs_per_scenario, scenario, maturity_year):
-    series = [rev_y0]
-    period_specs = [
-        ("y1_3",     1, 3),
-        ("y4_5",     4, 5),
-        ("y6_10",    6, 10),
-        ("y11_20",   11, 20),
-        ("y21_maturity", 21, maturity_year),
+def interpolate_linear(anchors, x):
+    xs = sorted(anchors.keys())
+    if x <= xs[0]:
+        return anchors[xs[0]]
+    if x >= xs[-1]:
+        return anchors[xs[-1]]
+    for i in range(len(xs) - 1):
+        if xs[i] <= x <= xs[i + 1]:
+            t = (x - xs[i]) / (xs[i + 1] - xs[i])
+            return anchors[xs[i]] * (1 - t) + anchors[xs[i + 1]] * t
+
+
+def renormalize_periods(series, period_cagrs, maturity_year):
+    period_bounds = [
+        ("y1_3", 0, 3), ("y4_5", 3, 5), ("y6_10", 5, 10),
+        ("y11_20", 10, 20), ("y21_maturity", 20, maturity_year),
     ]
+    adjusted = list(series)
+    for period, start, end in period_bounds:
+        if end > maturity_year:
+            end = maturity_year
+        if start >= end:
+            continue
+        target_ratio = (1 + period_cagrs[period]) ** (end - start)
+        current_ratio = adjusted[end] / adjusted[start]
+        scale_factor = target_ratio / current_ratio
+        per_year_scale = scale_factor ** (1 / (end - start))
+        running = adjusted[start]
+        for y in range(start + 1, end + 1):
+            raw_growth = adjusted[y] / adjusted[y - 1] - 1
+            adjusted_growth = (1 + raw_growth) * per_year_scale - 1
+            running *= (1 + adjusted_growth)
+            adjusted[y] = running
+    return adjusted
+
+
+def revenue_path_from_per_scenario_cagrs(
+    rev_y0, last_year_growth, period_cagrs_per_scenario, scenario, maturity_year,
+    stated_endpoint_per_scenario,
+):
     cagrs = period_cagrs_per_scenario[scenario]
-    for key, start, end in period_specs:
-        cagr = cagrs[key]
-        for y in range(start, end + 1):
-            series.append(series[-1] * (1 + cagr))
-    # CRITICAL: verify the compounded endpoint matches the stated endpoint
-    # within 2%. If not, HALT and surface to main thread. Do NOT rescale.
-    compounded_endpoint = series[maturity_year]
-    stated_endpoint = stated_endpoint_per_scenario[scenario]
-    delta_pct = abs(compounded_endpoint - stated_endpoint) / stated_endpoint
+    anchors = {
+        0: last_year_growth,
+        2: cagrs["y1_3"],
+        4.5: cagrs["y4_5"],
+        8: cagrs["y6_10"],
+        15.5: cagrs["y11_20"],
+        (21 + maturity_year) / 2: cagrs["y21_maturity"],
+    }
+    series = [rev_y0]
+    for y in range(1, maturity_year + 1):
+        g = interpolate_linear(anchors, y)
+        series.append(series[-1] * (1 + g))
+    series = renormalize_periods(series, cagrs, maturity_year)
+    # Hand-off contract test
+    compounded = series[maturity_year]
+    stated = stated_endpoint_per_scenario[scenario]
+    delta_pct = abs(compounded - stated) / stated
     if delta_pct > 0.02:
         raise HandoffContractViolation(
-            f"Scenario {scenario}: per-scenario CAGRs compound to ${compounded_endpoint:.2f}, "
-            f"stated endpoint ${stated_endpoint:.2f} (delta {delta_pct*100:.1f}%). "
+            f"Scenario {scenario}: per-scenario CAGRs compound to ${compounded:.2f}, "
+            f"stated endpoint ${stated:.2f} (delta {delta_pct*100:.1f}%). "
             f"Halt. Do not silently rescale."
         )
     return series
 ```
 
-3. **TAM hand-off has only a single CAGR set** (legacy / broken). HALT IMMEDIATELY and surface to main thread. Do not rescale. Main thread prompts user with the 3 options (rerun TAM / provide per-scenario CAGRs / abandon).
+### Y0 anchoring check
 
-```python
-def revenue_path_from_single_cagr_set(rev_y0, single_cagrs, scenario_endpoints, scenario, maturity_year):
-    # DO NOT IMPLEMENT THIS PATH. Halt immediately.
-    raise LegacyHandoffError(
-        "Hand-off carries only a single CAGR set, but scenarios have different endpoints. "
-        "Silent rescaling produces shape artifacts (e.g., bull case U-shape with mid-cycle "
-        "reacceleration above early peak). Halt. Main thread prompts user to fix TAM."
-    )
-```
+Always verify the consumed annual series Y0 equals `data_snapshot.current_revenue_today_$` within 50bps. Catches the case where TAM and DCF are anchored on different last-reported revenue figures (stale TAM, manual edit, etc.). HALT on mismatch — main thread prompts user to resolve.
 
-### Shape sanity check (per scenario)
+### Layer-schedule consistency (carried from TAM)
 
-```python
-def shape_sanity_check(annual_series, scenario, tam_layer_activations):
-    # Identify peak-growth year
-    growth_rates = [(annual_series[y+1] / annual_series[y] - 1) for y in range(len(annual_series) - 1)]
-    peak_year = growth_rates.index(max(growth_rates))
-
-    # After peak, growth should be monotonically decreasing
-    violations = []
-    for y in range(peak_year + 1, len(growth_rates)):
-        if growth_rates[y] > growth_rates[y-1] + 0.005:  # 50bps tolerance
-            # Check if a TAM layer activates around year y
-            layer_activations_in_period = [
-                layer for layer in tam_layer_activations
-                if abs(layer["activation_year"] - y) <= 2 or abs(layer["peak_growth_year"] - y) <= 2
-            ]
-            if not layer_activations_in_period:
-                violations.append({
-                    "year": y,
-                    "growth_rate": growth_rates[y],
-                    "prior_growth": growth_rates[y-1],
-                    "explanation_needed": True,
-                })
-    return {"peak_year": peak_year, "violations": violations}
-```
-
-Violations are surfaced to main thread for user resolution — do not silently ignore.
+The TAM hand-off carries `aggregated.layer_schedule_consistency_test` per scenario. dcf-math re-reads it at Step 0 and refuses to proceed if any scenario has unresolved violations. The test should already have passed during TAM emission; a failure surfacing here means the hand-off was edited after TAM ran.
 
 ### Margin / reinvestment ramp
 
@@ -320,9 +333,9 @@ Run all of these after every computation:
 6. **WACC floor** correctly applied. For USD-listed: `wacc_used >= max(calculated, 0.085)`. For non-USD: `wacc_used >= max(calculated, 0.085 + (currency_inflation - 0.02))`. Verify against `dcf-state.json.assumptions.wacc.wacc_floor_local`.
 7. **No magic-haircut text** in `dcf.md`: grep for "haircut," "conservative alternative base," "applied a X% reduction," "for margin of safety we cut," "discount the base by." Any match = FAIL.
 8. **Single base case**: ensure no two distinct "base" totals appear in `dcf-state.json` or `dcf.md`.
-9. **Hand-off contract**: per-scenario CAGRs compound to per-scenario endpoint within 2% PER SCENARIO. FAIL if violated for any scenario. **No silent rescaling.**
-10. **Shape sanity per scenario**: peak-growth year identified; post-peak monotonically decreasing OR mid-cycle reacceleration explainable by TAM layer activation. FAIL if unexplained reacceleration.
-11. **No `revenue_path_adjustment` in `.dcf-check.log`** (the diagnostic key that exposed the silent-rescale bug in earlier versions). If you ever find yourself computing a "g1=27.01%" style adjustment to fit endpoint, you're rescaling — HALT instead.
+9. **Hand-off contract**: per-scenario declared CAGRs compound to per-scenario endpoint within 2% PER SCENARIO. FAIL if violated for any scenario. **No silent rescaling.**
+10. **Layer-schedule consistency (carried from TAM)**: re-read `aggregated.layer_schedule_consistency_test`. Refuse to proceed if any scenario has unresolved violations.
+11. **Y0 anchoring**: consumed series Y0 == `data_snapshot.current_revenue_today_$` within 50bps. FAIL on mismatch — TAM and DCF disagree on starting revenue.
 
 Failures: do NOT proceed to save the final outputs. Return failure status to main thread with the discrepancy. Main thread surfaces to user.
 
