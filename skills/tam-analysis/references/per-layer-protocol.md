@@ -103,10 +103,10 @@ Each layer carries metadata describing **when** it contributes meaningful revenu
 
 ### Per-scenario differences
 
-Most layers share the same schedule across bear/base/bull — endpoint differences drive the scenario spread, not timing. A handful of layers may have scenario-specific schedules:
+Most layers share the same schedule across bear / low / base / high / bull — endpoint differences drive the scenario spread, not timing. A handful of layers may have scenario-specific schedules:
 
-- Speculative layer never activated in bear: `bear.activation_year = null`.
-- Layer arriving earlier in bull due to a specific catalyst (e.g., regulatory unlock): `bull.activation_year < base.activation_year`.
+- **Speculative layer**: never activated in bear by hard rule (`bear.activation_year = null`; layer revenue = 0 in bear). May activate later in `low` than in `base` if the catalyst is delayed under adverse conditions.
+- Layer arriving earlier in bull / high due to a specific catalyst (e.g., regulatory unlock): `bull.activation_year < base.activation_year`.
 
 Share the schedule by default. Only differentiate when there's a named catalyst.
 
@@ -128,7 +128,9 @@ The path itself comes from the user, anchored on guidance + thesis. The layer sc
   "maturity_year": 18,
   "per_scenario_overrides": {
     "bear": null,
+    "low": null,
     "base": null,
+    "high": null,
     "bull": null
   }
 }
@@ -230,7 +232,7 @@ Every step writes to `state.json`:
       "pool_today": {"value": "...", "range": "...", "confidence": "..."},
       "pool_at_maturity": {"value": "...", "year": "Y15", "confidence": "..."},
       "scope": "...",
-      "share": {"bear": "...", "base": "...", "bull": "..."},
+      "share": {"bear": "...", "low": "...", "base": "...", "high": "...", "bull": "..."},
       "monetization": {...},
       "real_pricing_cagr": {"d1": "...", "d2": "...", "d3": "..."},
       "overlap_haircut": "...",

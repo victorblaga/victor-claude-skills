@@ -36,8 +36,8 @@ Persona to embody: <e.g., "veteran industrials-SaaS equity analyst, 15+ years co
 Company: <name + ticker>
 Specific DCF question: <user's exact question>
 Current DCF state (excerpt from dcf-state.json):
-  Mature EBIT margin: <bear / base / bull>
-  Mature ROIC: <bear / base / bull>
+  Mature EBIT margin: <bear / low / base / high / bull>
+  Mature ROIC: <bear / low / base / high / bull>
   Moat named: <yes/no + which moat>
   WACC: <calculated / used>
   Reinvestment rate: <mature>

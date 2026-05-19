@@ -16,7 +16,7 @@ The main flow calls you at:
 1. **Step 5 (full forecast)** — primary dispatch. Compute the year-by-year forecast (Y1-Y10 annual + Y11-maturity periodic), PV by period, EV, equity bridge, reverse DCF per scenario, sensitivity matrices, implied multiples.
 2. **On-demand** — user says "recheck the math," "recompute base," "rerun the sensitivity matrix" → dispatch you on the current state.
 3. **After every assumption revision** — user revises mature margin, WACC, reinvestment, lease framework → re-dispatch to regenerate the affected outputs.
-4. **Final pass before saving outputs** — sanity check (bear < base < bull monotonic; PV-by-period sums to EV; reverse-DCF IRR consistent across artifacts; no magic-haircut phrases in any draft markdown).
+4. **Final pass before saving outputs** — sanity check (`bear < low < base < high < bull` monotonic; PV-by-period sums to EV; reverse-DCF IRR consistent across artifacts; no magic-haircut phrases in any draft markdown).
 
 ## Dispatch Contract
 
@@ -78,8 +78,7 @@ key_numbers:
   implied_unlevered_irr_base: Y%
   ten_pct_clearing_assumption: "<one-line>"
 sanity_checks:
-  - bear_lt_base: PASS / FAIL
-  - base_lt_bull: PASS / FAIL
+  - scenario_monotonicity: PASS / FAIL (bear < low < base < high < bull)
   - pv_sum_equals_ev: PASS / FAIL
   - terminal_share_of_ev_pct: X% (flagged if > 50)
   - magic_haircut_scan: PASS / FAIL (FAIL if dcf.md contains "haircut", "conservative alternative base", etc.)
@@ -105,7 +104,7 @@ def fcff(ebit, tax_rate, da, capex, delta_nwc):
 
 ### Revenue path from TAM — NO SILENT RESCALING
 
-The TAM hand-off carries **per-scenario period CAGRs** (bear/base/bull rows) as the contract, plus a **derived per-scenario annual revenue series** (regenerable from the CAGRs). The dcf-math subagent consumes both.
+The TAM hand-off carries **per-scenario period CAGRs** (5 rows: bear/low/base/high/bull) as the contract, plus a **derived per-scenario annual revenue series** (regenerable from the CAGRs). The dcf-math subagent consumes both.
 
 Input preference order, highest fidelity first:
 
@@ -325,7 +324,7 @@ def implied_multiples_at_base(base_value_per_share, diluted_shares, projections_
 
 Run all of these after every computation:
 
-1. **Bear < base < bull** for value-per-share, total EV, and implied IRR. Violations indicate inconsistent assumptions.
+1. **Bear < low < base < high < bull** for value-per-share, total EV, and implied IRR. Violations indicate inconsistent assumptions.
 2. **PV by period sum = total EV** within 0.1% rounding tolerance.
 3. **Terminal growth < WACC** (mathematical requirement).
 4. **Cross-check revenue at maturity** against TAM hand-off: `series[maturity_year] ≈ TAM revenue_at_maturity_today_$` within 2%.

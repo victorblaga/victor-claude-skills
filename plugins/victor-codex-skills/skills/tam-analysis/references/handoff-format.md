@@ -13,28 +13,32 @@ Write both. Order: A → B → C → D → E → F → G.
 
 Table with one row per layer. Columns:
 
-| Layer | Speculative? | Pool today (range, confidence) | Pool at maturity | Mature share (bear/base/bull) | Mature monetization (today's $) | Real pricing CAGR (D1/D2/D3) | Maturity year | Layer revenue at maturity, today's $ (bear/base/bull) |
-|-------|--------------|-------------------------------|------------------|-------------------------------|--------------------------------|-------------------------------|---------------|--------------------------------------------------------|
+| Layer | Speculative? | Pool today (range, confidence) | Pool at maturity | Mature share (bear/low/base/high/bull) | Mature monetization (today's $) | Real pricing CAGR (D1/D2/D3) | Maturity year | Layer revenue at maturity, today's $ (bear/low/base/high/bull) |
+|-------|--------------|-------------------------------|------------------|----------------------------------------|--------------------------------|-------------------------------|---------------|---------------------------------------------------------------|
 
-Speculative layers tagged explicitly. Bear column shows zero for speculative layers (that's the discipline).
+Speculative layers tagged explicitly. Bear column shows zero for speculative layers (hard rule). Low/base/high/bull values for speculative layers come from per-layer analysis (no top-down weighting).
 
 ## B. Headline Numbers
 
 ```
 Revenue at maturity, today's $:
-  Bear:  $X
-  Base:  $Y
-  Bull:  $Z
+  Bear:  $X     (absolute worst plausible)
+  Low:   $X     (realistic adverse)
+  Base:  $X     (bottom-up evidence-weighted)
+  High:  $X     (realistic upside)
+  Bull:  $X     (absolute best plausible)
 
 Revenue at maturity, nominal $ at Y<N>:
   Bear:  $X
-  Base:  $Y
-  Bull:  $Z
+  Low:   $X
+  Base:  $X
+  High:  $X
+  Bull:  $X
 
-Implied share of total addressed pool at maturity: X%
+Implied share of total addressed pool at maturity (base): X%
 ```
 
-Cross-check: nominal = today's-$ × (1 + inflation)^N. If the cross-check fails, math-checker has not run or has been ignored. Re-run before saving.
+Cross-check: nominal = today's-$ × (1 + inflation)^N. Scenario monotonicity: `bear < low < base < high < bull`. If either fails, math-checker has not run or has been ignored. Re-run before saving.
 
 ## C. Dominant Fermi Drivers
 
@@ -42,23 +46,23 @@ The 2-3 inputs that move the answer most. Identified by sensitivity in the final
 
 Format: short paragraph naming the driver, its current confidence label, and what range of values produces the bear→bull spread. Example:
 
-> Real pricing power in the speculative cloud-services layer is the dominant driver. Base case assumes +1.5% real / decade for two decades. Pushing this to +2.5% (bull) moves revenue at maturity by ~$X bn; dropping to 0% (bear) moves it by ~$Y bn.
+> Real pricing power in the speculative cloud-services layer is the dominant driver. Base case assumes +1.5% real / decade for two decades. Pushing this to +2.5% (bull) moves revenue at maturity by ~$X bn; dropping to 0% (bear) moves it by ~$Y bn. Low and high lie between accordingly.
 
 If we got these wrong, the whole estimate is wrong. Surface them prominently.
 
 ## D. Growth Path Declaration
 
-Per-scenario period CAGRs, anchored on Y1-3 guidance + consensus for the base case, with bear/bull spreads driven by named mechanisms.
+Per-scenario period CAGRs. The **base** scenario's Y1-3 is anchored on management guidance + consensus (±3pp tolerance); the other four scenarios take reasoned spreads from base, each with a named mechanism (bear-mechanism intensity for bear/low; bull-adjacency intensity for high/bull).
 
-| Period | Bear CAGR | Base CAGR | Bull CAGR | Dominant contributing layer(s) | Layers saturating |
-|--------|-----------|-----------|-----------|-------------------------------|-------------------|
-| Y1-3 | X% | X% | X% | ... | ... |
-| Y4-5 | X% | X% | X% | ... | ... |
-| Y6-10 | X% | X% | X% | ... | ... |
-| Y11-20 | X% | X% | X% | ... | ... |
-| Y21-maturity | X% | X% | X% | ... | ... |
+| Period | Bear | Low | Base | High | Bull | Dominant contributing layer(s) | Layers saturating |
+|--------|------|-----|------|------|------|-------------------------------|-------------------|
+| Y1-3 | X% | X% | X% | X% | X% | ... | ... |
+| Y4-5 | X% | X% | X% | X% | X% | ... | ... |
+| Y6-10 | X% | X% | X% | X% | X% | ... | ... |
+| Y11-20 | X% | X% | X% | X% | X% | ... | ... |
+| Y21-maturity | X% | X% | X% | X% | X% | ... | ... |
 
-**Y1-3 anchor**: cite management guidance midpoint + range and consensus analyst midpoint. Any deviation in a scenario logs the override mechanism in `sources.md`.
+**Y1-3 anchor**: cite management guidance midpoint + range and consensus analyst midpoint. Base must be within ±3pp of midpoint or carry an override mechanism. Non-base scenarios log their `override_reason` in `sources.md`.
 
 **Growth shape per scenario**: stay-elevated / smooth-fade / front-loaded / back-loaded. Stay-elevated means later-period CAGRs do not fade dramatically because layer adjacencies are still contributing; smooth-fade means a single monotonically-decaying CAGR profile (typical for mature businesses with no late activators).
 
@@ -97,9 +101,10 @@ Before emitting the hand-off block, confirm:
 1. **Did we pass the Fermi output through as actual revenue at maturity, or silently haircut it further?** ✅ / ❌
 2. **Did we account for real pricing power AND inflation separately?** ✅ / ❌
 3. **Do the declared per-scenario CAGRs match the layer activation schedule?** Layers activating Y4+ with ≥15% endpoint contribution require elevated CAGRs in their activation/peak-contribution period; scenarios with no late activator require monotonically decreasing post-Y3 CAGRs. ✅ / ❌
-4. **Does the output contain exactly ONE bear, ONE base, ONE bull — with no parallel "alternative haircut base", "analyst-conservative base", or other duplicate scenarios?** ✅ / ❌
+4. **Does the output contain exactly ONE bear, ONE low, ONE base, ONE high, ONE bull — with no parallel "alternative haircut base", "analyst-conservative base", or other duplicate scenarios?** ✅ / ❌
+5. **Scenario monotonicity**: `bear < low < base < high < bull` for `revenue_at_maturity_today_$` and for per-layer `layer_revenue_at_maturity_today_$`. ✅ / ❌
 
-All four must pass. If any fails, fix the underlying model first, re-run math-checker, then re-emit. For check #4 specifically: if an expert review pushed the base down and the user accepted, the layer numbers must be updated in `state.json` and the old numbers removed from `handoff.md` — never both preserved.
+All five must pass. If any fails, fix the underlying model first, re-run math-checker, then re-emit. For check #4 specifically: if an expert review pushed the base down and the user accepted, the layer numbers must be updated in `state.json` and the old numbers removed from `handoff.md` — never both preserved.
 
 ## G. Hand-Off Block (DCF Input)
 
@@ -117,31 +122,45 @@ Last reported revenue (Y0, today's $): $<X>
 Last reported YoY growth: <%>
 (Y0 base + Y0 growth anchor the derived annual revenue series interpolation.)
 
-Revenue at maturity, today's $ (bear / base / bull): <X> / <Y> / <Z>
-Revenue at maturity, nominal $ at Y<N> (bear / base / bull): <X> / <Y> / <Z>
+Revenue at maturity, today's $ (bear / low / base / high / bull): <X> / <Y> / <Z> / <W> / <V>
+Revenue at maturity, nominal $ at Y<N> (bear / low / base / high / bull): <X> / <Y> / <Z> / <W> / <V>
 Inflation assumption used: <%>
 
-Implied revenue CAGR by period (PER SCENARIO — bear / base / bull rows REQUIRED):
+Scenario framing:
+  Bear = absolute worst plausible (bear mechanism fully materializes; speculative layers = 0)
+  Low  = realistic adverse (partial bear-mechanism materialization)
+  Base = bottom-up evidence-weighted
+  High = realistic upside (partial bull-adjacency realization)
+  Bull = absolute best plausible (bull adjacencies fully active)
+
+Implied revenue CAGR by period (PER SCENARIO — all 5 rows REQUIRED):
                     Y1-3      Y4-5      Y6-10     Y11-20    Y21-maturity
   Bear:             <%>       <%>       <%>       <%>       <%>
+  Low:              <%>       <%>       <%>       <%>       <%>
   Base:             <%>       <%>       <%>       <%>       <%>
+  High:             <%>       <%>       <%>       <%>       <%>
   Bull:             <%>       <%>       <%>       <%>       <%>
 
 Y1-3 anchor: management guidance midpoint <%> (range <%> – <%>); consensus analyst
-midpoint <%>. Each scenario's Y1-3 pick is within ±3pp of guidance midpoint OR
-carries an `override_reason` logged in `sources.md`.
+midpoint <%>. Base scenario's Y1-3 is within ±3pp of guidance midpoint OR carries an
+`override_reason`. Bear / low / high / bull take reasoned spreads from base, each
+with a named mechanism logged in `sources.md`.
 
 Each row must compound to its scenario endpoint within 2% — verified by hand-off
 contract test in math-checker. No silent rescaling.
 
 Growth shape per scenario:
   Bear: <stay-elevated | smooth-fade | front-loaded | back-loaded>
-  Base: <stay-elevated | smooth-fade | front-loaded | back-loaded>
-  Bull: <stay-elevated | smooth-fade | front-loaded | back-loaded>
+  Low:  <...>
+  Base: <...>
+  High: <...>
+  Bull: <...>
 
 Peak-growth year per scenario:
   Bear: Y<N>
+  Low:  Y<N>
   Base: Y<N>
+  High: Y<N>
   Bull: Y<N>
 
 Layer activation schedule (drives layer-schedule consistency check, not series generation):
@@ -150,25 +169,31 @@ Layer activation schedule (drives layer-schedule consistency check, not series g
   Per-scenario overrides (only when a specific catalyst differs):
     - <layer name>: bull activation Y<N> vs base Y<N> (reason: <one line>)
 
-Layer-schedule consistency: for each scenario, the declared CAGRs must be compatible
-with the activation schedule. Layers activating Y4+ contributing ≥15% of endpoint
-require elevated CAGRs in their activation/peak-contribution period; scenarios with
-no late activator require monotonically decreasing post-Y3 CAGRs. Verified by
-math-checker.
+Layer-schedule consistency: for each of the 5 scenarios, the declared CAGRs must be
+compatible with the activation schedule. Layers activating Y4+ contributing ≥15% of
+endpoint require elevated CAGRs in their activation/peak-contribution period;
+scenarios with no late activator require monotonically decreasing post-Y3 CAGRs.
+Verified by math-checker.
+
+Scenario monotonicity: bear < low < base < high < bull, both at the aggregated
+revenue level and per-layer. Verified by math-checker.
 
 Dominant Fermi drivers:
   - <driver 1>: <one-line description>
   - <driver 2>: <one-line description>
   - <driver 3>: <one-line description>
 
-Bear mechanism: <one line>
+Bear mechanism: <one line — what has to go wrong for bear to materialize>
+Low mechanism: <one line — partial-bear: which elements of the bear mechanism bite, which don't>
 
 Bull adjacencies (asset-backed):
   - <layer name>: wedge = <wedge>
   - <layer name>: wedge = <wedge>
+High realization: <one line — partial-bull: which adjacencies activate in high but not in bull>
 
-Speculative layers and weighting:
-  - <layer name>: <% of base revenue at maturity> / <% of bull revenue at maturity> / 0 in bear
+Speculative layers per scenario (today's $ at maturity):
+  - <layer name>: bear $0 / low $<X> / base $<Y> / high $<Z> / bull $<W>
+  (Bear = 0 is hard rule. Other scenarios reflect per-layer analysis, not top-down weighting.)
 
 Per-layer maturity years (for reference):
   - <layer name>: Y<N>
@@ -196,14 +221,15 @@ State file: <absolute path to state.json>
 
 Run the math-checker one last time before saving `handoff.md`:
 
-- Headline numbers reconcile against the layer table.
-- Nominal = today's-$ × inflation compounding.
-- **Per-scenario period CAGRs compound to per-scenario endpoint within 2%.** Hand-off contract test. Run for bear, base, AND bull independently.
-- **Y1-3 anchor test**: each scenario's Y1-3 CAGR is within ±3pp of `aggregated.y1_3_guidance_anchor.midpoint`, OR carries a named `override_reason` logged in `sources.md`.
-- **Layer-schedule consistency test**: for each scenario, the declared CAGRs are compatible with the per-layer activation schedule. Layers activating Y4+ contributing ≥15% of endpoint require elevated CAGRs in their activation/peak-contribution period; scenarios with no late activator require monotonically decreasing post-Y3 CAGRs.
-- Bear / base / bull spreads non-degenerate (bear < base < bull).
+- Headline numbers reconcile against the layer table (per scenario).
+- Nominal = today's-$ × inflation compounding (per scenario).
+- **Per-scenario period CAGRs compound to per-scenario endpoint within 2%.** Hand-off contract test. Run for bear, low, base, high, AND bull independently.
+- **Y1-3 anchor test**: the **base** scenario's Y1-3 CAGR is within ±3pp of `aggregated.y1_3_guidance_anchor.midpoint`, OR carries a named `override_reason`. Bear / low / high / bull carry their own `override_reason` describing the bear-mechanism / bull-adjacency intensity that drives the spread from base.
+- **Layer-schedule consistency test**: for each of the 5 scenarios, the declared CAGRs are compatible with the per-layer activation schedule. Layers activating Y4+ contributing ≥15% of endpoint require elevated CAGRs in their activation/peak-contribution period; scenarios with no late activator require monotonically decreasing post-Y3 CAGRs.
+- **Scenario monotonicity test**: `revenue_at_maturity_today_$` and per-layer `layer_revenue_at_maturity_today_$` satisfy `bear < low < base < high < bull`. Strict violation = halt.
+- Scenario spreads non-degenerate (bear < low < base < high < bull, strict inequalities).
 - Speculative layers zero in bear.
-- Hand-off contains exactly one bear, one base, one bull. No parallel "alternative haircut base" or duplicate scenarios anywhere in the document. If math-checker finds two distinct base totals, fail the check and force resolution.
+- Hand-off contains exactly one bear, one low, one base, one high, one bull. No parallel "alternative haircut base" or duplicate scenarios anywhere in the document. If math-checker finds two distinct base totals, fail the check and force resolution.
 - Per-layer `activation_schedule` populated for every layer. If any layer is missing the schedule, the layer-schedule consistency check cannot run — halt.
 
 Math-checker writes its validation report to `~/.investing/companies/<TICKER>/<DATE>/.math-check.log`. Reference it in `handoff.md` footer.

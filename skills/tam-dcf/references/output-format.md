@@ -59,12 +59,12 @@ All from the data anchored in Step 1.
 
 ONE PARAGRAPH. Reference `handoff.md`, don't redo. Required content:
 
-- Bear / base / bull revenue at maturity (today's $ + nominal $).
-- Growth shape.
+- Bear / low / base / high / bull revenue at maturity (today's $ + nominal $).
+- Growth shape per scenario.
 - 2-3 dominant Fermi drivers.
-- Bear mechanism.
-- Bull adjacencies (one line each).
-- Speculative-layer weighting.
+- Bear mechanism (one line) + low partial materialization (one line).
+- Bull adjacencies (one line each) + high partial realization (one line).
+- Speculative-layer values per scenario (bear=0 hard rule).
 - Hand-off horizon year.
 
 End with: "Full TAM analysis at `<absolute path to handoff.md>`."
@@ -73,8 +73,8 @@ End with: "Full TAM analysis at `<absolute path to handoff.md>`."
 
 The DCF-specific assumption set, with citations:
 
-- Mature EBIT margin (bear / base / bull), with peer-anchor source.
-- Mature ROIC (bear / base / bull), with moat justification.
+- Mature EBIT margin (bear / low / base / high / bull), with peer-anchor source.
+- Mature ROIC (bear / low / base / high / bull), with moat justification.
 - Mature reinvestment rate.
 - Margin / reinvestment ramp shape (annual to Y10, periodic after).
 - WACC components: cost of equity, cost of debt, tax rate, capital structure weights, calculated and used WACC.
@@ -222,14 +222,14 @@ Inline SVG charts (avoid heavy JS libraries). For each chart:
 
 - X axis: year (Y1 → maturity).
 - Y axis: the metric (revenue $, FCFF $, margin %, ROIC %).
-- Three lines: bear / base / bull.
-- Annotated breakpoints at S-curve inflection years.
+- Five lines: bear / low / base / high / bull.
+- Annotated breakpoints at per-scenario peak-growth years.
 
 ### Forecast Table
 
 - Annual rows Y1-Y10 visible by default; periodic rows (Y11-Y20, Y21-maturity) collapsed by default.
 - Sortable by column (click header).
-- "Switch scenario" dropdown — toggle bear / base / bull.
+- "Switch scenario" dropdown — toggle bear / low / base / high / bull.
 
 ### Reverse-DCF Panel
 
@@ -255,7 +255,7 @@ Run dcf-math one last time with the "final pass" check:
 
 1. Markdown report contains all 11 sections.
 2. HTML file opens (smoke test: dispatch a subagent to view the file or just verify file size > 50KB).
-3. Bear / base / bull are monotonic in every output (`bear < base < bull`).
+3. All 5 scenarios are monotonic in every output (`bear < low < base < high < bull`).
 4. Reverse-DCF IRR is consistent across the markdown report, the HTML, and the underlying `dcf-state.json`.
 5. **No magic haircuts**: scan the markdown for "haircut," "conservative alternative base," "applied a X% reduction," "for margin of safety we cut" — these phrases trigger a hard fail and require regenerating.
 6. PV-by-period sums to total EV.

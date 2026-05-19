@@ -235,7 +235,7 @@ Plus the 10%-required-return case: solve for the FCFF / margin / TAM assumptions
 
 Three required matrices, each cell shows `value-per-share / implied unlevered CAGR%`. The IRR in each cell is solved via reverse-DCF for THAT cell's assumption set, not as a linear upside/downside from base.
 
-1. **Primary**: TAM scenario × mature EBIT margin. 3 × 5 grid (TAM bear/base/bull × margin range from peer floor to peer ceiling).
+1. **Primary**: TAM scenario × mature EBIT margin. 5 × N grid (TAM bear/low/base/high/bull × margin range from peer floor to peer ceiling).
 2. **Secondary**: two-Fermi-driver matrix from the TAM hand-off's dominant drivers. E.g., L1 mature share × SP-A monetization for the IOT example. Skip if matrix #1 already captures the uncertainty.
 3. **Tertiary**: discount rate × mature growth. Value per share only (discount rate is the return variable). State which discount rate is closest to the market-implied return.
 
@@ -264,17 +264,18 @@ The per-scenario growth path declared in the TAM hand-off (period CAGRs + growth
 
 The hand-off block (section G of `handoff.md`) must contain:
 
-- Revenue at maturity, today's $ + nominal $, **per scenario** (bear / base / bull)
+- Revenue at maturity, today's $ + nominal $, **per scenario** (bear / low / base / high / bull)
 - **Last reported revenue (Y0, today's $)** and **last reported YoY growth** (anchors the derived annual series interpolation)
-- **Per-scenario period CAGRs**: bear / base / bull rows, each with Y1-3, Y4-5, Y6-10, Y11-20, Y21-maturity (15 CAGRs total)
+- **Per-scenario period CAGRs**: bear / low / base / high / bull rows, each with Y1-3, Y4-5, Y6-10, Y11-20, Y21-maturity (25 CAGRs total)
 - **Y1-3 guidance anchor**: management guidance midpoint + range, consensus analyst midpoint
 - **Per-scenario growth shape** (stay-elevated / smooth-fade / front-loaded / back-loaded)
 - **Per-scenario peak-growth year** (used by sanity checks)
 - **Per-scenario derived annual revenue series** (preferred consumption form; regenerable from the CAGRs via linear interp in growth-rate space)
 - **Per-layer activation schedule**: activation_year, peak_contribution_year, maturity_year (drives the layer-schedule consistency check; not a revenue-path generator)
 - **Layer-schedule consistency test results** per scenario (must be passed)
+- **Scenario monotonicity test result** (bear < low < base < high < bull, must be passed)
 - Dominant Fermi drivers (for sensitivity matrix #2)
-- Bear mechanism + bull adjacencies
+- Bear mechanism + low/high partial materializations + bull adjacencies
 - Per-layer maturity years
 - Real pricing CAGR per layer
 - Inflation assumption used

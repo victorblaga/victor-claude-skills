@@ -6,21 +6,23 @@ The matrices are the most-used part of the output. They get rendered as heatmaps
 
 ## Matrix 1 — TAM Scenario × Mature EBIT Margin (PRIMARY)
 
-The most important matrix. Captures the dominant uncertainty: where does revenue land (TAM bear/base/bull) × how much profit does it produce (mature margin range).
+The most important matrix. Captures the dominant uncertainty: where does revenue land (TAM bear/low/base/high/bull) × how much profit does it produce (mature margin range).
 
 ### Spec
 
-- **Rows**: 3 — TAM bear / base / bull (from `handoff.md`).
+- **Rows**: 5 — TAM bear / low / base / high / bull (from `handoff.md`).
 - **Columns**: 5 — mature EBIT margin from peer floor to peer ceiling. Default: `floor−2%`, `floor`, `midpoint`, `ceiling`, `ceiling+2%`. Adjust to the sector's realistic range.
-- **Cells**: value-per-share / implied unlevered CAGR% solved via reverse DCF.
+- **Cells**: value-per-share / implied unlevered CAGR% solved via reverse DCF (5 × 5 = 25 reverse-DCF solves).
 
 ### Example (illustrative)
 
 ```
                         15% margin   18% margin   22% margin   26% margin   30% margin
-TAM bear ($7B Y25)      $X / Y%      $X / Y%      $X / Y%      $X / Y%      $X / Y%
-TAM base ($31B Y25)     $X / Y%      $X / Y%      $X / Y%      $X / Y%      $X / Y%
-TAM bull ($106B Y25)    $X / Y%      $X / Y%      $X / Y%      $X / Y%      $X / Y%
+TAM bear ($5B Y25)      $X / Y%      $X / Y%      $X / Y%      $X / Y%      $X / Y%
+TAM low ($8B Y25)       $X / Y%      $X / Y%      $X / Y%      $X / Y%      $X / Y%
+TAM base ($14B Y25)     $X / Y%      $X / Y%      $X / Y%      $X / Y%      $X / Y%
+TAM high ($22B Y25)     $X / Y%      $X / Y%      $X / Y%      $X / Y%      $X / Y%
+TAM bull ($36B Y25)     $X / Y%      $X / Y%      $X / Y%      $X / Y%      $X / Y%
 ```
 
 Current price: $X. Current EV: $Y. Color-code cells in the HTML by IRR:
@@ -93,7 +95,7 @@ For each scenario:
 For the 10%-clearing case:
 
 - What TAM / margin / adjacency assumptions are required for the unlevered IRR to exactly clear 10% at today's price.
-- Are those assumptions inside the TAM bear/base/bull spread, or beyond it?
+- Are those assumptions inside the TAM bear/low/base/high/bull spread, or beyond it?
 
 The 10%-clearing case is the most analytically useful number in the whole DCF for an investment decision. Make it prominent in the compact conclusion.
 

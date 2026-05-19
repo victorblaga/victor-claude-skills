@@ -25,18 +25,38 @@ Files in `~/.investing/companies/<TICKER>/<DATE>/`:
     "state_path": "/home/victor/.investing/companies/IOT/2026-05-18/state.json",
     "horizon_year": "Y25",
     "maturity_calendar_year": 2051,
-    "revenue_at_maturity_today_$": {"bear": 6970000000, "base": 31110000000, "bull": 106090000000},
-    "revenue_at_maturity_nominal_$": {"bear": 11440000000, "base": 51040000000, "bull": 174050000000},
+    "revenue_at_maturity_today_$": {
+      "bear": 4800000000,
+      "low":  8100000000,
+      "base": 13700000000,
+      "high": 21500000000,
+      "bull": 35900000000
+    },
+    "revenue_at_maturity_nominal_$": {
+      "bear": 7880000000,
+      "low":  13290000000,
+      "base": 22470000000,
+      "high": 35260000000,
+      "bull": 58880000000
+    },
     "inflation_assumption_pct": 0.02,
-    "last_reported_revenue_today_$": 1618600000,
-    "last_reported_yoy_growth": 0.31,
-    "y1_3_guidance_anchor": {"midpoint": 0.27, "range": [0.23, 0.30], "consensus_midpoint": 0.26},
-    "growth_shape_per_scenario": {"bear": "smooth_fade", "base": "stay_elevated", "bull": "stay_elevated"},
-    "peak_growth_year_per_scenario": {"bear": 1, "base": 4, "bull": 6},
+    "last_reported_revenue_today_$": 2330000000,
+    "last_reported_yoy_growth": 0.092,
+    "y1_3_guidance_anchor": {"midpoint": 0.095, "range": [0.085, 0.105], "consensus_midpoint": 0.093},
+    "growth_shape_per_scenario": {
+      "bear": "smooth_fade",
+      "low":  "smooth_fade",
+      "base": "stay_elevated",
+      "high": "stay_elevated",
+      "bull": "stay_elevated"
+    },
+    "peak_growth_year_per_scenario": {"bear": 1, "low": 3, "base": 4, "high": 6, "bull": 8},
     "period_cagrs_per_scenario": {
-      "bear": {"y1_3": 0.22, "y4_5": 0.18, "y6_10": 0.12, "y11_20": 0.07, "y21_maturity": 0.03},
-      "base": {"y1_3": 0.27, "y4_5": 0.24, "y6_10": 0.20, "y11_20": 0.12, "y21_maturity": 0.04},
-      "bull": {"y1_3": 0.30, "y4_5": 0.28, "y6_10": 0.25, "y11_20": 0.17, "y21_maturity": 0.05}
+      "bear": {"y1_3": 0.04, "y4_5": 0.05, "y6_10": 0.05, "y11_20": 0.04, "y21_maturity": 0.02},
+      "low":  {"y1_3": 0.07, "y4_5": 0.08, "y6_10": 0.08, "y11_20": 0.07, "y21_maturity": 0.04},
+      "base": {"y1_3": 0.095, "y4_5": 0.105, "y6_10": 0.10, "y11_20": 0.09, "y21_maturity": 0.05},
+      "high": {"y1_3": 0.11, "y4_5": 0.13, "y6_10": 0.14, "y11_20": 0.11, "y21_maturity": 0.055},
+      "bull": {"y1_3": 0.13, "y4_5": 0.17, "y6_10": 0.19, "y11_20": 0.15, "y21_maturity": 0.06}
     },
     "dominant_drivers": [
       {"name": "L1 mature share", "range": [0.18, 0.28, 0.40]},
@@ -44,7 +64,13 @@ Files in `~/.investing/companies/<TICKER>/<DATE>/`:
       {"name": "L1 mature ASP", "range": [631, 1236, 1950]}
     ],
     "consistency_check": "passed | failed",
-    "consistency_notes": ["No two-bases pathology", "Per-scenario CAGRs compound to per-scenario endpoint (handoff contract test PASS)", "Y1-3 anchor test PASS", "Layer-schedule consistency PASS"]
+    "consistency_notes": [
+      "No two-bases pathology",
+      "Per-scenario CAGRs compound to per-scenario endpoint (handoff contract test PASS, 5 scenarios)",
+      "Y1-3 anchor test PASS (base within ±3pp of guidance; bear/low/high/bull with override_reason)",
+      "Layer-schedule consistency PASS (5 scenarios)",
+      "Scenario monotonicity PASS (bear < low < base < high < bull)"
+    ]
   },
   "data_snapshot": {
     "as_of_date": "2026-05-18",
@@ -63,9 +89,9 @@ Files in `~/.investing/companies/<TICKER>/<DATE>/`:
     "sources": ["src_iot_10k_fy26", "src_iot_q4fy26_release"]
   },
   "assumptions": {
-    "mature_ebit_margin": {"bear": 0.18, "base": 0.25, "bull": 0.30, "peer_anchor": "Salesforce 26% mature, ServiceNow 27% mature, industrials-SaaS median 22%"},
-    "mature_roic": {"bear": 0.15, "base": 0.22, "bull": 0.30, "moat_named": "data flywheel + frontline UI ownership"},
-    "mature_reinvestment_rate": {"bear": 0.06, "base": 0.05, "bull": 0.04},
+    "mature_ebit_margin": {"bear": 0.18, "low": 0.22, "base": 0.25, "high": 0.275, "bull": 0.30, "peer_anchor": "Salesforce 26% mature, ServiceNow 27% mature, industrials-SaaS median 22%"},
+    "mature_roic": {"bear": 0.15, "low": 0.18, "base": 0.22, "high": 0.26, "bull": 0.30, "moat_named": "data flywheel + frontline UI ownership"},
+    "mature_reinvestment_rate": {"bear": 0.06, "low": 0.055, "base": 0.05, "high": 0.045, "bull": 0.04},
     "margin_ramp_path": {
       "y1": -0.01, "y2": 0.03, "y3": 0.06, "y4": 0.09, "y5": 0.12, "y6": 0.15, "y7": 0.17, "y8": 0.19, "y9": 0.21, "y10": 0.22,
       "y15": 0.24, "y20": 0.25, "y25": 0.25
@@ -142,11 +168,13 @@ Files in `~/.investing/companies/<TICKER>/<DATE>/`:
   },
   "sensitivity": {
     "matrix_1": {
-      "rows": ["TAM bear", "TAM base", "TAM bull"],
+      "rows": ["TAM bear", "TAM low", "TAM base", "TAM high", "TAM bull"],
       "cols": ["margin 18%", "margin 22%", "margin 25%", "margin 28%", "margin 30%"],
       "cells": [
         [{"vps": 12, "irr": -0.02}, {"vps": 18, "irr": 0.02}, {"vps": 22, "irr": 0.05}, {"vps": 26, "irr": 0.07}, {"vps": 28, "irr": 0.08}],
+        [{"vps": 22, "irr": 0.03}, {"vps": 32, "irr": 0.06}, {"vps": 42, "irr": 0.09}, {"vps": 52, "irr": 0.11}, {"vps": 60, "irr": 0.13}],
         [{"vps": 35, "irr": 0.05}, {"vps": 55, "irr": 0.09}, {"vps": 75, "irr": 0.13}, {"vps": 95, "irr": 0.16}, {"vps": 110, "irr": 0.18}],
+        [{"vps": 55, "irr": 0.09}, {"vps": 85, "irr": 0.13}, {"vps": 120, "irr": 0.17}, {"vps": 150, "irr": 0.20}, {"vps": 180, "irr": 0.22}],
         [{"vps": 80, "irr": 0.12}, {"vps": 130, "irr": 0.17}, {"vps": 180, "irr": 0.21}, {"vps": 230, "irr": 0.24}, {"vps": 270, "irr": 0.26}]
       ]
     },

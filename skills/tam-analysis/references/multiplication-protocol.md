@@ -1,6 +1,6 @@
 # Multiplication Protocol
 
-Once every layer is pool-sized — and ONLY then — turn pools into revenue. Four sub-steps per layer per scenario (bear / base / bull).
+Once every layer is pool-sized — and ONLY then — turn pools into revenue. Four sub-steps per layer per scenario (bear / low / base / high / bull).
 
 The order is non-negotiable:
 
@@ -28,10 +28,13 @@ Anchor on real category-leader patterns. Don't pick a number without citing prec
 
 When picking, write the precedent in `sources.md`: "Set mature share for `<layer>` at `<X>%` because `<comparable company> reached <Y>% in <category>, citing <source>`." Don't pick precedent that's structurally weaker than the layer's actual dynamics (don't anchor a moat-protected layer on a commodity precedent).
 
-Bear / base / bull spread for share:
-- **Bear**: share is challenged by named substitute or commoditization mechanism. Often 30-50% below base.
-- **Base**: evidence-weighted from precedents and current trajectory.
-- **Bull**: precedents from the strongest comparable, plus any incremental moat-strengtheners (e.g., data feedback loops, switching costs, regulatory).
+Five-scenario spread for share. Pick all five per layer. Math-checker enforces monotonicity `bear ≤ low ≤ base ≤ high ≤ bull` (equality allowed where the layer is share-insensitive in that direction).
+
+- **Bear** — absolute worst plausible: share is challenged by named substitute or commoditization mechanism in full force. Often 30-50% below base.
+- **Low** — realistic adverse: partial materialization of the bear mechanism (e.g., some segments compress but core holds). Typically 15-30% below base.
+- **Base** — evidence-weighted from precedents and current trajectory.
+- **High** — realistic upside: partial realization of bull catalysts (e.g., adjacencies start contributing meaningfully but full saturation not reached). Typically 10-20% above base.
+- **Bull** — absolute best plausible: precedents from the strongest comparable, plus any incremental moat-strengtheners (e.g., data feedback loops, switching costs, regulatory) all activating.
 
 ## Sub-Step 2 — Mature Monetization in Today's $, Today's Mix
 
@@ -56,10 +59,13 @@ Build from:
 
 Show the mix explicitly in `sources.md`. Don't paste a today's-blended-ARPU into a maturity calculation where the mix is meaningfully different.
 
-Bear / base / bull spread for monetization:
-- **Bear**: monetization compresses (take-rate competition, mix shift to cheaper tiers, ARPU regression).
-- **Base**: today's metric × explicit mix shift, in today's $.
-- **Bull**: explicit upsell / cross-sell mechanism, mix shift to higher tiers, premium positioning.
+Five-scenario spread for monetization. Pick all five per layer. Monotonicity enforced.
+
+- **Bear** — absolute worst: monetization compresses fully (take-rate competition, mix shift to cheaper tiers, ARPU regression).
+- **Low** — realistic adverse: partial compression (e.g., new entrants take some volume, but pricing power on core holds).
+- **Base** — today's metric × explicit mix shift, in today's $.
+- **High** — realistic upside: some upsell / cross-sell catalysts hit; mix shift toward higher tiers partial.
+- **Bull** — absolute best: explicit upsell / cross-sell mechanism, mix shift to higher tiers, premium positioning all realized.
 
 ## Sub-Step 3 — Real Pricing Power Per Year (Above Inflation)
 
@@ -88,10 +94,12 @@ monetization_at_maturity_today_$ = monetization_today
     × Π over years (1 + real_pricing_CAGR_in_that_year)
 ```
 
-Bear / base / bull:
-- **Bear**: pricing power below the implied tier (commoditization, regulatory price caps, new entrants).
-- **Base**: tier-appropriate.
-- **Bull**: tier-up because the moat strengthens (network effects deepen, switching cost rises, brand premium grows).
+Five-scenario spread:
+- **Bear** — absolute worst: pricing power well below the implied tier (commoditization, regulatory price caps, new entrants).
+- **Low**: pricing power partially below tier (some segments commoditize).
+- **Base** — tier-appropriate.
+- **High**: pricing power partially above tier (moat strengthens on some axes).
+- **Bull** — absolute best: tier-up across the board because the moat strengthens broadly (network effects deepen, switching cost rises, brand premium grows).
 
 ## Sub-Step 4 — Inflation Overlay (Apply LAST)
 
@@ -121,7 +129,7 @@ Math-checker validates the conversion per layer and the final aggregation.
 
 ## Aggregation
 
-Total revenue at maturity = sum over layers of (layer revenue at maturity, post-overlap-haircut).
+Total revenue at maturity = sum over layers of (layer revenue at maturity, post-overlap-haircut), computed per scenario (bear / low / base / high / bull).
 
 Overlap haircut applied here, not at sizing. The haircut accounts for double-counted units:
 - Same household using both core retail and adjacent retail (count household once across both layers).
@@ -133,7 +141,7 @@ Per-layer maturity differences: at the chosen hand-off horizon, some layers are 
 - If layer-maturity ≤ hand-off-horizon: full mature revenue.
 - If layer-maturity > hand-off-horizon: still-ramping projection at the hand-off year.
 
-Math-checker validates both cases.
+Math-checker validates both cases and verifies scenario monotonicity (`bear < low < base < high < bull`) at the aggregated level.
 
 ## Growth Path Declaration (Per Scenario)
 
@@ -147,13 +155,21 @@ Dispatch payload:
 
 > "For `<TICKER>`, fetch: (a) latest official management guidance for next-FY revenue (range + midpoint, with source: 10-K, latest 10-Q, latest earnings press release, latest investor-day deck); (b) 2-3 year consensus analyst revenue estimates (median or mean, source: Bloomberg, Refinitiv, or whatever public aggregator is accessible — Yahoo Finance, Seeking Alpha summary, Koyfin). Express both as implied YoY growth rates from the last reported FY. Return midpoint + range + source URLs + retrieval date."
 
-The skill then offers the user this anchor as the default Y1-3 base-case CAGR. Bear and bull get reasoned spreads (typical bear: -3 to -5pp below midpoint with named mechanism; typical bull: +1 to +3pp above midpoint with named catalyst).
+The skill then offers the user this anchor as the default Y1-3 **base-case** CAGR. The other four scenarios take reasoned spreads from base, each with a named mechanism:
 
-**Tolerance**: Y1-3 CAGRs per scenario must fall within `±3pp of guidance midpoint`. Out-of-tolerance picks require a named override mechanism logged in `sources.md` (same pushback discipline as any other anchor). Common legitimate overrides: turnaround company where guidance lags catalyst; post-IPO company where guidance is sandbagged; pre-revenue or hyper-cyclical company where guidance is meaningless.
+- **Bear** (absolute worst plausible): typically -4 to -6pp below guidance midpoint. Full bear-mechanism materialization.
+- **Low** (realistic adverse): typically -2 to -3pp below guidance midpoint. Partial bear-mechanism materialization.
+- **Base** — guidance midpoint (±3pp tolerance).
+- **High** (realistic upside): typically +1 to +2pp above guidance midpoint. Partial bull-catalyst realization.
+- **Bull** (absolute best plausible): typically +3 to +5pp above guidance midpoint. Full bull-adjacency activation.
+
+**Tolerance**: only the **base** scenario's Y1-3 CAGR is hard-anchored to guidance (within ±3pp). The other scenarios are not tolerance-checked against guidance — they're checked against base for direction and magnitude, with each non-base scenario carrying a named `override_reason` logged in `sources.md` describing the mechanism driving the spread.
+
+Common legitimate base-override scenarios: turnaround company where guidance lags catalyst; post-IPO company where guidance is sandbagged; pre-revenue or hyper-cyclical company where guidance is meaningless.
 
 ### Per-Period Declaration
 
-Walk through each scenario (bear / base / bull). For each, declare:
+Walk through each scenario (bear / low / base / high / bull). For each, declare:
 
 1. **Y1-3** — anchored on guidance (above). Same number for all 3 years within the period.
 2. **Y4-5** — first adjacency / first new layer starts contributing if the layer thesis is stacked. User declares; math-checker validates against activation schedule.
@@ -163,14 +179,15 @@ Walk through each scenario (bear / base / bull). For each, declare:
 
 ### Validation by Math-Checker
 
-Three checks, all mandatory:
+Four checks, all mandatory:
 
-1. **Hand-off contract test (compound-to-endpoint).** For each scenario, the declared period CAGRs must compound to the scenario's stated endpoint within 2%. If not, halt — force user to revise CAGRs, revise endpoint, or revise interpretation. No silent rescaling.
-2. **Y1-3 anchor test.** Each scenario's Y1-3 CAGR must be within ±3pp of `y1_3_guidance_anchor.midpoint`, OR carry a named `override_reason` logged in `sources.md`.
-3. **Layer-schedule consistency test.** For each scenario, given the per-layer `activation_schedule` and per-scenario endpoint contribution per layer:
+1. **Hand-off contract test (compound-to-endpoint).** For each of the 5 scenarios, the declared period CAGRs must compound to the scenario's stated endpoint within 2%. If not, halt — force user to revise CAGRs, revise endpoint, or revise interpretation. No silent rescaling.
+2. **Y1-3 anchor test.** The **base** scenario's Y1-3 CAGR must be within ±3pp of `y1_3_guidance_anchor.midpoint`, OR carry a named `override_reason`. The other scenarios (bear / low / high / bull) take reasoned spreads from base with each carrying its own `override_reason` describing the bear-mechanism / bull-adjacency intensity that drives the spread.
+3. **Layer-schedule consistency test.** For each of the 5 scenarios, given the per-layer `activation_schedule` and per-scenario endpoint contribution per layer:
    - If a layer activates in period P, contributes ≥15% of scenario endpoint, the CAGR in period P (and in the period containing `peak_contribution_year`) must be ≥ Y1-3 CAGR − 1pp. Otherwise the layer is invisible in the path — flag.
    - If NO layer activates after Y3 contributing ≥15%, the post-Y3 CAGRs (Y4-5, Y6-10, Y11-20, Y21-maturity) must be monotonically decreasing. Otherwise the user has declared elevation with no layer behind it — flag.
    - Violations surface to the main thread; user resolves by revising CAGRs, revising the layer schedule, or naming an offsetting mechanism.
+4. **Scenario monotonicity test.** `revenue_at_maturity_today_$` must satisfy `bear < low < base < high < bull`. Same check applied to per-layer `layer_revenue_at_maturity_today_$`. Equality is allowed only where the layer is genuinely scenario-insensitive on that boundary (rare; requires justification). Strict violation = halt.
 
 ## Annual Revenue Series (Derived)
 
@@ -209,18 +226,19 @@ Saved to `aggregated.annual_revenue_today_$_per_scenario` with a `_provenance` k
 1. **Did we pass the Fermi output through as actual revenue at maturity, or silently haircut?** Compare summary numbers to the aggregated layer table. They must match.
 2. **Did we account for real pricing AND inflation separately?** Check `state.json` — both fields populated per layer, neither one folded into the other.
 3. **Does the declared per-scenario growth path match the layer activation schedule?** A stacked-thesis (adjacencies activating Y4+ contributing ≥15% of endpoint) must show CAGR elevation in the activation period — not fade. A smooth-fade thesis (no late activators) must show post-Y3 CAGRs monotonically decreasing. Verified by `layer_schedule_consistency_test` in math-checker.
-4. **Is there exactly ONE base case, not two?** Search the state and any draft hand-off for a "conservative alternative base," "analyst-haircut base," "haircut to X%," or similar parallel scenario. If found, it's an error. Either the underlying numbers were revised (and the old ones should be gone) or the disagreement got folded into bear/bull (and the alternative scenario should be gone). Never carry both.
+4. **Is there exactly ONE base case, not two?** Search the state and any draft hand-off for a "conservative alternative base," "analyst-haircut base," "haircut to X%," or similar parallel scenario. If found, it's an error. Either the underlying numbers were revised (and the old ones should be gone) or the disagreement got folded into bear/low/high/bull (and the alternative scenario should be gone). Never carry both.
+5. **Are headline scenarios monotone?** `bear < low < base < high < bull` for `revenue_at_maturity_today_$` and per-layer `layer_revenue_at_maturity_today_$`. Verified by `scenario_monotonicity_test` in math-checker.
 
-Math-checker runs all four. Any failure must be surfaced to user and resolved before emitting the hand-off block.
+Math-checker runs all five. Any failure must be surfaced to user and resolved before emitting the hand-off block.
 
 ## Handling Expert / Analyst Disagreement (Without Magic Haircuts)
 
 When a domain-expert subagent or analyst review pushes back on the bottom-up base, the resolution path is strict:
 
 1. Identify the **specific layer + specific number** the expert disagrees with (e.g., "SP-A mature monetization $8.1B is overstated by ~50%").
-2. Present to user: "Expert recommends `<layer>.<field>` go from `<old>` to `<new>`. Reasoning: `<one line>`. Three options: (a) accept revision — layer numbers update, old value disappears; (b) reject — keep current, log rejection reasoning; (c) move into bear mechanism — base stays, but bear absorbs the concern."
-3. Apply the user's choice. State must end with one of: revised number, recorded rejection, or strengthened bear. Never all three. Never a parallel scenario.
+2. Present to user: "Expert recommends `<layer>.<field>` go from `<old>` to `<new>`. Reasoning: `<one line>`. Three options: (a) accept revision — layer numbers update, old value disappears; (b) reject — keep current, log rejection reasoning; (c) move into bear / low mechanism — base stays, but bear and low absorb the concern at their respective intensities."
+3. Apply the user's choice. State must end with one of: revised number, recorded rejection, or strengthened bear (and low). Never all three. Never a parallel scenario.
 
 The handoff.md output never contains both the original number and a "haircut alternative." If the user changes their mind later, they revise the state again — they don't accumulate alternatives.
 
-The discipline reasoning: a TAM with two bases is undefined. Downstream DCF can't choose; the analyst (and the future self) can't remember which number was the "real" base; the bear-bull spread becomes meaningless because the conservative case is already baked into a parallel base. The whole point of the bear/base/bull structure is that the bear absorbs adverse paths — it should not need a haircut overlay.
+The discipline reasoning: a TAM with two bases is undefined. Downstream DCF can't choose; the analyst (and the future self) can't remember which number was the "real" base; the bear-low-base-high-bull spread becomes meaningless because the conservative case is already baked into a parallel base. The whole point of the 5-scenario structure is that bear and low absorb adverse paths and high and bull absorb favorable paths — none of them should need a haircut overlay.

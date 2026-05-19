@@ -157,6 +157,6 @@ Detail and precedents in `multiplication-protocol.md`.
 
 - **Single layer for a multi-model company.** Amazon-as-just-retail misses AWS. Tesla-as-just-cars misses everything. Always test for multi-model.
 - **Geographies as a single layer.** US and EM consumer ARPU differ by an order of magnitude. Separate.
-- **Speculative folded into base case at full weight.** The whole point of tagging speculative is to scenario-weight it differently. Conservative in base, generous in bull, zero in bear.
+- **Speculative folded into base case at full weight.** The whole point of tagging speculative is to scenario-weight it differently across the 5 scenarios. Zero in bear (hard rule). Low / base / high / bull values come from per-layer analysis: how much does this layer plausibly contribute under each regime. No top-down weighting.
 - **No overlap haircut.** Customer who bought books online and buys groceries online is one customer. Don't double-count households across product layers without explicit overlap accounting.
 - **Maturity horizon same for every layer.** Different layers mature at different times — that's the whole point of per-layer maturity.

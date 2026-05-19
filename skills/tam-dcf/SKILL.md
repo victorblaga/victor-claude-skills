@@ -94,7 +94,7 @@ The revenue path is already settled by TAM — don't reopen it. Per-anchor confi
 
 | Anchor | Why per-anchor | Default range |
 |--------|----------------|---------------|
-| Mature EBIT margin (per scenario) | Peer-anchored, but persona-dependent (industrials-SaaS vs pure-play SaaS vs marketplace) | varies |
+| Mature EBIT margin (per scenario, all 5) | Peer-anchored, but persona-dependent (industrials-SaaS vs pure-play SaaS vs marketplace) | varies |
 | Margin ramp path | When does mature margin land? Annual to Y10, then by period | shape conversation |
 | Reinvestment intensity (capex + ΔNWC as % of revenue) | Drives the growth-via-reinvestment identity | 3-15% mature |
 | Mature ROIC | Required by `growth ≈ reinvestment rate × ROIC` | 15-30% for durable moats |
@@ -114,10 +114,10 @@ Pacing commands inherited from `/tam-analysis`: `faster`, `autopilot`, `pause`, 
 First message of every fresh DCF session:
 
 1. **Load** `~/.investing/companies/<TICKER>/<DATE>/handoff.md` and `state.json`. Parse the hand-off block (section G) into structured form.
-2. **Summarize** the user's TAM interpretation: company, currency, hand-off horizon (Y`<N>`), last reported revenue + YoY growth, revenue at maturity bear/base/bull, **per-scenario period CAGRs** (bear/base/bull rows), Y1-3 guidance anchor, growth shape per scenario, dominant Fermi drivers, bear mechanism, bull adjacencies, speculative weighting, layer activation schedule.
+2. **Summarize** the user's TAM interpretation: company, currency, hand-off horizon (Y`<N>`), last reported revenue + YoY growth, revenue at maturity across 5 scenarios (bear/low/base/high/bull), **per-scenario period CAGRs** (5 rows), Y1-3 guidance anchor, growth shape per scenario, dominant Fermi drivers, bear mechanism, low/high partial materializations, bull adjacencies, speculative layer values per scenario, layer activation schedule.
 3. **Run hand-off verification checks**. Any failure HALTS the DCF — do not silently work around:
 
-   **3a. Required fields present.** Hand-off must carry: per-scenario period CAGRs (bear/base/bull, 5 periods each = 15 CAGRs); per-scenario endpoints (today's $ + nominal $); last reported revenue + last reported YoY growth; Y1-3 guidance anchor; per-layer activation schedule; growth shape + peak-growth year per scenario. If anything is missing:
+   **3a. Required fields present.** Hand-off must carry: per-scenario period CAGRs (bear/low/base/high/bull, 5 scenarios × 5 periods = 25 CAGRs); per-scenario endpoints (today's $ + nominal $, 5 scenarios); last reported revenue + last reported YoY growth; Y1-3 guidance anchor; per-layer activation schedule; growth shape + peak-growth year per scenario. If anything is missing:
 
    > Hand-off is missing `<field>`. Cannot proceed without it — the contract requires the full per-scenario growth path plus Y0 anchoring plus the layer activation schedule.
    >
@@ -134,19 +134,23 @@ First message of every fresh DCF session:
 
    Do not pick silently. Force user choice. Do NOT silently rescale CAGRs to fit endpoint.
 
-   **3c. Y1-3 anchor test.** Verify each scenario's Y1-3 CAGR is within ±3pp of `aggregated.y1_3_guidance_anchor.midpoint`, OR carries a logged `override_reason`. Failure:
+   **3c. Y1-3 anchor test.** Verify the **base** scenario's Y1-3 CAGR is within ±3pp of `aggregated.y1_3_guidance_anchor.midpoint`, OR carries a logged `override_reason`. Bear / low / high / bull must each carry their own `override_reason` describing the bear-mechanism / bull-adjacency intensity that drives the spread from base. Failure:
 
    > Base case Y1-3 CAGR is `<X>%`; management guidance midpoint is `<Y>%` (delta `<Z>pp`). No override_reason logged. The path starts off-anchor.
    >
    > Resolve in TAM: revise Y1-3 to within ±3pp of guidance, or log the mechanism justifying the deviation.
 
-   **3d. Layer-schedule consistency.** Re-read `aggregated.layer_schedule_consistency_test`. Refuse to proceed if any scenario has unresolved violations. Surface the issue and require resolution in TAM.
+   **3d. Layer-schedule consistency.** Re-read `aggregated.layer_schedule_consistency_test`. Refuse to proceed if any of the 5 scenarios has unresolved violations. Surface the issue and require resolution in TAM.
 
-   **3e. Y0 anchoring.** Verify the consumed annual series Y0 equals `last_reported_revenue_today_$` within 50bps. Mismatch → halt.
+   **3e. Y0 anchoring.** Verify the consumed annual series Y0 (per scenario) equals `last_reported_revenue_today_$` within 50bps. Mismatch → halt.
 
-   **3f. Two-bases pathology.** If the TAM output mentions an "alternative haircut base" or "analyst-conservative base" alongside the bottom-up base, surface as TAM-side error. DCF cannot proceed with two bases.
+   **3f. Scenario monotonicity.** Re-read `aggregated.scenario_monotonicity_test`. `bear < low < base < high < bull` must hold for revenue at maturity (aggregated and per-layer). Halt on violation.
 
-   **3g. Internal arithmetic.** Revenue at maturity nominal vs today's-$ × inflation^N — must reconcile. Bear/base/bull monotonic.
+   **3g. Speculative-bear-zero.** Any layer flagged `speculative: true` must have `layer_revenue_at_maturity_today_$.bear == 0`. Halt on violation.
+
+   **3h. Two-bases pathology.** If the TAM output mentions an "alternative haircut base" or "analyst-conservative base" alongside the bottom-up base, surface as TAM-side error. DCF cannot proceed with two bases.
+
+   **3i. Internal arithmetic.** Revenue at maturity nominal vs today's-$ × inflation^N — must reconcile per scenario.
 
 4. If any check fails, **HALT and prompt user with the specific options** for that failure. Never silently work around. Never silently rescale.
 5. Once all checks pass, ask: "Hand-off verified consistent across all scenarios. Ready to start the DCF assumptions? Same per-anchor pacing as `/tam-analysis`."
@@ -169,12 +173,12 @@ Save these to `dcf-state.json` under `data_snapshot`. Confirm each anchor with u
 
 ## Step 2 — Mature Economics (Per Scenario)
 
-The single most consequential DCF assumption set. Walk through per scenario (bear / base / bull):
+The single most consequential DCF assumption set. Walk through per scenario (bear / low / base / high / bull):
 
-1. **Mature EBIT margin**. Peer-anchored. Dispatch anchor-researcher for the relevant peer set (matched to the company's mix per the TAM hand-off). For multi-segment companies, sketch per-segment mature margin and aggregate by segment weight at maturity.
+1. **Mature EBIT margin**. Peer-anchored. Dispatch anchor-researcher for the relevant peer set (matched to the company's mix per the TAM hand-off). For multi-segment companies, sketch per-segment mature margin and aggregate by segment weight at maturity. All 5 scenario values. Monotonicity expected (bear ≤ low ≤ base ≤ high ≤ bull).
 2. **Maintenance vs growth-oriented S&M and R&D**. For under-earning / heavily investing companies, separate the two explicitly. Mature S&M = maintenance only (renewals + replacement growth at sector-average pace). Mature R&D = sustaining + competitive parity, not greenfield expansion.
-3. **Mature ROIC**. Per scenario. Persistent ROIC above WACC requires an explicit moat — name it. Without a named moat, ROIC fades to WACC over the horizon.
-4. **Mature reinvestment rate**. Tied via `growth ≈ reinvestment rate × ROIC`. At maturity, real growth ≈ 0-1%, so reinvestment rate × ROIC should be small. Cross-check.
+3. **Mature ROIC**. Per scenario (5 values). Persistent ROIC above WACC requires an explicit moat — name it. Without a named moat, ROIC fades to WACC over the horizon.
+4. **Mature reinvestment rate**. Tied via `growth ≈ reinvestment rate × ROIC`. At maturity, real growth ≈ 0-1%, so reinvestment rate × ROIC should be small. Cross-check. All 5 scenarios.
 
 Per-anchor confirmation. Push back when:
 
@@ -355,7 +359,7 @@ HTML schema in `references/output-format.md`.
 
 The DCF skill inherits the no-magic-haircuts rule from `/tam-analysis`. Specifically:
 
-- **No parallel "haircut base case"** alongside the bottom-up base. ONE bear / ONE base / ONE bull.
+- **No parallel "haircut base case"** alongside the bottom-up base. ONE bear / ONE low / ONE base / ONE high / ONE bull.
 - **No silent value-haircut on the final intrinsic value** for "margin of safety." Margin of safety lives in scenario design, sensitivity range, and reverse-DCF required return — never in a post-hoc reduction.
 - **Expert disagreement on margins / ROIC / WACC** resolves the same three ways: revise the actual assumption (and the old number disappears), reject and log the rejection, or move the concern into the bear scenario. Never carry both.
 
