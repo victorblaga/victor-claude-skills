@@ -37,7 +37,10 @@ The session can be reconstructed entirely from these four files.
       "name": "US online retail (1P + 3P GMV)",
       "speculative": false,
       "model_type": "retailer + marketplace",
-      "demand_unit": "Online retail transactions to US consumers",
+      "plain_english": "Amazon's 'ship stuff people order online' business — core 1P inventory plus the 3P marketplace where outside sellers list goods Amazon fulfills or facilitates.",
+      "buyer": "US consumer households (Prime subscribers drive disproportionate share); small-business and procurement buyers as adjacent segment.",
+      "jtbd": "Get the thing I want fast and cheap without driving anywhere, comparison-shopping across stores, or worrying about returns.",
+      "demand_unit": "US online retail spend = US households × annual online retail spend per household × Amazon's captured share (1P revenue + 3P GMV × take rate)",
       "scope_chosen": "plausible",
       "scope_options": [
         {"name": "tight", "description": "...", "pool_today": "..."},

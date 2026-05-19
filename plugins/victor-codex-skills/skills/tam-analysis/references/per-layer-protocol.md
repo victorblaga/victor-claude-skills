@@ -4,26 +4,80 @@ The 7-step walk for sizing a single layer. The skill repeats this for every laye
 
 The seven steps are sequential. Do not skip ahead. Do not pre-pick scope (step 4) before pool-sizing (steps 1-3). Do not size with confidence (step 6) before scope is set (step 5).
 
-## Step 1 — Define the Demand Unit Precisely
+## Step 1 — Plain-English Brief, Then Pin the Demand Unit
 
-Open the layer with a short statement of what is being counted and why it's the natural unit for this layer. Confirm with user.
+Open every layer with a **structured plain-English brief**, then propose the demand unit. The brief makes the business intuitive *before* the math starts, gives the user a clean object to push back on, and forces the agent to articulate the layer in operator / practitioner language instead of vendor marketing.
 
-Components:
-- **What is counted**: vehicles, seats, transactions, stores, baskets, square meters, kWh, subscribers, parcels, GMV, etc.
-- **Who buys it**: consumer demographic, enterprise role, institutional segment.
-- **What drives usage**: frequency, attach rate, replacement cycle, density per capita.
-- **How it's monetized**: subscription, take rate, sale, attach, service, ad load.
+**Always output exactly this template.** One short paragraph per block (1-3 sentences). No skipping blocks, no reordering, no merging.
 
-Example dialogue:
+```
+Layer N: <Layer Name>
 
-> Agent: This layer is "online book retail to US consumers." Demand unit = books sold online to a US consumer. Consumer-side driver: per-capita books read per year × share of those bought (vs library, used, etc.) × share bought online. Monetization: price per book × Amazon's take of the transaction (full retail margin in own-inventory mode). Right framing, or would you split it differently?
+Plain English: this is <COMPANY>'s "<one-line everyday description of what this business does>" business. <One or two sentences expanding what the product actually does for the customer, in practitioner language.>
+
+Buyer: <primary purchaser role(s) + adjacent influencers — title, function, segment>.
+
+Job-to-be-done: <the outcome the buyer is hiring this product to achieve — verb-led list, not feature list>.
+
+Proposed demand unit: <what is counted>, measured as <count driver> × <intensity driver>.
+
+Monetization: <pricing model — subscription, take rate, sale, attach, service, ad load — and the primary pricing axis(es)>.
+
+Confirm this demand unit, or reframe.
+```
+
+**Jobs-to-be-Done framing (Christensen)**: the buyer isn't buying the product, they're hiring it to make progress on a job. Phrase Job-to-be-done as outcomes the buyer wants, not features the product ships.
+
+**Plain-English rules:**
+- No marketing copy ("industry-leading," "best-in-class," "platform of choice," "next-generation").
+- No internal product names unless they're industry-standard vocabulary.
+- Use the buyer's words, not the vendor's.
+- If you can't explain the business to a smart outsider in one paragraph, the layer is mis-scoped — surface that.
+
+**Worked example (PANW, Layer 3 — Security Operations Platform):**
+
+> Layer 3: Security Operations Platform
+>
+> Plain English: this is PANW's "help the security team find and respond to attacks" business. It's the software a security operations center uses to collect signals, triage alerts, investigate suspicious activity, coordinate response, and automate repetitive steps.
+>
+> Buyer: CISO, SOC leader, detection/response team, security engineering. CIO/IT ops may matter if replacing legacy log-management or SIEM tools.
+>
+> Job-to-be-done: reduce alert overload, detect threats faster, investigate across endpoint/network/cloud/email/identity data, automate response, and replace fragmented SIEM, SOAR, XDR, and attack-surface tools.
+>
+> Proposed demand unit: security-operations platform spend by organizations that run in-house or hybrid SOC/detection-response programs, measured as SOC-active organizations × average annual SecOps platform spend.
+>
+> Monetization: recurring software subscription, often priced by data volume, endpoints/users/assets, modules, or enterprise platform contract.
+>
+> Confirm this demand unit, or reframe.
+
+**Worked example (AMZN, Layer 1 — US online retail):**
+
+> Layer 1: US Online Retail
+>
+> Plain English: this is Amazon's "ship stuff people order online" business — its core 1P inventory plus the 3P marketplace where outside sellers list goods Amazon fulfills or facilitates. The customer hits a search box, picks an item, and a box arrives in 1-2 days.
+>
+> Buyer: US consumer households, with Prime subscribers driving disproportionate share of frequency and basket size. Small-business and procurement buyers are a growing adjacent segment.
+>
+> Job-to-be-done: get the thing I want fast and cheap, without having to drive somewhere, comparison-shop across stores, or worry about returns.
+>
+> Proposed demand unit: US online retail spend, measured as US households × annual online retail spend per household × Amazon's captured share (1P revenue + 3P GMV × take rate).
+>
+> Monetization: 1P retail margin on own-inventory sales + 3P take rate on marketplace GMV + ad-yield overlay on the search surface.
+>
+> Confirm this demand unit, or reframe.
 
 Wait for user confirmation. Common reframes the user might raise:
-- Demand unit too broad (e.g., split fiction vs reference vs textbook).
-- Demand unit too narrow (e.g., include e-books and audiobooks).
-- Monetization model wrong (e.g., the layer is actually marketplace take rate, not own-inventory margin).
+- **Demand unit too broad / too narrow** (e.g., split fiction vs reference vs textbook; or include e-books and audiobooks).
+- **Buyer wrong** (e.g., it's actually developer-led bottom-up, not CISO top-down).
+- **JTBD missing the dominant outcome** (e.g., compliance-driven, not attack-driven spend).
+- **Monetization wrong** (e.g., consumption-based, not seat-based; or marketplace take rate, not own-inventory margin).
 
-Reframe accordingly. Save the confirmed framing to `state.json` under the layer.
+Reframe accordingly. Save the confirmed framing to `state.json` under the layer:
+- `plain_english`: string
+- `buyer`: string
+- `jtbd`: string
+- `demand_unit`: string
+- `monetization`: string (high-level model here; numeric components filled in at the multiplication step)
 
 ## Step 2 — Build the Pool Today, Top-Down, from Authoritative Sources
 
