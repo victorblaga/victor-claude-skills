@@ -17,24 +17,157 @@ Where:
 
 The skill computes FCFF this way. No other definition.
 
-## Growth-via-Reinvestment Discipline
+## Growth Engine Taxonomy
 
-At every forecast stage:
+Different businesses fund growth differently. The DCF forecast must match the company's actual growth mechanics — applying a single one-size identity (`growth ≈ reinvestment_rate × ROIC`) to every business produces phantom reinvestment for opex-funded companies and misses the M&A engine for serial acquirers. See the Known Failure Mode appendix at the end of this file for a canonical example.
+
+The skill classifies the company's growth engine at Step 3 (DCF-side, not TAM) and picks the forecasting identity that matches.
+
+| Engine | Where growth spend lives | Forecast identity | Diagnostic signals | Canonical examples |
+|--------|--------------------------|-------------------|--------------------|--------------------|
+| **opex_funded** | R&D + S&M expensed in EBIT | Cash-conversion margin: FCFF = revenue × cash_conversion_margin (anchored on actual/guided) | capex < 5% rev, R&D + S&M > 25% rev combined, low/episodic M&A, FCFF margin observable | TYL, NOW, CRM, V, MA, ADBE |
+| **capex_funded** | Tangible capex on new units (stores/plants/customers/infra) | Sales-to-capital: net_reinvestment = ΔRevenue / sales_to_capital; FCFF = NOPAT − net_reinvestment | capex > 8% rev, unit-economics-driven, sales-to-capital ratio stable + observable | Dino Polska, Costco in expansion, datacenter operators, freight |
+| **acquisition_funded** | M&A deployment from FCF (organic + acquired tracked separately) | Two-track: organic FCFF + M&A deployment; output both `FCFF_pre_M&A` (stop-engine view) and `FCFF_post_M&A` (engine-running view) | M&A deployment > 20% FCF over 3-yr trailing, ongoing roll-up pattern, organic growth modest | CSU, Roper, BRK, Danaher pre-spin |
+| **mature_cash_cow** | Maintenance capex only | FCFF = NOPAT − maintenance_capex; FCFF margin anchored on stable observed value | low capex (maintenance only), low/no growth in unit count, growth via brand pricing power | KO, MO, HRMS, mature staples |
+| **mixed_engine** | Multiple of above (different segments) | Per-segment: classify each segment with one of the 4 non-mixed types; aggregate FCFF by segment weight | Diversified company with materially different per-segment engines (e.g., AMZN: retail capex + AWS capex + ads opex + Prime loss-leader) | AMZN, META, BRK operating, ASML at segment level |
+
+**Engine type is a forecasting METHOD choice, not a company-inherent property.** Two competent analysts could pick `opex_funded` vs `acquisition_funded` for the same company depending on which growth path they're modeling. The choice lives in DCF, not in TAM hand-off.
+
+**Pricing-power-driven growth** (Hermès, V/MA, ASML) fits `opex_funded` if you squint, or `mature_cash_cow` with high pricing power. No dedicated engine — the cash-reality check (Step 5.5) catches it naturally since these companies have high observed FCFF margins that model output must match.
+
+## Engine-Typed Forecasting Identities
+
+### opex_funded — Cash-Conversion Margin
 
 ```
-growth ≈ reinvestment rate × ROIC
+Y1-Y5:    FCFF_y = revenue_y × cash_conversion_margin_y
+          cash_conversion_margin_y1 = anchor on max(actual_y0, guided_y1)
+          cash_conversion_margin_y2..5 = ramp toward mature value (smooth)
+
+Y6-Y15:   cash_conversion_margin fades from Y5 anchor toward terminal mature value (per scenario)
+
+Terminal: FCFF_(N+1) = NOPAT_(N+1) × (1 − g_real / mature_ROIC)
+          (At maturity, growth requires incremental invested capital. ROIC × reinvestment
+           identity becomes the terminal anchor.)
 ```
 
 Where:
+- `cash_conversion_margin = (NOPAT + D&A − capex − ΔNWC − capitalized_software) / revenue`. Equivalent to after-SBC FCFF margin.
+- Mature `cash_conversion_margin` per scenario set at Step 4 (one of the engine-specific anchors).
+- Ramp shape: typically smooth from Y5 anchor to mature value over Y6-Y15. Stay-elevated if TAM scenario implies long durable margin expansion.
 
-- **reinvestment rate** = (capex + ΔNWC + R&D-if-capitalized + M&A) / NOPAT, or for unprofitable companies expressed as % of revenue.
-- **ROIC** = NOPAT / invested capital (where invested capital = total assets − operating liabilities − cash above operating needs).
+**Do not compute reinvestment as `ΔNOPAT / ROIC` during Y1-Y15.** Reinvestment is the residual implied by the margin path (`NOPAT − FCFF`); FCFF margin is the input, reinvestment is the output. ROIC is a downstream consistency check at maturity, not a Y1-Y15 forecast driver.
 
-Check at every stage. If the forecast shows high growth with low reinvestment, **explicitly justify** — operating leverage, negative working capital, network effects, pricing power. Without justification, fix the forecast.
+### capex_funded — Sales-to-Capital
 
-Persistent ROIC above WACC requires a named moat. Otherwise ROIC fades to WACC across the horizon. Default fade: ROIC matches WACC at maturity unless the user has named a structural moat in the TAM hand-off (asset-backed wedge).
+```
+For each year Y1..maturity:
+  ΔRevenue_y = revenue_y − revenue_(y-1)
+  net_reinvestment_y = ΔRevenue_y / sales_to_capital_y
+  FCFF_y = NOPAT_y − net_reinvestment_y
+  D&A_y modeled separately based on the growing capital base
+```
+
+Where:
+- `sales_to_capital = revenue / (invested_capital ex_goodwill)`. Anchor on observed Y0 value, fade slowly toward mature value (5-10% degradation typical as scale increases working-capital intensity).
+- `invested_capital ex_goodwill` excludes acquired goodwill so the ratio reflects the operating capital base, not historical M&A.
+- Mature ROIC reconciles via `NOPAT_mature / invested_capital_mature` — used as terminal-stage consistency check.
+
+For unit-driven companies (Dino Polska, Costco), an alternative parameterization is `revenue_per_unit × unit_count` with explicit `capex_per_new_unit`. Equivalent to sales-to-capital when expressed via the identity `sales_to_capital ≡ revenue / (capex_per_unit × cumulative_units_built)`.
+
+### acquisition_funded — Acquisition Track
+
+Two tracks, modeled independently, then combined.
+
+**Organic track:**
+```
+For each year:
+  revenue_organic_y = revenue_organic_(y-1) × (1 + organic_growth_y)
+  FCFF_organic_y = revenue_organic_y × organic_fcff_margin_y
+```
+
+**M&A track:**
+```
+For each year:
+  M_A_spend_y = FCFF_organic_y × m_a_deployment_pct_fcf_y
+  acquired_revenue_y = M_A_spend_y × roic_acquired_y / steady_state_acquired_fcff_margin_y
+    (Acquired revenue back-solves from the price paid divided by the prevailing acquired-business
+     multiple — a function of ROIC_acquired and the steady-state FCFF margin of acquired businesses.)
+  cumulative_acquired_revenue_y = cumulative_acquired_revenue_(y-1) + acquired_revenue_y
+  revenue_total_y = revenue_organic_y + cumulative_acquired_revenue_y
+```
+
+**Combined:**
+```
+FCFF_pre_M&A_y  = FCFF_organic_y + cumulative_acquired_FCFF_y   (the "stop-the-engine" view)
+FCFF_post_M&A_y = FCFF_pre_M&A_y − M_A_spend_y                  (deployed for growth)
+```
+
+**Output both.** `FCFF_pre_M&A` is what shareholders see if the engine stops (FCF returned as buybacks/dividends). `FCFF_post_M&A` is what shareholders see while the engine runs (cash deployed for inorganic growth). Both views surface in `dcf.md` Section 5; the reverse DCF runs on `FCFF_post_M&A` since that's the cash actually distributable during engine-running.
+
+Mature stage: M&A pace fades. Typical assumption: M&A deployment % drops from current pace (e.g., 85% of FCF for CSU) to a terminal pace (e.g., 30% of FCF) by maturity. Beyond maturity, treat M&A as part of normal reinvestment via the standard ROIC × reinvestment identity.
+
+### mature_cash_cow — Maintenance FCFF Margin
+
+```
+For each year:
+  FCFF_y = revenue_y × maintenance_fcff_margin_y
+  
+maintenance_fcff_margin = (NOPAT − maintenance_capex) / revenue
+```
+
+Where:
+- `maintenance_capex` anchored on 3-yr avg of (capex − any growth-attributable capex). For companies with disclosed maintenance vs growth capex split, use the disclosed split.
+- `growth_via_pricing_power = true` if the company grows via brand-pricing CAGR above inflation rather than unit count (Hermès, KO international, V/MA take-rate creep). Revenue growth = pricing power CAGR; volume flat-to-modest. FCFF margin stays high because there's no incremental capital base to grow.
+
+Special case of `opex_funded` with `cash_conversion_margin ≈ maintenance_fcff_margin` and zero growth-oriented spend. Treat separately when the company is far enough into maturity that no growth investment is plausible.
+
+### mixed_engine — Per-Segment Aggregation
+
+For diversified companies with materially different per-segment engines:
+
+1. Classify each reporting segment with one of the 4 non-mixed engines (or sub-segment further if needed).
+2. Forecast each segment using its engine's identity above.
+3. Aggregate at the corporate level: `FCFF_corp_y = Σ FCFF_segment_y − corporate_overhead_y`.
+4. Mature segment weights set at Step 4 per scenario (the TAM hand-off already provides revenue at maturity per layer; map layers to segments).
+
+When segments aren't disclosed at this granularity, the user has options:
+- (a) Group segments into 2-3 "super-segments" by dominant engine and proceed.
+- (b) Pick the dominant engine and treat the whole company as that engine; surface the simplification in the cash-reality check (the check will halt if the simplification is too aggressive).
+- (c) Halt: state the company can't be modeled in this skill until segment-level data is available.
+
+## Terminal-Stage ROIC Consistency Check
+
+At maturity year `N`, real growth slows to long-run (typically 0-1% real). At that point, growth requires incremental invested capital regardless of historical engine, so the identity:
+
+```
+growth_mature ≈ reinvestment_rate_mature × ROIC_mature
+```
+
+becomes the terminal-stage anchor. This identity **DOES NOT** apply during Y1-Y15 for opex_funded or acquisition_funded engines (it would produce phantom reinvestment when growth lives in opex or M&A). It applies only at maturity.
+
+**Symmetric discipline rule.** Check both directions at terminal:
+
+- If the forecast shows **high mature growth with low mature reinvestment**, justify explicitly: durable operating leverage, persistent negative working capital, network effects compounding, regulatory pricing power. Without justification, fix the forecast.
+- If the forecast shows **modest mature growth with implausibly high mature reinvestment** (`rate × ROIC ≫ growth`), the model is suppressing FCFF. Check for: misuse of average ROIC where incremental ROIC is intended; double-counting of growth spend already in opex; reinvestment driver that ignores capital efficiency. This direction is historically under-checked.
+
+Both failure modes show up as reverse-DCF IRR distortions. The Y1-Y10 cash-reality check (Step 8) catches the second pattern early. The terminal check catches it at convergence.
+
+**Persistent ROIC above WACC requires a named moat.** Otherwise ROIC fades to WACC across the horizon. Default fade: ROIC matches WACC at maturity unless the user has named a structural moat in the TAM hand-off (asset-backed wedge).
 
 ## Mature Economics — When to Apply
+
+The mature-economics anchor set is **engine-conditional** per the taxonomy above. Step 4 in `SKILL.md` walks the per-anchor confirmation using the right anchor names for the chosen engine:
+
+| Engine | Mature anchors (per scenario, all 5) |
+|--------|--------------------------------------|
+| opex_funded | `cash_conversion_margin_mature`, `mature_EBIT_margin` (cross-check), `mature_ROIC` (terminal-only consistency) |
+| capex_funded | `sales_to_capital_mature`, `mature_EBIT_margin`, `mature_ROIC` |
+| acquisition_funded | `organic_fcff_margin_mature`, `roic_acquired_mature`, `m_a_deployment_pct_fcf_mature`, `organic_mature_growth` |
+| mature_cash_cow | `maintenance_fcff_margin`, `maintenance_capex_pct_rev` |
+| mixed_engine | per-segment, using each segment's engine anchors |
+
+Mature `mature_EBIT_margin` remains a useful cross-check for opex_funded and capex_funded (it's the GAAP-equivalent of cash-conversion / sales-to-capital outputs). For acquisition_funded and mature_cash_cow, EBIT margin is informational only.
 
 Mature margins apply at the layer's / company's maturity year, not at Y10 or Y15. For under-earning or heavily-investing growers:
 
@@ -48,7 +181,9 @@ Compare mature margin assumption to:
 - Historical sector average (10-year median).
 - Unit economics (gross margin × operating efficiency × revenue-mix shift).
 
-If the mature assumption sits above best-in-class peer, **name the structural reason** (asset-backed moat, network effect, data flywheel, regulatory protection). Without a reason, push the assumption down to peer average.
+**Comparisons use the same accounting basis on both sides.** See `SKILL.md` Step 2 — Reported-to-Economic Bridge. Peer benchmarks must be normalized for pass-through revenue, SBC vintage (run-rate only), and strategic-segment reclassification before they can anchor the target's mature-margin assumption. The dispatch payload to anchor-researcher carries the normalization spec from `economic_bridge.margin_side.peer_normalization_spec`.
+
+If the mature assumption sits above best-in-class peer (normalized basis), **name the structural reason** (asset-backed moat, network effect, data flywheel, regulatory protection). Without a reason, push the assumption down to peer average.
 
 ## WACC Mechanics — Required-Return Framework
 
@@ -184,10 +319,10 @@ Default: capitalized approach for companies with material lease portfolios (reta
 
 Concretely:
 
-1. Use GAAP EBIT (which includes SBC) as the starting point for NOPAT.
+1. Use GAAP EBIT (which includes SBC) as the starting point for NOPAT. **For mature-margin assumption purposes, use run-rate SBC, not a sum that includes one-time vintage extrapolated as recurring** — see `SKILL.md` Step 2 for the vintage breakdown (`economic_bridge.margin_side.sbc_breakdown.run_rate_sbc_pct_rev` separates run-rate from one-time mega-grants tied to long-dated hurdles).
 2. **Do NOT** add SBC back to FCFF as if it were a non-cash adjustment. It's cash-equivalent to the company's existing shareholders.
-3. **Do NOT** also reduce per-share value via dilution from SBC-issued shares — that would double-count. The dilution lives in the diluted-share-count denominator.
-4. If peer benchmarks use SBC-excluded margins, normalize them to SBC-included before using as anchors.
+3. **Do NOT** also reduce per-share value via dilution from SBC-issued shares — that would double-count. The dilution lives in the diluted-share-count denominator. One-time hurdle-vested grants are handled separately as contingent expected-value dilution at vesting conditions (probability-weighted), not as run-rate.
+4. If peer benchmarks use SBC-excluded margins, normalize them to SBC-included before using as anchors. If peers have their own one-time vintages, strip those too — peer comparisons run on run-rate-SBC basis for both sides.
 
 The skill computes this way. If the user wants an SBC-adjusted view as a sanity check, that's a footnote, not the primary calculation.
 
@@ -229,6 +364,12 @@ Solve for r:  Current EV = Σ FCFF_t / (1 + r)^t + Terminal Value_N / (1 + r)^N
 
 `r` is the **implied unlevered enterprise discount rate** that reconciles the current market EV with the scenario's projected FCFF stream + terminal value. This is NOT a levered equity IRR.
 
+**Engine discipline**: the FCFF stream the reverse DCF solves against depends on the engine:
+- `opex_funded`, `capex_funded`, `mature_cash_cow`, `mixed_engine`: standard total FCFF stream.
+- `acquisition_funded`: runs on `FCFF_post_M&A` (cash distributable during engine-running phase, after M&A deployment). The `FCFF_pre_M&A` view ("stop-the-engine") is shown alongside in Section 5 but is NOT the reverse-DCF basis — it would over-state cash that's actually being deployed for growth.
+
+**Basis discipline**: reverse DCF runs on **economic** revenue + **economic** margin basis. If the TAM hand-off carries `revenue_basis: economic_adjusted` and/or Step 2 produced margin-side adjustments, the FCFF stream the reverse DCF solves against is the economic stream — same Y0 anchor, same per-scenario CAGRs applied to economic revenue, same economic mature margin. The implied IRR shown is the rate that reconciles current EV with the **economic** FCFF stream. The screener's reported-basis multiples (Section 10 dual-basis block) will tell a different story when economic ≠ reported — that's the point of carrying both views.
+
 Plus the 10%-required-return case: solve for the FCFF / margin / TAM assumptions that produce a value-per-share matching current price at 10% IRR. Identify what would have to be true.
 
 ## Sensitivity Matrices (Mechanics)
@@ -251,6 +392,53 @@ For each row, the dcf-math subagent computes: revenue (from TAM ramp), revenue g
 
 The per-scenario growth path declared in the TAM hand-off (period CAGRs + growth shape label per scenario) MUST be visible in the revenue-growth column. If the TAM hand-off declares a `stay-elevated` shape and the DCF growth column shows a smooth fade, dcf-math has applied the wrong revenue path — fail the math check. Conversely, if TAM declares `smooth-fade` and the DCF growth column shows mid-cycle elevation, also fail.
 
+## Cash-Reality Reconciliation Discipline
+
+After dcf-math generates the Y1-Y10 annual forecast at Step 7, the skill runs the **cash-reality reconciliation** at Step 8 before any output is emitted. The check compares modeled per-scenario FCFF margins against a "comparable" anchored on observed and guided actuals.
+
+**The comparable** (the bar):
+
+```
+fy_actual_after_sbc_fcf_margin = (operating_cash_flow_y0 − capex_y0 − capitalized_software_y0 − sbc_y0) / revenue_y0
+ny_guided_after_sbc_fcf_margin = mgmt_guided_fcf_margin_y1 − projected_sbc_margin_y1
+tighter_bar = min_by_distance(fy_actual, ny_guided)   (the one closer to modeled Y1 across all scenarios — keeps the test honest)
+```
+
+When management doesn't explicitly guide FCFF margin (most don't — they guide capex % rev + OCF growth), the back-solve recipe is:
+
+```
+ny_guided_after_sbc_fcf_margin ≈ (guided_OCF_y1 − guided_capex_y1 − projected_capitalized_software_y1 − projected_sbc_y1) / guided_revenue_y1
+```
+
+All four components are typically disclosed in management's Y1 guidance package. The anchor-researcher dispatches at Step 8 fetch them. If a component is missing, log as "back-solve incomplete" and proceed with the actual (FY) anchor only.
+
+**The check (per scenario, all 5):**
+
+```
+delta_y1_bp = (modeled_fcff_margin_y1 − tighter_bar) × 10000
+delta_y2_y3_bp = (avg(modeled_fcff_margin_y2_y3) − tighter_bar) × 10000
+
+HALT if |delta_y1_bp| > 500 without logged mechanism
+HALT if |delta_y2_y3_bp| > 1000 without logged mechanism
+```
+
+**Resolution path (on HALT):**
+
+The user has three options for each halting scenario:
+
+1. **Revise assumptions.** Pull mature margins or ramp shape to close the gap. Re-dispatch dcf-math.
+2. **Name the mechanism.** Logged in `cash_reality_check.override.{scenario}.mechanism` + `sources.md`. Example: "Bear scenario assumes large customer churn in FY2026 cutting FCF margin temporarily; trajectory rejoins peers by Y3." Free-text but must be specific.
+3. **Halt the DCF.** User reconsiders the engine framing or revises in TAM.
+
+**Engine-agnosticism.** The check compares modeled FCFF margin to observed/guided FCFF margin. Independent of which `forecast_method` generated the model. Works equally for:
+- opex_funded: modeled `cash_conversion_margin` directly compared.
+- capex_funded: modeled (NOPAT − reinvestment) / revenue compared.
+- acquisition_funded: modeled `FCFF_post_M&A` / revenue compared (since post-deployment is what shareholders receive).
+- mature_cash_cow: modeled `maintenance_fcff_margin` directly compared.
+- mixed_engine: corporate-level aggregated FCFF margin compared.
+
+The check catches assumption sets that look internally coherent but produce Y1-Y3 cash flows inconsistent with observed/guided reality. The terminal-stage check (modest growth + implausibly high reinvestment) catches the same class of failure at convergence. See the Known Failure Mode appendix for the canonical instance.
+
 ## What This Skill Does NOT Do
 
 - **Does not rebuild the TAM.** Read it, summarize it, sanity-check it — never relitigate layer-by-layer.
@@ -259,6 +447,8 @@ The per-scenario growth path declared in the TAM hand-off (period CAGRs + growth
 - **Does not adjust the TAM revenue path** to "be more conservative." If the TAM is wrong, the user fixes it via `/tam-analysis resume <TICKER>`.
 - **DOES NOT SILENTLY RESCALE TAM CAGRs to fit per-scenario endpoints.** Per-scenario CAGRs and per-scenario endpoints are both first-class hand-off inputs; any reconciliation discrepancy halts at Step 0 and is resolved in TAM, not silently absorbed.
 - **Does not generate a per-layer revenue ramp.** Neither this skill nor the TAM skill generates per-layer annual revenue. The growth path is declared per scenario in TAM (period CAGRs anchored on guidance + thesis), validated by `layer_schedule_consistency_test` against the layer activation schedule, and consumed here directly.
+- **Does not apply `growth ≈ reinvestment_rate × ROIC` during Y1-Y15 for opex_funded or acquisition_funded engines.** This identity is a terminal-stage anchor only — applying it as a forecast generator during the ramp produces phantom reinvestment for businesses where growth lives in opex (R&D, S&M) or in M&A deployment. Engine-typed forecasting identities replace the universal identity during Y1-Y15. See Known Failure Mode appendix.
+- **Does not classify engine in TAM.** Engine type is a forecasting METHOD choice, lives in DCF only. TAM hand-off stays clean of DCF-specific concepts — different engine choices produce different DCFs from the same TAM, no TAM re-run required.
 
 ## What This Skill REQUIRES from TAM
 
@@ -266,6 +456,7 @@ The hand-off block (section G of `handoff.md`) must contain:
 
 - Revenue at maturity, today's $ + nominal $, **per scenario** (bear / low / base / high / bull)
 - **Last reported revenue (Y0, today's $)** and **last reported YoY growth** (anchors the derived annual series interpolation)
+- **`revenue_basis`** field (`reported` | `economic_adjusted`) and bridge summary from TAM Step 1. All revenue figures in the hand-off are on the stated basis. DCF margin assumptions must be anchored on the matching basis (Step 2 + Step 4 peer normalization handle this)
 - **Per-scenario period CAGRs**: bear / low / base / high / bull rows, each with Y1-3, Y4-5, Y6-10, Y11-20, Y21-maturity (25 CAGRs total)
 - **Y1-3 guidance anchor**: management guidance midpoint + range, consensus analyst midpoint
 - **Per-scenario growth shape** (stay-elevated / smooth-fade / front-loaded / back-loaded)
@@ -291,3 +482,25 @@ When TAM math-checker emits the hand-off, it runs a contract test: per-scenario 
 - The CAGRs and endpoints were never reconciled.
 
 Whatever the cause: HALT. Force user to resolve in TAM before DCF proceeds.
+
+## Known Failure Mode — TYL DCF Bug (Canonical Case)
+
+The growth-engine taxonomy, the cash-reality check, and the implied-multiple sanity flag all exist because of one specific failure: an opex-funded vertical-SaaS DCF that applied a sales-to-capital reinvestment identity meant for capex-funded businesses. The misclassification produced an internally-consistent but externally-broken forecast.
+
+Symptoms of that run:
+
+- Modeled Y1 net reinvestment $429M vs Y1 NOPAT $324M — a reinvestment rate of 132% of NOPAT, only possible with external capital, none of which was named.
+- Modeled Y1 FCFF margin around −4% versus latest-FY actual / management-guided FCFF margin around +20% — a 2400bp gap with no mechanism behind it.
+- Section 10 printed `Current EV/FY27 FCFF: -111.8×` and `base intrinsic EV/FY27 FCFF: -54.9×` — negative implied multiples on a cash-generative company.
+
+The root cause was a single bad identity choice: `net_reinvestment = ΔNOPAT / ROIC` applied during Y1-Y15. That identity is a *terminal-stage* anchor (`growth ≈ reinvestment_rate × ROIC`) when growth requires incremental invested capital. During the ramp years for an opex-funded business, growth lives in R&D + S&M expense already inside EBIT — applying the identity adds a phantom capital outflow on top.
+
+The fix is structural, not numerical:
+
+1. Engine classification at Step 3 picks `opex_funded`, `capex_funded`, `acquisition_funded`, `mature_cash_cow`, or `mixed_engine` per the diagnostic signals — engine-specific anchors and forecasting identity flow from that choice.
+2. Y1-Y15 reinvestment for opex-funded engines is the *residual* (`NOPAT − FCFF` from the modeled FCFF margin path), not derived from `ΔNOPAT / ROIC`.
+3. Step 8 cash-reality reconciliation halts when modeled Y1 FCFF margin diverges from actual/guided by >500bp without a logged mechanism, catching the failure at forecast-generation time.
+4. Sanity check #5 (Y1-Y10 plausibility) FAILs when modeled reinvestment exceeds NOPAT in any year without an explicit external-capital raise.
+5. Section 10 negative-multiple warning catches the symptom at output-emission time.
+
+The numerical specifics — $429M, $469M, +20.1%, −4%, −111.8× — are useful as a calibration anchor for what "broken" looks like. They are not the failure pattern in general; the failure pattern is: confident-but-wrong default behavior when a textbook DCF identity is applied outside its valid range. Any future failure with the same shape (modeled cash flow disconnected from observed cash flow + impossible reinvestment rate + negative implied multiples) is the same class.

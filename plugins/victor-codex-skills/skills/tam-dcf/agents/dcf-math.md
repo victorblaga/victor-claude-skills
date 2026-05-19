@@ -12,7 +12,7 @@ The orchestrator does not do math inline. LLMs are unreliable on compounded mult
 
 The main flow calls you at:
 
-1. **Step 5 (full forecast)** — primary dispatch. Compute the year-by-year forecast (Y1-Y10 annual + Y11-maturity periodic), PV by period, EV, equity bridge, reverse DCF per scenario, sensitivity matrices, implied multiples.
+1. **Step 7 (full forecast)** — primary dispatch. Compute the year-by-year forecast (Y1-Y10 annual + Y11-maturity periodic), PV by period, EV, equity bridge, reverse DCF per scenario, sensitivity matrices, implied multiples.
 2. **On-demand** — user says "recheck the math," "recompute base," "rerun the sensitivity matrix" → dispatch you on the current state.
 3. **After every assumption revision** — user revises mature margin, WACC, reinvestment, lease framework → re-dispatch to regenerate the affected outputs.
 4. **Final pass before saving outputs** — sanity check (`bear < low < base < high < bull` monotonic; PV-by-period sums to EV; reverse-DCF IRR consistent across artifacts; no magic-haircut phrases in any draft markdown).
@@ -30,6 +30,16 @@ Output paths:
   - dcf_html: <path to write/regenerate dcf.html>
   - check_log: <path to append .dcf-check.log>
 TAM revenue path source: <handoff.md path; the period CAGRs and revenue-at-maturity feed the revenue series>
+Revenue basis: <reported | economic_adjusted> (from TAM `revenue_basis`; if economic_adjusted, use economic_revenue_y0 as Y0 anchor — do NOT use reported_revenue_y0)
+Margin basis: economic (from `dcf-state.economic_bridge.margin_side.economic_ebit_margin_y0`); peer benchmarks already normalized via Step 2 dispatch spec
+Growth engine: <opex_funded | capex_funded | acquisition_funded | mature_cash_cow | mixed_engine> (from `dcf-state.growth_engine.type`)
+Forecast method: <cash_conversion_margin | sales_to_capital | acquisition_track | maintenance_fcff | per_segment> (from `dcf-state.growth_engine.forecast_method`)
+Engine-specific anchors: read from `dcf-state.growth_engine.engine_specific_anchors`. Schema varies per engine — see `references/state-schema.md`.
+SBC treatment for forecast: use `run_rate_sbc_pct_rev` only (NOT the reported SBC line, which may include one-time vintage)
+SBC treatment for equity bridge: add `one_time_components[].probability_weighted_expected_value` as contingent dilution at the vesting conditions; do not double-count in opex
+Implied-multiples basis: compute BOTH on economic AND reported basis (Section 10 dual-basis block) when economic ≠ reported; single-block when clean. Flag negative implied multiples as sanity #13 FAIL.
+Reverse DCF basis: economic FCFF stream against current EV. For acquisition_funded engine, use `fcff_post_ma` as the cash-flow basis (cash actually distributable during engine-running phase).
+Cash-reality check: run sanity #12 after forecast build. Halt thresholds: 500bp Y1, 1000bp Y2-Y3 absent override mechanism.
 Specific concerns (optional): <e.g., "the residual share looked suspicious — recheck">
 ```
 
@@ -45,7 +55,7 @@ Write to a temp file like `/tmp/tam_dcf_compute_<ticker>_<random>.py`. The scrip
 
 - Imports `numpy`, `scipy.optimize` (for root-solving in reverse DCF), `json`.
 - Loads `dcf-state.json` as input.
-- Implements the FCFF / WACC / PV / reverse-DCF / sensitivity functions (see below).
+- Implements the FCFF / WACC / PV / reverse-DCF / sensitivity functions per the spec below.
 - Writes outputs back into a `dcf-state.json`-shaped dict.
 - Computes the check-log entries with inputs / outputs.
 - Saves outputs JSON and check-log.
@@ -76,11 +86,25 @@ key_numbers:
   value_per_share_base: $X
   implied_unlevered_irr_base: Y%
   ten_pct_clearing_assumption: "<one-line>"
+basis_used:
+  revenue: <reported | economic_adjusted>
+  margin: <reported | economic_adjusted>
+  bridge_summary: <one-line>
+engine_used:
+  type: <opex_funded | capex_funded | acquisition_funded | mature_cash_cow | mixed_engine>
+  forecast_method: <method>
+  rationale_one_line: <one-line>
+cash_reality_check:
+  comparable_bar: <X%>
+  per_scenario_y1_delta_bp: {bear: <bp>, low: <bp>, base: <bp>, high: <bp>, bull: <bp>}
+  per_scenario_y2_y3_delta_bp: {bear: <bp>, low: <bp>, base: <bp>, high: <bp>, bull: <bp>}
+  halt_triggered_scenarios: [<list of scenarios that exceeded threshold without logged override>]
 sanity_checks:
   - scenario_monotonicity: PASS / FAIL (bear < low < base < high < bull)
   - pv_sum_equals_ev: PASS / FAIL
   - terminal_share_of_ev_pct: X% (flagged if > 50)
   - magic_haircut_scan: PASS / FAIL (FAIL if dcf.md contains "haircut", "conservative alternative base", etc.)
+  - basis_consistency: PASS / FAIL
 discrepancies (if any):
   - check: <name>
     expected: <value>
@@ -89,253 +113,149 @@ discrepancies (if any):
 log_path: <absolute path>
 ```
 
-## Computation Library (Spec)
+## Computation Spec
 
-All formulas the subagent implements:
+The script implements the following. Where formulas are listed, treat them as the contract; choose the implementation idiomatic to the libraries you import.
 
-### FCFF per year
+### FCFF identity
 
-```python
-def fcff(ebit, tax_rate, da, capex, delta_nwc):
-    nopat = ebit * (1 - tax_rate)
-    return nopat + da - capex - delta_nwc
 ```
+FCFF = NOPAT + D&A − Total Capex − ΔNWC
+NOPAT = EBIT × (1 − normalized tax rate)
+```
+
+Full definition + lease/SBC handling in `references/dcf-protocol.md`.
 
 ### Revenue path from TAM — NO SILENT RESCALING
 
-The TAM hand-off carries **per-scenario period CAGRs** (5 rows: bear/low/base/high/bull) as the contract, plus a **derived per-scenario annual revenue series** (regenerable from the CAGRs). The dcf-math subagent consumes both.
+The TAM hand-off carries **per-scenario period CAGRs** (5 rows: bear/low/base/high/bull) as the contract, plus a **derived per-scenario annual revenue series** (regenerable from the CAGRs). Consume both.
 
 Input preference order, highest fidelity first:
 
-1. **TAM hand-off includes per-scenario annual revenue series** (preferred). Use directly. The series is anchored on `last_reported_revenue_today_$` at Y0 and on the per-scenario period CAGRs (linear interpolation in growth-rate space + per-period renormalization).
+1. **TAM hand-off includes per-scenario annual revenue series** (preferred). Use directly.
+2. **TAM hand-off includes per-scenario period CAGRs only**. Re-derive locally using the same algorithm as TAM math-checker: linear interpolation in growth-rate space between period-CAGR midpoints (anchors at Y0=`last_reported_yoy_growth`, Y2=Y1-3 CAGR, Y4.5=Y4-5 CAGR, Y8=Y6-10 CAGR, Y15.5=Y11-20 CAGR, Y(21+maturity)/2=Y21-maturity CAGR), then renormalize per period so the compounded ratio within each period exactly equals `(1 + period_cagr)^period_years`.
 
-```python
-def revenue_path_from_annual_series(annual_series_per_scenario, scenario, data_snapshot_y0):
-    series = annual_series_per_scenario[scenario]
-    # Y0 anchoring check: catches the case where TAM and DCF disagree on Y0.
-    if abs(series[0] - data_snapshot_y0) / data_snapshot_y0 > 0.005:
-        raise HandoffY0Mismatch(
-            f"Scenario {scenario}: TAM series Y0 ${series[0]:.2f} does not match "
-            f"DCF data snapshot Y0 ${data_snapshot_y0:.2f} (delta > 50bps). "
-            f"TAM and DCF are anchored on different starting revenues. Halt."
-        )
-    return series
-```
+**Y0 anchoring check (mandatory).** Verify the consumed annual series Y0 equals `data_snapshot.current_revenue_today_$` within 50bps. HALT on mismatch — TAM and DCF are anchored on different starting revenues.
 
-2. **TAM hand-off includes per-scenario period CAGRs only** (re-derive locally). Same algorithm as TAM math-checker: linear interp in growth-rate space, anchored on `last_reported_yoy_growth` at Y0, renormalized per period to honor each stated CAGR exactly.
+**Hand-off contract test (mandatory).** Per-scenario CAGRs must compound to per-scenario endpoint within 2%. HALT on violation. **Do not silently rescale.**
 
-```python
-def interpolate_linear(anchors, x):
-    xs = sorted(anchors.keys())
-    if x <= xs[0]:
-        return anchors[xs[0]]
-    if x >= xs[-1]:
-        return anchors[xs[-1]]
-    for i in range(len(xs) - 1):
-        if xs[i] <= x <= xs[i + 1]:
-            t = (x - xs[i]) / (xs[i + 1] - xs[i])
-            return anchors[xs[i]] * (1 - t) + anchors[xs[i + 1]] * t
+**Layer-schedule consistency (carried from TAM).** Re-read `aggregated.layer_schedule_consistency_test`. Refuse to proceed if any scenario has unresolved violations.
 
+### Engine-typed forecast generation
 
-def renormalize_periods(series, period_cagrs, maturity_year):
-    period_bounds = [
-        ("y1_3", 0, 3), ("y4_5", 3, 5), ("y6_10", 5, 10),
-        ("y11_20", 10, 20), ("y21_maturity", 20, maturity_year),
-    ]
-    adjusted = list(series)
-    for period, start, end in period_bounds:
-        if end > maturity_year:
-            end = maturity_year
-        if start >= end:
-            continue
-        target_ratio = (1 + period_cagrs[period]) ** (end - start)
-        current_ratio = adjusted[end] / adjusted[start]
-        scale_factor = target_ratio / current_ratio
-        per_year_scale = scale_factor ** (1 / (end - start))
-        running = adjusted[start]
-        for y in range(start + 1, end + 1):
-            raw_growth = adjusted[y] / adjusted[y - 1] - 1
-            adjusted_growth = (1 + raw_growth) * per_year_scale - 1
-            running *= (1 + adjusted_growth)
-            adjusted[y] = running
-    return adjusted
+Dispatch on `dcf-state.growth_engine.forecast_method`. Each engine produces the year-by-year forecast using its identity (see `references/dcf-protocol.md` Engine-Typed Forecasting Identities for full math).
 
+**opex_funded — cash-conversion margin.** For each year: `FCFF_y = revenue_y × cash_conversion_margin_y`. Margin path: Y1 anchored on `max(actual_y0, guided_y1)`; ramp smoothly toward `cash_conversion_margin_mature_per_scenario[scenario]` over Y6-Y15. Net reinvestment is the **residual**: `NOPAT − FCFF`. Reinvestment rate = `net_reinvestment / NOPAT` when NOPAT > 0. **Do not** compute reinvestment as `ΔNOPAT / ROIC` during Y1-Y15 — that identity is a terminal-stage anchor only.
 
-def revenue_path_from_per_scenario_cagrs(
-    rev_y0, last_year_growth, period_cagrs_per_scenario, scenario, maturity_year,
-    stated_endpoint_per_scenario,
-):
-    cagrs = period_cagrs_per_scenario[scenario]
-    anchors = {
-        0: last_year_growth,
-        2: cagrs["y1_3"],
-        4.5: cagrs["y4_5"],
-        8: cagrs["y6_10"],
-        15.5: cagrs["y11_20"],
-        (21 + maturity_year) / 2: cagrs["y21_maturity"],
-    }
-    series = [rev_y0]
-    for y in range(1, maturity_year + 1):
-        g = interpolate_linear(anchors, y)
-        series.append(series[-1] * (1 + g))
-    series = renormalize_periods(series, cagrs, maturity_year)
-    # Hand-off contract test
-    compounded = series[maturity_year]
-    stated = stated_endpoint_per_scenario[scenario]
-    delta_pct = abs(compounded - stated) / stated
-    if delta_pct > 0.02:
-        raise HandoffContractViolation(
-            f"Scenario {scenario}: per-scenario CAGRs compound to ${compounded:.2f}, "
-            f"stated endpoint ${stated:.2f} (delta {delta_pct*100:.1f}%). "
-            f"Halt. Do not silently rescale."
-        )
-    return series
-```
+**capex_funded — sales-to-capital.** For each year: `net_reinvestment_y = ΔRevenue_y / sales_to_capital_y`; `FCFF_y = NOPAT_y − net_reinvestment_y`. Sales-to-capital ramps from observed Y0 toward `sales_to_capital_mature_per_scenario[scenario]`.
 
-### Y0 anchoring check
+**acquisition_funded — two-track.** Organic track: `revenue_organic_y = revenue_organic_(y-1) × (1 + organic_growth)`; `FCFF_organic_y = revenue_organic_y × organic_fcff_margin`. M&A track: `M&A_spend_y = FCFF_organic_y × m_a_deployment_pct_fcf_y` (deployment fades linearly from current pace to 30% at maturity); `acquired_revenue_y = M&A_spend_y × roic_acquired / steady_state_acquired_fcff_margin`. Output BOTH `fcff_pre_ma` (organic + cumulative acquired FCFF; stop-the-engine view) and `fcff_post_ma` (pre-M&A minus current M&A spend; engine-running view). Use `fcff_post_ma` as the cash basis for reverse DCF and downstream multiples.
 
-Always verify the consumed annual series Y0 equals `data_snapshot.current_revenue_today_$` within 50bps. Catches the case where TAM and DCF are anchored on different last-reported revenue figures (stale TAM, manual edit, etc.). HALT on mismatch — main thread prompts user to resolve.
+**mature_cash_cow — maintenance FCFF margin.** For each year: `FCFF_y = revenue_y × maintenance_fcff_margin_per_scenario[scenario]`.
 
-### Layer-schedule consistency (carried from TAM)
-
-The TAM hand-off carries `aggregated.layer_schedule_consistency_test` per scenario. dcf-math re-reads it at Step 0 and refuses to proceed if any scenario has unresolved violations. The test should already have passed during TAM emission; a failure surfacing here means the hand-off was edited after TAM ran.
+**mixed_engine — per-segment aggregation.** Classify each segment with one of the 4 non-mixed engines; recursively dispatch `build_forecast` per segment; aggregate at corporate level as `FCFF_corp_y = Σ FCFF_segment_y − corporate_overhead_pct_rev × revenue_corp_y`.
 
 ### Margin / reinvestment ramp
 
-```python
-def margin_path(ramp_dict, maturity_year):
-    # Interpolate between explicit ramp points
-    explicit_years = sorted(int(k.strip('y')) for k in ramp_dict if k.startswith('y'))
-    path = []
-    for y in range(1, maturity_year + 1):
-        # find surrounding explicit points
-        below = max([yr for yr in explicit_years if yr <= y], default=explicit_years[0])
-        above = min([yr for yr in explicit_years if yr >= y], default=explicit_years[-1])
-        if below == above:
-            margin = ramp_dict[f'y{below}']
-        else:
-            t = (y - below) / (above - below)
-            margin = ramp_dict[f'y{below}'] * (1 - t) + ramp_dict[f'y{above}'] * t
-        path.append(margin)
-    return path
-```
+Interpolate linearly between the explicit ramp points in `dcf-state.assumptions.margin_ramp_path`.
 
 ### PV by period
 
-```python
-def pv_by_period(fcff_series, wacc, periods):
-    pv = {}
-    for name, (start, end) in periods.items():
-        pv[name] = sum(fcff_series[y] / (1 + wacc) ** y for y in range(start, end + 1))
-    return pv
-```
+`PV_period = Σ_{y∈period} FCFF_y / (1 + WACC)^y`. Periods: Y1-10, Y11-20, Y21-maturity, plus residual = `terminal_value / (1 + WACC)^maturity`.
 
 ### Terminal value
 
-```python
-def terminal_value(fcff_at_maturity_plus_1, wacc, terminal_growth_nominal):
-    return fcff_at_maturity_plus_1 / (wacc - terminal_growth_nominal)
-
-def pv_terminal(terminal_value, wacc, maturity_year):
-    return terminal_value / (1 + wacc) ** maturity_year
+```
+TV = FCFF_(N+1) / (WACC − g_nominal)
+PV_TV = TV / (1 + WACC)^N
 ```
 
-Sanity: `terminal_growth_nominal < wacc` (mathematical requirement). FAIL if violated.
+`g_nominal = real_terminal_growth + inflation`. Sanity: `g_nominal < WACC` (mathematical requirement) — FAIL if violated.
 
 ### WACC composition (required-return framework)
 
-The skill uses the required-return framework, not CAPM. The math engine consumes the pre-composed WACC from `dcf-state.json` — it does NOT compute beta or pull a risk-free rate. Concretely:
-
-```python
-def compose_required_return(required_real, currency_inflation, jurisdiction_premium, sector_nudge):
-    return required_real + currency_inflation + jurisdiction_premium + sector_nudge
-
-def wacc_local_floor(currency_inflation, usd_floor=0.085, usd_inflation=0.02):
-    # Floor scales with currency inflation to preserve real-return basis
-    return usd_floor + (currency_inflation - usd_inflation)
-
-def final_wacc(required_return_composed, cost_of_debt_after_tax, equity_weight, debt_weight, floor_local):
-    blended = equity_weight * required_return_composed + debt_weight * cost_of_debt_after_tax
-    return max(blended, floor_local)
+```
+required_return = required_real + currency_inflation + jurisdiction_premium + sector_nudge
+WACC_blended = equity_weight × required_return + debt_weight × cost_of_debt_after_tax
+WACC_floor_local = 0.085 + (currency_inflation − 0.02)
+WACC_used = max(WACC_blended, WACC_floor_local)
 ```
 
-The script validates that the components in `dcf-state.json.assumptions.wacc.components` sum (after debt-blend) to the `wacc_used` field, within 5bps tolerance. FAIL if they don't.
-
-The script must NOT silently compute a CAPM-style cost of equity if a component is missing — instead, FAIL with a clear message that the missing component needs to be set in `dcf-state.json` first.
+The script consumes the pre-composed WACC from `dcf-state.json`. It does NOT compute beta, pull a current Treasury yield, or use CAPM. Validate that the components in `dcf-state.json.assumptions.wacc.components` sum (after debt-blend) to `wacc_used` within 5bps tolerance. FAIL on mismatch. FAIL with a clear message if any component is missing — do not silently fill in a default.
 
 ### EV → equity → per share
 
-```python
-def equity_bridge(total_ev, net_debt, lease_liabilities, preferred, nci, cash_above_op, diluted_shares):
-    equity = total_ev - net_debt - lease_liabilities - preferred - nci + cash_above_op
-    return equity, equity / diluted_shares
+```
+Total EV = Σ PV_by_period
+Equity = Total EV − net_debt − lease_liabilities − preferred − NCI + cash_above_operating
+Value per share = Equity / diluted_shares
 ```
 
 ### Reverse DCF (root-solving)
 
-```python
-from scipy.optimize import brentq
+For each scenario (bear / low / base / high / bull) AND for the 10%-required case, solve for `r` such that:
 
-def reverse_dcf(current_ev, fcff_series, terminal_value, maturity_year):
-    def ev_at_r(r):
-        pv_fcff = sum(fcff_series[y] / (1 + r) ** y for y in range(1, maturity_year + 1))
-        pv_terminal = terminal_value / (1 + r) ** maturity_year
-        return pv_fcff + pv_terminal - current_ev
-    # Solve for r between 0.001 and 0.50
-    try:
-        return brentq(ev_at_r, 0.001, 0.50)
-    except ValueError:
-        # Scenario doesn't reconcile to positive r → return None
-        return None
+```
+Current EV = Σ FCFF_y / (1 + r)^y + TV / (1 + r)^N
 ```
 
-Run for each scenario (bear / low / base / high / bull) AND for the 10%-required case (inverse — solve for the assumption set that produces value-per-share = current price at 10% IRR).
+Use Brent's method (`scipy.optimize.brentq`), bracket `[0.001, 0.50]`. If the function doesn't change sign in the bracket, return `None` (scenario doesn't reconcile to a positive discount rate).
+
+**Engine discipline**: for acquisition_funded, use `fcff_post_ma` as the cash-flow basis (cash actually distributable during engine-running). For all other engines, use total FCFF.
+
+**Basis discipline**: reverse DCF runs on economic revenue + economic margin basis.
 
 ### Sensitivity matrix (per cell)
 
-```python
-def sensitivity_cell(tam_revenue_path, mature_margin, base_assumptions):
-    # Override mature_margin in the assumption set
-    overridden = {**base_assumptions, "mature_ebit_margin": mature_margin}
-    fcff_series = build_fcff_series(tam_revenue_path, overridden)
-    tv = terminal_value(...)
-    ev = sum_pv(fcff_series, overridden["wacc"]) + pv_terminal(tv, ...)
-    equity, vps = equity_bridge(ev, ...)
-    irr = reverse_dcf(current_ev, fcff_series, tv, maturity_year)
-    return {"vps": vps, "irr": irr}
-```
-
-Each cell is its own full DCF compute + reverse-DCF solve. Do not linearize.
+Each cell is its own full DCF compute + reverse-DCF solve. Do not linearize. Override the relevant assumption (e.g., `mature_ebit_margin`), rebuild the FCFF series, recompute PV + terminal + reverse DCF for that cell. Cell output: `{vps: <value-per-share>, irr: <reverse-DCF rate>}`.
 
 ### Implied multiples
 
-```python
-def implied_multiples_at_base(base_value_per_share, diluted_shares, projections_fy_next):
-    base_ev = base_value_per_share * diluted_shares + net_debt
-    return {
-        "ev_ebit_fy_next": base_ev / projections_fy_next["ebit"],
-        "ev_fcff_fy_next": base_ev / projections_fy_next["fcff"],
-        "pe_fy_next": base_value_per_share / (projections_fy_next["earnings"] / diluted_shares),
-    }
 ```
+Base EV = base_value_per_share × diluted_shares + net_debt
+EV / FY-next EBIT = Base EV / projections_fy_next.ebit
+EV / FY-next FCFF = Base EV / projections_fy_next.fcff
+P / FY-next E = base_value_per_share / (projections_fy_next.earnings / diluted_shares)
+```
+
+For acquisition_funded engine, use `fcff_post_ma` as the FCFF basis (cash actually distributable). Flag negative multiples for sanity #13.
+
+### Cash-reality reconciliation (sanity #12)
+
+The comparable bar is `cash_reality_check.comparable.tighter_bar_value` (the tighter of `fy_actual_after_sbc_fcf_margin` and `ny_guided_after_sbc_fcf_margin`).
+
+For each scenario:
+- `modeled_y1_margin = forecast.annual[0].fcff / forecast.annual[0].revenue`
+- `modeled_y2_y3_avg = mean of Y2 + Y3 fcff/revenue`
+- `delta_y1_bp = (modeled_y1_margin − bar) × 10000`
+- `delta_y2_y3_bp = (modeled_y2_y3_avg − bar) × 10000`
+
+HALT if `|delta_y1_bp| > 500` without a logged override mechanism in `cash_reality_check.override.<scenario>.mechanism`. HALT if `|delta_y2_y3_bp| > 1000` without override.
+
+For acquisition_funded engine, the modeled FCFF margin in the check is `fcff_post_ma / revenue` (cash actually distributable). For mixed_engine, corporate-level aggregated. Engine-agnostic otherwise.
 
 ## Sanity Checks (Mandatory)
 
-Run all of these after every computation:
+Run all of these after every computation. Failures: do NOT proceed to save final outputs. Return failure status to main thread with the discrepancy.
 
-1. **Bear < low < base < high < bull** for value-per-share, total EV, and implied IRR. Violations indicate inconsistent assumptions.
+1. **Bear < low < base < high < bull** for value-per-share, total EV, implied IRR. Violations indicate inconsistent assumptions.
 2. **PV by period sum = total EV** within 0.1% rounding tolerance.
 3. **Terminal growth < WACC** (mathematical requirement).
 4. **Cross-check revenue at maturity** against TAM hand-off: `series[maturity_year] ≈ TAM revenue_at_maturity_today_$` within 2%.
-5. **Reinvestment-rate × ROIC ≈ growth** at maturity. Within 1pp. Flag if off.
-6. **WACC floor** correctly applied. For USD-listed: `wacc_used >= max(calculated, 0.085)`. For non-USD: `wacc_used >= max(calculated, 0.085 + (currency_inflation - 0.02))`. Verify against `dcf-state.json.assumptions.wacc.wacc_floor_local`.
+5. **Reinvestment-rate × ROIC consistency — at maturity AND Y1-Y10 plausibility.**
+   - Terminal-stage: `rate_mature × ROIC_mature` within 1pp of `growth_mature`. Flag both "low rate + high growth without named operating-leverage mechanism" AND "high rate + modest growth (FCFF suppression risk)." See `references/dcf-protocol.md` Terminal-Stage ROIC Consistency Check.
+   - Y1-Y10 plausibility: for each year, compute `reinvestment_rate_y = net_reinvestment_y / NOPAT_y`. FAIL on:
+     - `reinvestment_rate_y > 1.0` (impossible without explicit external capital raise; allowed if named in `dcf-state.assumptions`).
+     - `reinvestment_rate_y < 0` with `growth_y > 0` (positive growth without reinvestment AND without operating leverage / pricing power named).
+     - `growth_y < 0` with `reinvestment_rate_y > 0` (shrinking revenue but reinvesting — defies reason).
+6. **WACC floor** correctly applied. For USD-listed: `wacc_used >= max(calculated, 0.085)`. For non-USD: `wacc_used >= max(calculated, 0.085 + (currency_inflation − 0.02))`.
 7. **No magic-haircut text** in `dcf.md`: grep for "haircut," "conservative alternative base," "applied a X% reduction," "for margin of safety we cut," "discount the base by." Any match = FAIL.
 8. **Single base case**: ensure no two distinct "base" totals appear in `dcf-state.json` or `dcf.md`.
 9. **Hand-off contract**: per-scenario declared CAGRs compound to per-scenario endpoint within 2% PER SCENARIO. FAIL if violated for any scenario. **No silent rescaling.**
-10. **Layer-schedule consistency (carried from TAM)**: re-read `aggregated.layer_schedule_consistency_test`. Refuse to proceed if any scenario has unresolved violations.
-11. **Y0 anchoring**: consumed series Y0 == `data_snapshot.current_revenue_today_$` within 50bps. FAIL on mismatch — TAM and DCF disagree on starting revenue.
-
-Failures: do NOT proceed to save the final outputs. Return failure status to main thread with the discrepancy. Main thread surfaces to user.
+10. **Layer-schedule consistency (carried from TAM)**: re-read `aggregated.layer_schedule_consistency_test`. Refuse if any scenario has unresolved violations.
+11. **Y0 anchoring**: consumed series Y0 == `data_snapshot.current_revenue_today_$` within 50bps. FAIL on mismatch.
+12. **Cash-reality reconciliation** (Step 8). See spec above. Halt thresholds: 500bp Y1, 1000bp Y2-Y3, absent logged override mechanism. Engine-aware: for acquisition_funded use `fcff_post_ma / revenue`.
+13. **Implied-multiple plausibility**. FAIL on negative implied multiple (e.g., `EV/FCFF < 0` because modeled FCFF < 0 at the year in question) — a cash-generative company should not produce negative multiples at its intrinsic value. See `references/dcf-protocol.md` Known Failure Mode appendix. Soft warning (not hard FAIL) on implied multiple > 5× peer median on economic basis without named structural reason.
 
 ## HTML Rendering
 
@@ -344,11 +264,11 @@ The HTML companion is rendered directly by this subagent (the main thread should
 Use a minimal self-contained template: HTML5 + inline CSS + vanilla JS. No external dependencies. File size target: under 200KB. Include:
 
 - Heatmap grids for the three sensitivity matrices (color-coded cells).
-- Inline SVG charts: revenue / FCFF / margin / ROIC over the horizon, three scenarios.
+- Inline SVG charts: revenue / FCFF / margin / ROIC over the horizon, per-scenario lines.
 - Sortable forecast table (vanilla JS sort handler).
 - Reverse-DCF panel.
 
-Skeleton lives in this skill's `references/output-format.md`. Use it as a starting point and inline the computed numbers.
+Skeleton + skinning conventions live in this skill's `references/output-format.md`. Use it as a starting point and inline the computed numbers.
 
 ## Cleanup
 
@@ -366,6 +286,6 @@ Skeleton lives in this skill's `references/output-format.md`. Use it as a starti
 
 ## Time Budget
 
-A full Step 5 dispatch (full forecast + sensitivity + reverse DCF + HTML render) takes ~3-5 minutes. Single-assumption-revision dispatches are faster (~1-2 minutes). On-demand recheck is fastest (~30s).
+A full Step 7 dispatch (full forecast + sensitivity + reverse DCF + HTML render) takes ~3-5 minutes. Single-assumption-revision dispatches are faster (~1-2 minutes). On-demand recheck is fastest (~30s).
 
 If the script is taking longer than 6 minutes, return what you have with a note: "Partial computation — sensitivity matrix 2 incomplete due to time budget. Re-dispatch with `sensitivity_only` task to complete."

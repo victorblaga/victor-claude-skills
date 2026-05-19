@@ -30,6 +30,16 @@ The session can be reconstructed entirely from these four files.
     {"wedge": "1P shopper data + ad surface", "evidence": "$50bn+ ad revenue at high margin"}
   ],
   "user_supplied_adjacencies": ["AWS-style cloud spin-out", "ad network on shopper data"],
+  "economic_bridge": {
+    "revenue_side": {
+      "reported_revenue_y0_today_$": 638000000000,
+      "adjustments": [],
+      "economic_revenue_y0_today_$": 638000000000,
+      "basis_used_in_layers": "reported",
+      "audit_status": "completed",
+      "audit_notes": "No accounting-economic divergence identified on revenue side. 10-K rev recognition policy confirms direct sale-to-consumer (1P) and marketplace facilitation (3P, presented net of seller share). No pass-through, no gross-up, no captive segment."
+    }
+  },
   "current_step": "layer_3_pool_projection",
   "layers": [
     {
@@ -192,7 +202,8 @@ The session can be reconstructed entirely from these four files.
   "pacing_mode": "per_anchor",
   "history": [
     {"step": "step_0_setup", "completed_at": "2026-05-18T10:32:00Z"},
-    {"step": "speculative_layer_selection", "completed_at": "2026-05-18T10:48:00Z"},
+    {"step": "step_1_revenue_hygiene", "completed_at": "2026-05-18T10:40:00Z"},
+    {"step": "step_2_speculative_layer_selection", "completed_at": "2026-05-18T10:48:00Z"},
     {"step": "layer_1_demand_unit", "completed_at": "2026-05-18T10:52:00Z"},
     {"step": "layer_1_pool_today", "completed_at": "2026-05-18T11:08:00Z"}
   ]
@@ -203,7 +214,8 @@ The session can be reconstructed entirely from these four files.
 
 - **`current_step`**: must always reflect the latest completed step. Resume reads this. Valid values:
   - `step_0_setup`
-  - `speculative_layer_selection`
+  - `step_1_revenue_hygiene`
+  - `step_2_speculative_layer_selection`
   - `layer_<id>_demand_unit`
   - `layer_<id>_pool_today`
   - `layer_<id>_pool_projection`
@@ -216,6 +228,32 @@ The session can be reconstructed entirely from these four files.
   - `horizon_proposed`
   - `handoff_emitted`
 - **`anchors[]`**: every confirmed anchor logged here, with `source_id` linking to `sources.md`. `user_confirmed: true` means the user accepted (after pushback if any). If user overrode the source range, `override_reason` is populated.
+- **`economic_bridge.revenue_side`**: results of Step 1 revenue hygiene audit. `reported_revenue_y0_today_$` and `economic_revenue_y0_today_$` together with `adjustments` form the bridge. `basis_used_in_layers` flags which figure downstream layer pool-sizing + per-scenario CAGR build uses (`reported` if no adjustments, `economic_adjusted` otherwise). Field consumed downstream by `/tam-dcf` via the hand-off block. Adjustment types: `pass_through_ad_fund`, `gross_up_reseller`, `gross_up_distributor`, `one_time_non_recurring`, `captive_intra_segment`. Treatments: `STRIP` (excluded from Y0), `KEEP` (no adjustment), `SEGMENT` (modeled as own layer in `layers[]`). `audit_status` is `completed` after Step 1 runs (regardless of whether adjustments were found); `pending` only at session start before Step 1.
+
+  Worked example for a Wingstop-shaped company (advertising fund collected from franchisees, near-zero shareholder economic value):
+
+  ```json
+  "economic_bridge": {
+    "revenue_side": {
+      "reported_revenue_y0_today_$": 467000000,
+      "adjustments": [
+        {
+          "type": "pass_through_ad_fund",
+          "amount_today_$": -250000000,
+          "rationale": "Advertising fund revenue ($250M of $467M reported FY24). Franchisees contribute ~5.3% of sales to a marketing pool spent on national/local advertising; collected and disbursed at zero net margin to shareholders. Strip both the revenue and the offsetting marketing expense.",
+          "treatment": "STRIP",
+          "source_id": "src_wing_10k_fy24_segment_note_3",
+          "user_confirmed": true
+        }
+      ],
+      "economic_revenue_y0_today_$": 217000000,
+      "basis_used_in_layers": "economic_adjusted",
+      "audit_status": "completed"
+    }
+  }
+  ```
+
+  Downstream consumption: Y0 anchor = $217M (not $467M); per-scenario CAGRs apply to the economic series; mature monetization at the franchise-royalty layer back-solves from $217M; peer comparisons in `/tam-dcf` Step 1.5 + Step 2 normalize peer revenue the same way.
 - **Scenarios**: five — `bear`, `low`, `base`, `high`, `bull`. `bear` = absolute worst plausible (named bear mechanism fully materializes; speculative layers contribute zero by hard rule). `low` = realistic adverse ("things don't go very well" — partial bear-mechanism materialization). `base` = bottom-up evidence-weighted. `high` = realistic upside ("things go above base expectations" — partial bull-adjacency realization). `bull` = absolute best plausible (full bull adjacencies + named catalysts). Math-checker enforces monotonicity `bear < low < base < high < bull` for headline revenue and per-layer revenue.
 - **`activation_schedule`** (per layer): metadata describing when the layer contributes meaningful revenue (`activation_year`), the year of peak %-contribution to consolidated growth (`peak_contribution_year`), and the year the layer is mostly built out (`maturity_year`). This is **discipline metadata**, not a revenue-path generator — the consolidated growth path is declared per scenario via `aggregated.growth_path_cagrs_per_scenario`. The math-checker runs a `layer_schedule_consistency_test` that flags when the declared CAGRs are incompatible with the activation schedule (e.g., a layer activating Y4 with ≥15% contribution but Y4-5 CAGR < Y1-3 CAGR — layer would be invisible).
 - **`aggregated.last_reported_revenue_today_$`** + **`aggregated.last_reported_yoy_growth`**: today's actuals. Anchor the Y0 point of the derived annual revenue series. Must be cited (latest 10-K/20-F).

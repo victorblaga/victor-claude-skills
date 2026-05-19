@@ -16,6 +16,7 @@ The DCF prompt is specific about section order. Don't reorder.
 ```
 1. Compact conclusion
 2. Data snapshot
+2.5. Reported → Economic Bridge
 3. TAM hand-off summary
 4. Key assumptions with evidence
 5. Explicit forecast
@@ -54,6 +55,33 @@ A table or compact list of TODAY's numbers:
 - Days since last reporting period.
 
 All from the data anchored in Step 1.
+
+### Section 2.5 — Reported → Economic Bridge
+
+From Step 2. Surfaces the accounting-to-economic reconciliation so the rest of the report reads on a consistent basis and the user (or any skeptic) can trace the bridge.
+
+**Clean case** — if the audit found no quirks on either revenue or margin side:
+
+> No reported-to-economic adjustments. Revenue and margins on reported basis throughout. Audit confirmed clean: no pass-through revenue, no one-time SBC vintage, no strategic-segment reclassification needed.
+
+**Quirky case** — table format:
+
+| Item | Reported | Adjustment | Economic | Rationale |
+|------|----------|------------|----------|-----------|
+| Revenue (Y0, today's $) | $X | -$Y (pass-through ad fund, inherited from TAM) | $Z | <link to TAM `economic_bridge.revenue_side` source> |
+| EBIT (Y0) | $X | +$Y (strategic store segment reclassified) - $Z (run-rate SBC normalization removes one-time vintage) | $W | <link to source> |
+| EBIT margin (Y0) | X% | computed | Y% | bridge math from rows above |
+| Diluted shares | X | + Y (one-time CEO grant, probability-weighted dilution at hurdle prices) | X+Y (contingent) | <link to DEF14A source> |
+| Run-rate SBC % rev | Z% reported (3yr avg) | -W% (one-time vintage) | (Z-W)% | <link to vintage breakdown> |
+
+Followed by 1-2 short paragraphs covering:
+- Which quirks were stripped, which reclassified, which treated as contingent.
+- Which peer-benchmark normalizations were applied at Step 4.
+- One-line per significant adjustment: the rationale and the source.
+
+Footer:
+
+> Full bridge in `dcf-state.json` `economic_bridge` block. The Reported → Economic Bridge ensures the rest of this report (mature-margin assumptions, reverse DCF, implied multiples) reads on a consistent economic basis. The reported view appears in Section 10 (Implied-Multiple Sanity Check) for screener-comparability only — it is not the basis for the verdict.
 
 ### Section 3 — TAM Hand-Off Summary
 
@@ -111,10 +139,25 @@ At the top of Section 5, before the per-scenario tables, include an explicit met
 - Base: <...>
 - Bull: <...>
 
+**Growth engine + forecast method**:
+- Engine type: <opex_funded | capex_funded | acquisition_funded | mature_cash_cow | mixed_engine>
+- Forecast method: <cash_conversion_margin | sales_to_capital | acquisition_track | maintenance_fcff | per_segment>
+- Rationale: <one-line: e.g., "Vertical SaaS; capex 0.7% rev; R&D+S&M 20%; M&A episodic; FCFF margin 20% observable → opex_funded with cash-conversion margin">
+- Engine-specific anchor summary: <one line per scenario showing the primary anchor — e.g., "Base mature cash_conversion_margin: 25%; Bull: 30%; Bear: 18%">
+- Maintenance-only FCFF margin (stop-the-engine view): <one line per scenario — e.g., "Base 30% / Bull 35% / Bear 24% — structural ceiling">
+
+For `acquisition_funded` engines, also disclose:
+- M&A deployment % FCF assumption per period (current → mature, e.g., "85% → 30%")
+- ROIC-acquired per scenario
+- FCFF_pre_M&A vs FCFF_post_M&A — both shown in the forecast table; reverse DCF runs on `FCFF_post_M&A`
+
+For `mixed_engine`, list per segment:
+- Segment name, engine type, revenue weight at maturity (per scenario), forecast method, primary anchor.
+
 **Layer-schedule consistency**: <PASS / FAIL>. Read from `aggregated.layer_schedule_consistency_test` in TAM state. If FAIL, halt before dcf.md emission.
 ```
 
-The disclosure must appear in every `dcf.md` output. No silent revenue-path generation. The user should be able to read the disclosure and know exactly how the revenue path was constructed.
+The disclosure must appear in every `dcf.md` output. No silent revenue-path generation. No silent engine choice. The user should be able to read the disclosure and know exactly how the revenue path was constructed AND which forecasting identity drives FCFF generation.
 
 ### Section 6 — WACC and EV → Equity Bridge
 
@@ -177,14 +220,35 @@ If any of the three is material to the verdict, expand into a paragraph.
 
 At the base intrinsic value, what do the implied entry multiples look like vs current and vs peer benchmarks?
 
+**Dual-basis presentation when economic ≠ reported**. If Step 2 produced any margin-side adjustment, OR if TAM hand-off carries `revenue_basis: economic_adjusted`, present multiples on both bases — economic for the real read, reported for screener comparability:
+
 ```
-                Implied at base value    Current        Peer median
-EV / FY27 EBIT       X×                    Y×              Z×
-EV / FY27 FCFF       X×                    Y×              Z×
-P / FY27 E           X×                    Y×              Z×
+                            Implied at base value    Current        Peer median (normalized)    Peer median (raw)
+Economic basis:
+  EV / FY27 EBIT                X×                    Y×              Z×                          —
+  EV / FY27 FCFF                X×                    Y×              Z×                          —
+  P / FY27 E                    X×                    Y×              Z×                          —
+
+Reported basis (screener view):
+  EV / FY27 EBIT (reported)     X×                    Y×              —                           Z×
+  EV / FY27 FCFF (reported)     X×                    Y×              —                           Z×
 ```
 
-Surface anomalies: e.g., "base value implies entry P/E of 60×, which is materially above peer median of 30×. Either the growth assumption is industry-leading and defensible, or the margin assumption is."
+**Clean case** — single block, reported = economic.
+
+Surface anomalies on the **economic** basis (the real read): e.g., "base value implies entry P/E of 60× on economic basis, which is materially above peer-normalized median of 30×. Either the growth assumption is industry-leading and defensible, or the margin assumption is."
+
+Footnote any large reported-vs-economic gap: e.g., "Reported P/E of 25× makes this look cheap to a screener; the economic P/E of 60× reflects the true earnings power after stripping pass-through revenue and normalizing SBC vintage."
+
+**Negative-multiple flag (mandatory).** If any implied multiple comes out negative (e.g., negative `EV/FCFF` because modeled FY-next FCFF is negative for a cash-generative company), the section must include a prominent warning block:
+
+```markdown
+> ⚠ **NEGATIVE IMPLIED MULTIPLE DETECTED**: Modeled FY-next FCFF = `$<X>M` (negative), producing implied EV/FCFF of `<Y>×`. For a cash-generative company, this is a smoking gun — the forecast is producing negative cash flow where actual cash flow is positive. Cross-check against Step 8 cash-reality result: if Y1 modeled FCFF margin is materially below actual/guided AND no override mechanism is logged, the model is suspect. See `references/dcf-protocol.md` Known Failure Mode appendix.
+>
+> Resolution: revisit Step 3 engine classification + Step 4 anchor set + Step 8 cash-reality check.
+```
+
+For acquisition_funded engines, the multiple should use `fcff_post_ma` (cash distributable during engine-running phase) — not `fcff_pre_ma` which would over-state the multiple by ignoring M&A deployment. Disclose which basis is used.
 
 ### Section 11 — Material Risks and Final Confidence
 
@@ -262,6 +326,11 @@ Run dcf-math one last time with the "final pass" check:
 7. Terminal value flag set correctly (> 50% of EV → flagged in section 6).
 8. **Revenue path method disclosure** present in Section 5. If missing → FAIL.
 9. **Layer-schedule consistency (carried from TAM)** PASS per scenario. If any scenario has unresolved violations → FAIL the final pass.
-10. **Y0 anchoring** verified: consumed series Y0 == `data_snapshot.current_revenue_today_$` within 50bps.
+10. **Y0 anchoring** verified: consumed series Y0 == `data_snapshot.current_revenue_today_$` within 50bps. If `revenue_basis: economic_adjusted`, Y0 anchor uses `economic_revenue_y0`, not `reported_revenue_y0` — verify the right field flowed through.
+11. **Section 2.5 (Reported → Economic Bridge)** present in dcf.md. Clean case = one-line "no adjustments." Quirky case = bridge table populated with rationale per row. If missing → FAIL.
+12. **Section 10 dual-basis presentation** when economic ≠ reported. If `economic_bridge.margin_side` shows any adjustment OR `revenue_basis: economic_adjusted`, multiples must show both bases. If single-block presentation under those conditions → FAIL.
+13. **Section 5 growth engine + forecast method disclosure** present. Engine type, forecast method, rationale, engine-specific anchor summary, maintenance-only FCFF margin all populated. If missing → FAIL.
+14. **Section 10 negative-multiple warning** present if any implied multiple is negative. Without the warning block → FAIL. (Don't silently emit negative multiples — see `references/dcf-protocol.md` Known Failure Mode appendix for the canonical instance.)
+15. **Cash-reality check result reflected in dcf.md.** Section 9 or a new sub-block must surface the comparable + per-scenario delta + any override mechanisms logged. If `cash_reality_check.audit_status != "completed"` in dcf-state.json → FAIL.
 
 Failures: surface to user before declaring the output done.

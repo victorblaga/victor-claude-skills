@@ -132,10 +132,122 @@ The main flow will not preserve parallel scenarios. Your recommendations either 
 
 If the user wants "buy-side vs sell-side views" or "growth analyst vs value analyst views," main flow dispatches you twice in parallel with different personas. Each instance independent. Main thread presents both side-by-side.
 
+## Two Dispatch Modes: Assumption Review vs Forecast-Output Review
+
+The skill dispatches this subagent in two structurally distinct modes.
+
+### Mode A — Assumption Review (the default; everything above)
+
+Dispatched BEFORE dcf-math runs (or after dcf-math returns and user wants to pressure-test the input set). Payload feeds the **input assumptions**: mature margins, ROIC, WACC components, reinvestment, lease/SBC framework. Question: "Are these assumptions defensible against sector / peer / historical evidence?"
+
+This is what the dispatch contract above describes.
+
+### Mode B — Forecast-Output Review (Step 9)
+
+Dispatched AFTER dcf-math runs Step 7 AND after Step 8 cash-reality reconciliation, triggered when one or more of the following fired:
+
+1. Cash-reality delta in 250-500bp zone (below halt, above clean) for any scenario.
+2. Terminal share of EV > 50%.
+3. Mature margin at peer ceiling without named moat.
+4. Implied entry multiples > 2× peer median on economic basis.
+
+The Mode A assumption review reads input assumptions only. An internally-coherent input set can still produce an incoherent OUTPUT — the canonical case in `references/dcf-protocol.md` Known Failure Mode appendix had Y1 modeled FCFF margin around -4% vs actual/guided around +20% despite the input assumptions reading reasonably. **Forecast-output review reads the generated forecast lines and asks whether they are externally coherent**, not just whether the assumptions are.
+
+**Dispatch payload differences (vs Mode A):**
+
+```
+Persona to embody: <financial-econ persona matched to the engine + sector; see persona table>
+Company: <name + ticker>
+Specific question: "Are the modeled forecast outputs internally coherent and externally credible against observed economics?"
+
+INPUT ASSUMPTIONS (from dcf-state.assumptions + growth_engine):
+  Growth engine: <type + forecast_method + rationale one-liner>
+  Mature anchors (engine-specific, all 5 scenarios): <table>
+  WACC: <composed / used>
+  Maintenance-only FCFF margin: <per scenario>
+
+OUTPUT FORECAST (from dcf-state.forecast — the GENERATED lines):
+  Y1: revenue $X, NOPAT $Y, FCFF $Z, FCFF margin <%>, cash conversion <%>
+  Y2: ...
+  Y3: ...
+  Y10: revenue $X, NOPAT $Y, FCFF $Z, FCFF margin <%>
+  Maturity: revenue $X, FCFF $Z, FCFF margin <%>
+
+OBSERVED REALITY (from data_snapshot + cash_reality_check.comparable):
+  Y0 actual revenue $X, NOPAT $Y, FCFF $Z, FCFF margin <%>
+  Y1 management guided FCFF margin <%> (back-solved from disclosed components)
+  3-yr trailing cash conversion <%>
+
+TERMINAL VALUE share of EV: <%>
+Implied entry multiples (economic basis at base intrinsic value):
+  EV/FY-next EBIT: X×    (peer-normalized median: Y×)
+  EV/FY-next FCFF: X×    (peer-normalized median: Y×)
+  P/FY-next E:      X×    (peer-normalized median: Y×)
+
+CASH-REALITY CHECK RESULT:
+  Comparable bar (tighter): <%>
+  Y1 modeled FCFF margin per scenario + delta_bp vs bar: <table>
+  Y2-Y3 avg modeled FCFF margin per scenario + delta_bp vs bar: <table>
+  Halt-triggered scenarios: <list>
+  Override mechanisms logged: <list>
+
+CONCERN TRIGGERS THAT FIRED (motivating this dispatch): <list>
+
+Question to expert (verbatim): "<one-paragraph framing>"
+```
+
+The expert reads BOTH assumptions AND generated outputs. The question is forward-looking but anchored on output coherence.
+
+### Persona Selection in Mode B
+
+Same persona table as Mode A, but emphasize the persona's expected familiarity with **forward-looking margin trajectories + analyst-modeling conventions** for the company's specific growth engine. Example:
+
+| Engine | Mode B persona |
+|--------|----------------|
+| opex_funded SaaS | Sell-side analyst with published Y1-Y3 SaaS-margin models + ex-FP&A at a comparable SaaS company who knows what guidance translates to under real-world execution |
+| capex_funded retail | Retail-equity sell-side analyst + ex-store-economics consultant who has built unit-economics models |
+| acquisition_funded | M&A-focused buy-side PM + ex-corp-dev lead at a serial acquirer (knows what M&A pace assumption is realistic) |
+| mature_cash_cow | Dividend-focused buy-side PM + ex-CFO at a slow-growth staple |
+| mixed_engine | Senior generalist with sum-of-the-parts modeling track record |
+
+### Output Format in Mode B
+
+Same overall structure as Mode A, but the substance focuses on the FORECAST LINES, not the assumptions in isolation:
+
+```markdown
+**Expert persona**: <persona, one line>
+
+**Position**: <one-paragraph direct answer on whether the forecast outputs are coherent + credible>
+
+**Where the forecast lines hold**:
+- <bullet — specific output line + why it's defensible>
+
+**Where the forecast lines break against reality**:
+- <bullet — specific line + the actual/guided comparable + the gap + why the gap matters>
+
+**Internal coherence checks**:
+- <bullet — e.g., "Y10 FCFF margin 32% sits 700bp above any peer mature margin — what structural change supports that?" or "Cash conversion ratio improves from 92% to 105% over Y5 — implies negative working capital expansion; is the underlying model consistent?">
+
+**Terminal-stage diagnostic**:
+- <bullet — terminal share of EV implications, mature reinvestment-rate × ROIC reconciliation>
+
+**Implied-multiple sanity**:
+- <bullet — what the entry multiples say about the consistency of revenue / margin / discount-rate stack>
+
+**Confidence**: <expert register>
+
+**Recommended next moves** (per same framing rule as Mode A — revise specific numbers, or strengthen bear; no haircut):
+- <bullet>
+```
+
+### Crucial Framing Rule (Mode B inherits from Mode A)
+
+Same: revise specific numbers OR strengthen bear. Never haircut. Never carry a parallel "conservative alternative DCF."
+
 ## Time Budget
 
 3-4 minutes per dispatch. Tight. If a longer answer is genuinely needed, structure rather than expand.
 
 ## Logging
 
-Main thread saves your output to `~/.investing/companies/<TICKER>/<DATE>/dcf-expert-opinions.md`, appending each opinion with timestamp + persona + question. You don't write to this file.
+Main thread saves your output to `~/.investing/companies/<TICKER>/<DATE>/dcf-expert-opinions.md`, appending each opinion with timestamp + persona + question + **dispatch mode (Mode A assumption-review OR Mode B forecast-output-review)**. You don't write to this file.

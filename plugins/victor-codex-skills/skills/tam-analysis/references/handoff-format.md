@@ -20,6 +20,8 @@ Speculative layers tagged explicitly. Bear column shows zero for speculative lay
 
 ## B. Headline Numbers
 
+**Revenue basis**: `<reported | economic_adjusted>`. If `economic_adjusted`, one-line bridge summary (e.g., "stripped $250M ad-fund pass-through; reported $467M → economic $217M"). If `reported`, line reads "no adjustments — reported = economic." Full bridge in `state.json` `economic_bridge.revenue_side`. All revenue figures below are on the stated basis.
+
 ```
 Revenue at maturity, today's $:
   Bear:  $X     (absolute worst plausible)
@@ -94,17 +96,17 @@ For each layer beyond core, name the asset-backed wedge that makes the layer cre
 
 Speculative adjacencies must include the **capability or asset forming today** (not "could plausibly enter X").
 
-## F. Three-Error Check
+## F. Pre-Emit Checks
 
 Before emitting the hand-off block, confirm:
 
-1. **Did we pass the Fermi output through as actual revenue at maturity, or silently haircut it further?** ✅ / ❌
-2. **Did we account for real pricing power AND inflation separately?** ✅ / ❌
-3. **Do the declared per-scenario CAGRs match the layer activation schedule?** Layers activating Y4+ with ≥15% endpoint contribution require elevated CAGRs in their activation/peak-contribution period; scenarios with no late activator require monotonically decreasing post-Y3 CAGRs. ✅ / ❌
-4. **Does the output contain exactly ONE bear, ONE low, ONE base, ONE high, ONE bull — with no parallel "alternative haircut base", "analyst-conservative base", or other duplicate scenarios?** ✅ / ❌
-5. **Scenario monotonicity**: `bear < low < base < high < bull` for `revenue_at_maturity_today_$` and for per-layer `layer_revenue_at_maturity_today_$`. ✅ / ❌
+1. **Single set of scenarios, no silent haircut.** Output contains exactly ONE bear, ONE low, ONE base, ONE high, ONE bull. No parallel "alternative haircut base", "analyst-conservative base", or duplicate scenarios. Fermi output passes through as actual revenue at maturity — no silent reduction. If an expert review pushed numbers down and the user accepted, the old numbers are removed from `handoff.md` (live in `state.json` history only). ✅ / ❌
+2. **Real pricing power and inflation accounted for separately.** ✅ / ❌
+3. **Per-scenario CAGRs match the layer activation schedule.** Layers activating Y4+ with ≥15% endpoint contribution require elevated CAGRs in their activation/peak-contribution period; scenarios with no late activator require monotonically decreasing post-Y3 CAGRs. ✅ / ❌
+4. **Scenario monotonicity**: `bear < low < base < high < bull` for `revenue_at_maturity_today_$` and per-layer `layer_revenue_at_maturity_today_$`. ✅ / ❌
+5. **Revenue hygiene check completed (Step 1)**: `economic_bridge.revenue_side.audit_status == "completed"`. `basis_used_in_layers` populated. If `economic_adjusted`, bridge table non-empty and rationale-cited. If `reported`, audit ran and found no quirks (not skipped). ✅ / ❌
 
-All five must pass. If any fails, fix the underlying model first, re-run math-checker, then re-emit. For check #4 specifically: if an expert review pushed the base down and the user accepted, the layer numbers must be updated in `state.json` and the old numbers removed from `handoff.md` — never both preserved.
+All five must pass. If any fails, fix the underlying model first, re-run math-checker, then re-emit. If the audit was skipped, halt and run Step 1 before re-emitting.
 
 ## G. Hand-Off Block (DCF Input)
 
@@ -121,6 +123,11 @@ Maturity year (hand-off horizon): Y<N>
 Last reported revenue (Y0, today's $): $<X>
 Last reported YoY growth: <%>
 (Y0 base + Y0 growth anchor the derived annual revenue series interpolation.)
+
+Revenue basis: <reported | economic_adjusted>
+Economic bridge summary: <one line — e.g., "stripped $250M ad-fund pass-through; reported $467M → economic $217M" — OR "no adjustments — reported = economic">
+Full bridge: <absolute path to state.json> .economic_bridge.revenue_side
+(All revenue figures above and below are on the stated basis. Downstream DCF must apply margin assumptions on the same basis. If economic_adjusted, the DCF normalizes peer benchmarks the same way at /tam-dcf Step 1.5 + Step 2.)
 
 Revenue at maturity, today's $ (bear / low / base / high / bull): <X> / <Y> / <Z> / <W> / <V>
 Revenue at maturity, nominal $ at Y<N> (bear / low / base / high / bull): <X> / <Y> / <Z> / <W> / <V>
@@ -231,6 +238,7 @@ Run the math-checker one last time before saving `handoff.md`:
 - Speculative layers zero in bear.
 - Hand-off contains exactly one bear, one low, one base, one high, one bull. No parallel "alternative haircut base" or duplicate scenarios anywhere in the document. If math-checker finds two distinct base totals, fail the check and force resolution.
 - Per-layer `activation_schedule` populated for every layer. If any layer is missing the schedule, the layer-schedule consistency check cannot run — halt.
+- **Revenue hygiene check completed**: `economic_bridge.revenue_side.audit_status == "completed"` and `basis_used_in_layers` populated. Hand-off block carries the `revenue_basis` field and the bridge summary. If absent, halt and run Step 1.
 
 Math-checker writes its validation report to `~/.investing/companies/<TICKER>/<DATE>/.math-check.log`. Reference it in `handoff.md` footer.
 

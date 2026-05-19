@@ -50,24 +50,9 @@ Output path: <absolute path to write .math-check.log>
 
 Validate: `pool_at_maturity = pool_today × Π (1 + driver_CAGR) over horizon years`, per period if driver CAGRs differ by period.
 
-```python
-def compound(value_today, cagrs_by_period, horizon):
-    # cagrs_by_period: {"y1_3": 0.03, "y4_5": 0.02, "y6_10": 0.015, "y11_20": 0.01, "y21_maturity": 0.005}
-    # horizon: integer years
-    value = value_today
-    period_years = {"y1_3": 3, "y4_5": 2, "y6_10": 5, "y11_20": 10, "y21_maturity": None}
-    years_used = 0
-    for period, cagr in cagrs_by_period.items():
-        years_in_period = period_years[period] if period_years[period] else max(0, horizon - years_used)
-        years_in_period = min(years_in_period, horizon - years_used)
-        value *= (1 + cagr) ** years_in_period
-        years_used += years_in_period
-        if years_used >= horizon:
-            break
-    return value
-```
+Compounding recipe: walk each period's CAGR over its allotted years, multiplying the running value. Period definitions: `y1_3` = years 1-3 (3 years), `y4_5` = years 4-5 (2 years), `y6_10` = years 6-10 (5 years), `y11_20` = years 11-20 (10 years), `y21_maturity` = years 21..maturity (variable). Cap at the horizon year if shorter than the full period span.
 
-When multiple drivers compound multiplicatively (population × per-capita × structural shift), compute each driver's compounded factor and multiply together. Verify against the state's `pool_at_maturity.value`.
+When multiple drivers compound multiplicatively (population × per-capita × structural shift), compute each driver's compounded factor and multiply together. Verify against the state's `pool_at_maturity.value` within 2% tolerance.
 
 ### Layer Multiplication
 
@@ -89,213 +74,28 @@ Validate:
 
 2. **Real → nominal at hand-off horizon**: `aggregated.revenue_at_maturity_nominal = aggregated.revenue_at_maturity_today_$ × (1 + inflation) ** hand_off_horizon_years`. Cross-check against per-layer nominal contributions at the hand-off horizon (must reconcile to ±1% allowing for rounding).
 
-3. **Per-layer contribution at hand-off horizon**: for each layer, contribution = mature revenue if layer_maturity ≤ hand_off_horizon, else still-ramping projection at hand_off_horizon. Verify.
+3. **Per-layer contribution at hand-off horizon**: for each layer, contribution = mature revenue if `layer_maturity ≤ hand_off_horizon`, else still-ramping projection at hand_off_horizon. Verify.
 
 4. **Y1-3 guidance anchor test.** Verify the **base** scenario's Y1-3 CAGR is within ±3pp of `aggregated.y1_3_guidance_anchor.midpoint`, OR carries an `override_reason`. The other scenarios (bear / low / high / bull) are not tolerance-checked against guidance — they take reasoned spreads from base, each with its own `override_reason` describing the bear-mechanism / bull-adjacency intensity. The anchor itself must exist — if `y1_3_guidance_anchor` is missing, halt and prompt main thread to dispatch anchor-researcher for it.
 
-   ```python
-   def y1_3_anchor_test(period_cagrs_per_scenario, guidance_anchor, override_reasons):
-       # guidance_anchor: {"midpoint": float, "range": [float, float], "consensus_midpoint": float}
-       # override_reasons: {scenario: str | None} — per-scenario logged mechanism (None if not logged)
-       results = {}
-       midpoint = guidance_anchor["midpoint"]
-       for scenario in ("bear", "low", "base", "high", "bull"):
-           pick = period_cagrs_per_scenario[scenario]["y1_3"]
-           delta_pp = (pick - midpoint) * 100
-           if scenario == "base":
-               status = "passed" if abs(delta_pp) <= 3.0 else (
-                   "override" if override_reasons.get("base") else "failed"
-               )
-           else:
-               # Non-base scenarios: not tolerance-checked vs guidance.
-               # MUST carry an override_reason describing the bear-mechanism /
-               # bull-adjacency intensity that drives the spread from base.
-               status = "passed" if override_reasons.get(scenario) else "failed"
-           results[scenario] = {
-               "pick": pick,
-               "guidance_midpoint": midpoint,
-               "delta_pp": delta_pp,
-               "override_reason": override_reasons.get(scenario),
-               "status": status,
-           }
-       return results
-   ```
-
-   Base out-of-tolerance without override → FAIL. Non-base scenario without `override_reason` → FAIL.
+   Pass conditions: base within ±3pp = PASS; base outside ±3pp WITH `override_reason` = OVERRIDE (passes); base outside ±3pp WITHOUT override = FAIL. Non-base scenarios MUST carry an `override_reason` describing the bear-mechanism / bull-adjacency intensity that drives the spread from base — FAIL without it.
 
 5. **Hand-off contract test**: per-scenario declared CAGRs compound to per-scenario endpoint within 2%.
 
-   ```python
-   def handoff_contract_test(rev_y0, period_cagrs_per_scenario, scenario_endpoints, maturity_year):
-       period_years = {"y1_3": 3, "y4_5": 2, "y6_10": 5, "y11_20": 10, "y21_maturity": max(0, maturity_year - 20)}
-       results = {}
-       for scenario in ("bear", "low", "base", "high", "bull"):
-           compounded = rev_y0
-           for period, years in period_years.items():
-               compounded *= (1 + period_cagrs_per_scenario[scenario][period]) ** years
-           stated = scenario_endpoints[scenario]
-           delta_pct = abs(compounded - stated) / stated
-           results[scenario] = {
-               "compounded_endpoint": compounded,
-               "stated_endpoint": stated,
-               "delta_pct": delta_pct,
-               "status": "passed" if delta_pct < 0.02 else "failed",
-           }
-       return results
-   ```
-
-   Run for all 5 scenarios independently. Save results to `aggregated.handoff_contract_test`. FAIL if any scenario exceeds 2%.
+   For each scenario, compound Y0 revenue through the 5 periods using the stated period CAGRs, compare to `aggregated.revenue_at_maturity_today_$[scenario]`. If `|compounded - stated| / stated > 0.02`, FAIL. Save results to `aggregated.handoff_contract_test`. **No silent rescaling.**
 
 6. **Layer-schedule consistency test.** For each scenario, verify the declared period CAGRs are compatible with the per-layer activation schedule. Two checks:
 
    - **Late-activator check**: a layer activating in period P contributing ≥15% of scenario endpoint requires the CAGR in P (and in the period containing `peak_contribution_year`) to be ≥ Y1-3 CAGR − 1pp. Otherwise the layer is invisible in the path.
    - **Smooth-fade check**: if NO layer activates after Y3 contributing ≥15% of scenario endpoint, post-Y3 CAGRs (Y4-5, Y6-10, Y11-20, Y21-maturity) must be monotonically non-increasing.
 
-   ```python
-   PERIODS = {"y1_3": (1, 3), "y4_5": (4, 5), "y6_10": (6, 10), "y11_20": (11, 20), "y21_maturity": (21, None)}
-   PERIOD_ORDER = ["y1_3", "y4_5", "y6_10", "y11_20", "y21_maturity"]
+   For bear scenario, speculative layers contribute zero — skip them in the contribution check. Save violations to `aggregated.layer_schedule_consistency_test`. Surface to main thread for user resolution (revise CAGRs, revise layer contributions, or name an offsetting mechanism).
 
-   def period_containing(year, maturity_year):
-       for period, (start, end) in PERIODS.items():
-           end_eff = end if end is not None else maturity_year
-           if start <= year <= end_eff:
-               return period
-       return None
-
-   def layer_schedule_consistency(scenario, period_cagrs, layers, scenario_endpoint, maturity_year):
-       violations = []
-       late_activator_present = False
-       for layer in layers:
-           if scenario == "bear" and layer.get("speculative"):
-               continue  # speculative layers off in bear
-           sched = layer["activation_schedule"]
-           act = sched["activation_year"]
-           peak = sched["peak_contribution_year"]
-           contrib = layer["layer_revenue_at_maturity_today_$"][scenario] / scenario_endpoint
-           if contrib < 0.15:
-               continue
-           if act >= 4:
-               late_activator_present = True
-           for y in (act, peak):
-               p = period_containing(y, maturity_year)
-               if p in (None, "y1_3"):
-                   continue
-               if period_cagrs[p] < period_cagrs["y1_3"] - 0.01:
-                   violations.append({
-                       "layer": layer["id"],
-                       "scenario": scenario,
-                       "issue": (
-                           f"Layer activates/peaks in {p} contributing {contrib:.0%} of endpoint, "
-                           f"but {p} CAGR ({period_cagrs[p]:.1%}) is below Y1-3 CAGR "
-                           f"({period_cagrs['y1_3']:.1%}) − 1pp. Layer is invisible in the growth path."
-                       ),
-                   })
-       if not late_activator_present:
-           for i, p in enumerate(PERIOD_ORDER[1:-1], start=1):
-               prev = PERIOD_ORDER[i - 1]
-               if period_cagrs[p] > period_cagrs[prev] + 0.005:
-                   violations.append({
-                       "scenario": scenario,
-                       "issue": (
-                           f"No layer activates after Y3 with ≥15% contribution, but {p} CAGR "
-                           f"({period_cagrs[p]:.1%}) > {prev} CAGR ({period_cagrs[prev]:.1%}). "
-                           f"Path requires monotone fade — declared CAGRs declare elevation with no layer behind it."
-                       ),
-                   })
-       return violations
-   ```
-
-   Save to `aggregated.layer_schedule_consistency_test`. Surface violations to main thread for user resolution (revise CAGRs, revise layer contributions, or name an offsetting mechanism).
-
-   Speculative layers: `layer_revenue_at_maturity_today_$.bear == 0` is a hard rule (validated separately). For low/base/high/bull, the speculative layer's contribution is whatever the per-layer analysis produced — no top-down weighting.
-
-7. **Scenario monotonicity test.** Verify `bear < low < base < high < bull` for `aggregated.revenue_at_maturity_today_$` AND for each layer's `layer_revenue_at_maturity_today_$`. Strict inequalities (equality allowed only with a logged justification — e.g., layer is genuinely scenario-insensitive on that boundary, rare).
-
-   ```python
-   def scenario_monotonicity_test(layers, aggregated):
-       order = ["bear", "low", "base", "high", "bull"]
-       violations = []
-       # Aggregated check
-       agg = aggregated["revenue_at_maturity_today_$"]
-       for i in range(len(order) - 1):
-           if agg[order[i]] >= agg[order[i + 1]]:
-               violations.append({
-                   "scope": "aggregated",
-                   "issue": f"{order[i]} ({agg[order[i]]:.3g}) >= {order[i+1]} ({agg[order[i+1]]:.3g})",
-               })
-       # Per-layer check
-       for layer in layers:
-           rev = layer["layer_revenue_at_maturity_today_$"]
-           # Speculative layer: bear == 0 is hard rule, skip strict-monotonicity check on bear→low if low > 0.
-           start_idx = 1 if layer.get("speculative") and rev["bear"] == 0 else 0
-           for i in range(start_idx, len(order) - 1):
-               if rev[order[i]] >= rev[order[i + 1]]:
-                   violations.append({
-                       "scope": f"layer:{layer['id']}",
-                       "issue": f"{order[i]} ({rev[order[i]]:.3g}) >= {order[i+1]} ({rev[order[i+1]]:.3g})",
-                   })
-       return {"status": "passed" if not violations else "failed", "violations": violations}
-   ```
-
-   Save to `aggregated.scenario_monotonicity_test`. FAIL if any violation. Speculative layers separately satisfy `bear == 0`.
+7. **Scenario monotonicity test.** Verify `bear < low < base < high < bull` strictly for `aggregated.revenue_at_maturity_today_$` AND for each layer's `layer_revenue_at_maturity_today_$`. For speculative layers, skip the `bear → low` strict-inequality check (bear == 0 is a separate hard rule; the strict check resumes at `low → base → high → bull`). Equality on non-speculative scenarios allowed only with a logged justification. Save to `aggregated.scenario_monotonicity_test`.
 
 8. **Annual revenue series derivation.** For each scenario, derive the annual series via linear interpolation in growth-rate space, anchored on `aggregated.last_reported_yoy_growth` at Y0, with per-period renormalization to honor each stated CAGR exactly.
 
-   ```python
-   def interpolate_linear(anchors, x):
-       # anchors: dict {x_position: rate}; linear interp between adjacent anchors
-       xs = sorted(anchors.keys())
-       if x <= xs[0]:
-           return anchors[xs[0]]
-       if x >= xs[-1]:
-           return anchors[xs[-1]]
-       for i in range(len(xs) - 1):
-           if xs[i] <= x <= xs[i + 1]:
-               t = (x - xs[i]) / (xs[i + 1] - xs[i])
-               return anchors[xs[i]] * (1 - t) + anchors[xs[i + 1]] * t
-
-   def renormalize_periods(series, period_cagrs, maturity_year):
-       # For each period, scale the within-period rates by a constant factor
-       # so that (series[end] / series[start]) ** (1 / years) - 1 == stated_cagr.
-       period_bounds = [("y1_3", 0, 3), ("y4_5", 3, 5), ("y6_10", 5, 10),
-                        ("y11_20", 10, 20), ("y21_maturity", 20, maturity_year)]
-       adjusted = list(series)
-       for period, start, end in period_bounds:
-           if end > maturity_year:
-               end = maturity_year
-           if start >= end:
-               continue
-           target_ratio = (1 + period_cagrs[period]) ** (end - start)
-           current_ratio = adjusted[end] / adjusted[start]
-           scale_factor = target_ratio / current_ratio
-           per_year_scale = scale_factor ** (1 / (end - start))
-           # apply compounding adjustment, preserving series[start]
-           running = adjusted[start]
-           for y in range(start + 1, end + 1):
-               raw_growth = adjusted[y] / adjusted[y - 1] - 1
-               adjusted_growth = (1 + raw_growth) * per_year_scale - 1
-               running *= (1 + adjusted_growth)
-               adjusted[y] = running
-       return adjusted
-
-   def annual_series_from_period_cagrs(rev_y0, last_year_growth, period_cagrs, maturity_year):
-       anchors = {
-           0: last_year_growth,
-           2: period_cagrs["y1_3"],
-           4.5: period_cagrs["y4_5"],
-           8: period_cagrs["y6_10"],
-           15.5: period_cagrs["y11_20"],
-           (21 + maturity_year) / 2: period_cagrs["y21_maturity"],
-       }
-       series = [rev_y0]
-       for y in range(1, maturity_year + 1):
-           g = interpolate_linear(anchors, y)
-           series.append(series[-1] * (1 + g))
-       series = renormalize_periods(series, period_cagrs, maturity_year)
-       return series
-   ```
-
-   Run per scenario. Save results to `aggregated.annual_revenue_today_$_per_scenario` with a `_provenance` key noting the series is derived and regenerable from the CAGRs.
+   Recipe: interpolate linearly between rate-anchors placed at the midpoints of each period (Y0 = `last_reported_yoy_growth`, Y2 = Y1-3 CAGR, Y4.5 = Y4-5 CAGR, Y8 = Y6-10 CAGR, Y15.5 = Y11-20 CAGR, Y(21+maturity)/2 = Y21-maturity CAGR). Build the year-by-year series by compounding the interpolated rate. Renormalize each period so the within-period compounded ratio equals `(1 + period_cagr)^period_years` exactly. Save to `aggregated.annual_revenue_today_$_per_scenario` with a `_provenance` key noting the series is derived and regenerable from the CAGRs.
 
 9. **Precedent flag** (informational, not blocking). For the bull scenario, if any period's CAGR exceeds the empirical 95th-percentile threshold for the company's starting revenue scale, FLAG (do not fail):
 
@@ -311,10 +111,10 @@ Validate:
 
 10. **Speculative-bear-zero check**: any layer with `speculative: true` must satisfy `layer_revenue_at_maturity_today_$.bear == 0`. Hard rule. FAIL if violated.
 
-11. **Three-error check** (also surfaced in handoff):
-    - Headline numbers reconcile to layer table (no silent haircut).
+11. **Pre-emit checks** (also surfaced in handoff):
+    - Headline numbers reconcile to layer table (no silent haircut, no parallel base).
     - Real and inflation accounted for separately (no double-apply).
-    - Declared per-scenario CAGRs are consistent with the layer activation schedule (verified by `layer_schedule_consistency_test`).
+    - Declared per-scenario CAGRs consistent with the layer activation schedule (per #6).
 
 12. **Single-base check**: scan `state.json` and any draft hand-off for the presence of two distinct base totals. If found, FAIL.
 
@@ -353,6 +153,27 @@ log_path: <absolute path to .math-check.log>
 ```
 
 If `failed`, the main thread will surface the discrepancy to the user before continuing. Do not proceed past a failure silently.
+
+## Disagreement Resolution Path
+
+When the user disagrees with a math-checker FAIL — usually because they believe the math-checker is being too strict, the precedent is wrong, or there's a mechanism the check doesn't see — there are exactly **three** resolution paths:
+
+1. **Revise the state.** User changes the underlying anchor / CAGR / scenario number that caused the violation. Math-checker re-runs on the revised state. New result stands.
+2. **Logged override.** User insists the math is acceptable as-is. Required logging:
+   - Entry in `sources.md` keyed by the failed check name (e.g., `src_math_check_override_y1_3_anchor_bear_2026_05_19`).
+   - Mechanism statement: free-text, specific. Example: "Bear Y1-3 CAGR -2pp below guidance midpoint is intended — bear scenario assumes full bear-mechanism materialization in FY2026 cutting growth temporarily, recovers Y3+."
+   - `aggregated.<check_name>.override` field in state.json with the source_id reference.
+   - Without all three (sources entry + mechanism statement + state.json field), the override is NOT considered logged and downstream emission halts.
+3. **Halt the analysis.** User cannot resolve. Skill stops, surfaces "math-checker FAIL unresolved" to the user. `current_step` stays at the failed check; resume re-runs the check.
+
+**The path applies asymmetrically:**
+
+- **Arithmetic violations** (compounded value ≠ stated endpoint, monotonicity violation, real ≠ nominal × inflation, hand-off CAGRs compound to wrong endpoint): the math is unambiguous. User cannot reject the math itself, only the state. So the available resolution is (1) revise state OR (2) log override with mechanism (acknowledging that downstream consumers will see the inconsistency) OR (3) halt.
+- **Precedent flags** (informational — "your share assumption exceeds historical max by X%"): the math holds; the flag is editorial. User can reject the flag with a one-line rationale logged as override; downstream proceeds. These never halt by themselves.
+
+The distinction matters: an arithmetic FAIL means the numbers are internally inconsistent. A precedent flag means they're internally consistent but historically aggressive.
+
+**Without an explicit override path**, a math-checker FAIL is sticky. `current_step` does NOT advance past the failed check. The next session resuming the analysis re-runs the check and re-surfaces the failure. This is intentional — math discrepancies should not erode silently across sessions.
 
 ## What Not to Do
 

@@ -97,9 +97,37 @@ First message of every fresh session. Confirm the following before proposing any
 
 **Do NOT pick the maturity horizon here.** Horizon is proposed at the END, after all layers and per-layer maturities are known.
 
-After confirmation, propose the layer structure adapted to the business model — see `references/layer-protocols.md`. Wait for user approval before starting Layer 1.
+## Step 1 — Revenue Hygiene Check
 
-## Step 0.5 — Speculative Layer Proposal
+Before the layer build anchors on reported Y0 revenue, audit the income statement for accounting-economic divergence on the **revenue side**. Reported revenue is a lossy compression — pass-through lines, gross-up presentation, one-time receipts, and captive-segment flows can inflate the base relative to its economic value to shareholders. Anchoring every downstream layer's pool-sizing and per-scenario CAGR on a polluted Y0 corrupts the entire build.
+
+Walk the audit checklist:
+
+| Pattern | What to look for | Canonical example |
+|---------|------------------|-------------------|
+| Pass-through revenue | Ad funds, agency reimbursements, marketing co-ops, billing pass-throughs collected at near-zero net margin | Wingstop ad fund (~5-10% of reported revenue, zero shareholder value) |
+| Gross-up vs net (ASC 606) | Reseller markup, distributor pass-through, white-label arrangements where economic substance is agent-basis | Travel-booking GMV reported as revenue |
+| One-time / non-recurring | Divestiture proceeds, litigation settlements, contract terminations counted in topline | Restructuring gains in revenue |
+| Captive / internal | Sales to consolidated subsidiaries presented as external | Conglomerate intra-segment sales |
+
+For each candidate:
+
+1. Dispatch anchor-researcher for the latest 10-K / 20-F revenue-recognition policy and segment disclosure.
+2. Propose treatment to user:
+   - **STRIP** — zero economic value, exclude from Y0 anchor and downstream pool math.
+   - **KEEP** — legit revenue, no adjustment (audit found no quirk).
+   - **SEGMENT** — model as its own layer with its own pool + monetization (the quirk is its own sub-business).
+3. User confirms per item. Log adjustment + rationale in `sources.md`.
+
+Save to `state.json` under `economic_bridge.revenue_side` (schema in `references/state-schema.md`). The Y0 anchor for layer pool-sizing and per-scenario CAGR construction uses **economic** revenue going forward. Reported stays as audit trail. The hand-off block (section G) emits a `revenue_basis` field so the downstream DCF consumes the matching basis.
+
+**Clean case**: if no quirks surface (typical SaaS, typical manufacturer), the bridge is a one-line "no adjustments — reported = economic" and the build proceeds.
+
+**Pushback**:
+- Push back if user wants to STRIP without a named mechanism. Symmetric to the layer-anchor pushback — silent stripping is as dangerous as silent inclusion.
+- Push back if user wants to KEEP an obvious WING-shaped pass-through. Force the mechanism for why it's economically real.
+
+## Step 2 — Speculative Layer Proposal
 
 Before walking the layers, surface speculative adjacency candidates from the Step 0 wedge inventory. The skill proposes a list of 2-4 candidates; user picks which (if any) to include, can add their own, can include multiple.
 
@@ -111,6 +139,8 @@ Each candidate must include:
 Tag accepted speculative layers as `speculative: true` in `state.json`. They get priced conservatively in base, generously in bull, **zero in bear**.
 
 This is the slot that catches the "core retailer building datacenters for itself → cloud-services business" pattern. The skill must surface at least one candidate even when the user doesn't ask.
+
+After Step 0, Step 1, and Step 2 are confirmed, propose the layer structure adapted to the business model — see `references/layer-protocols.md`. Wait for user approval before starting Layer 1.
 
 ## Per-Layer Protocol
 
@@ -161,8 +191,6 @@ When the user picks a number outside the cited source range — too high OR too 
 Accept the user's number after they name a mechanism. Log the mechanism in `sources.md` next to the override. Same pattern when user is too low — silent conservatism is the more common failure on growth-stock TAMs.
 
 ## No Magic Haircuts — Disagreement Must Land in the Numbers
-
-**Hard rule. Read it once, follow it always.**
 
 When a domain-expert subagent (or an analyst review) disagrees with the bottom-up base case, the disagreement MUST be resolved in one of three ways, never as a parallel "haircut scenario" living alongside the base:
 
@@ -234,7 +262,7 @@ Save to `handoff.md`. Structure:
 - **C. Dominant Fermi drivers** — the 2-3 inputs that move the answer most.
 - **D. Growth path declaration** — per-scenario period CAGRs (5 rows: bear/low/base/high/bull) for Y1-3 / Y4-5 / Y6-10 / Y11-20 / Y21-maturity. Y1-3 base anchored on management guidance + consensus. Per-scenario growth shape labels (stay-elevated / smooth-fade / front-loaded / back-loaded). Layer activation schedule listed alongside for the consistency check.
 - **E. Scenario mechanisms** — bear (absolute worst: substitution / commoditization / disintermediation / regulatory / value-pool-migration / customer-insourcing path); low (which elements of the bear mechanism partially materialize); high (which bull adjacencies partially realize); bull (each adjacency named with its asset-backed wedge).
-- **F. Three-error check** — did we silently haircut? real-vs-nominal accounted for separately? do declared CAGRs match the layer activation schedule (layer-schedule consistency)? Plus monotonicity (bear < low < base < high < bull) and speculative-bear-zero. Fix before emitting hand-off.
+- **F. Pre-emit checks** — single scenario set (no silent haircut, no parallel base); real-vs-nominal separated; declared CAGRs match layer activation schedule; monotonicity `bear < low < base < high < bull`; speculative-bear-zero; revenue hygiene complete. Fix before emitting hand-off.
 - **G. Hand-off block** — the clean DCF-ingestible block. Exact format in `references/handoff-format.md`.
 
 Tell user: "Hand-off saved to `<path>/handoff.md`. Pass that block into your DCF prompt. Sources in `sources.md`, full transcript in `dialogue.md`. Want me to dispatch a final math-check?"
@@ -272,6 +300,7 @@ These hold for every turn:
 
 ## What Not to Do
 
+- Don't anchor the TAM on reported revenue without running Step 1 hygiene check. Pass-through lines, gross-up presentation, captive-segment flows must be surfaced and STRIPPED or KEPT (with named mechanism) — never silently inherited as economic. WING-shaped ad-fund inflation propagates 2x corruption through every downstream layer if missed.
 - Don't multiply pool × share × monetization × pricing until ALL layers are pool-sized. Early anchoring destroys discipline.
 - Don't pick scope for the user. Propose tight / plausible / aggressive; let them choose.
 - Don't apply inflation at intermediate steps. Real first, nominal last.
