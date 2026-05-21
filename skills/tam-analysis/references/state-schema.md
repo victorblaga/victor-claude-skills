@@ -9,6 +9,8 @@ Files in `~/.investing/companies/<TICKER>/<YYYY-MM-DD>/`:
 
 The session can be reconstructed entirely from these four files.
 
+**Unit convention.** All aggregated revenue, period CAGRs, and the annual series are stored and emitted in **nominal $**. Today's-$ values for per-layer sizing (pool, monetization-today, real-pricing fade, today's-$ at layer maturity) are retained inside the per-layer block for audit and dialogue but do NOT feed the aggregate contract or the downstream DCF. The per-layer inflation overlay rolls each layer's today's-$ at maturity to nominal at the hand-off horizon; the aggregate sums per-layer nominal at horizon.
+
 ## `state.json`
 
 ```json
@@ -19,7 +21,7 @@ The session can be reconstructed entirely from these four files.
     "exchange": "NASDAQ",
     "reporting_currency": "USD",
     "analysis_date": "2026-05-18",
-    "last_reported_revenue_today_$": 638000000000,
+    "last_reported_revenue_nominal_$": 638000000000,
     "geographic_footprint": "US (primary), international across 20+ markets",
     "product_footprint": "e-commerce (1P + 3P), cloud (AWS), advertising, subscription (Prime), grocery, devices"
   },
@@ -32,9 +34,9 @@ The session can be reconstructed entirely from these four files.
   "user_supplied_adjacencies": ["AWS-style cloud spin-out", "ad network on shopper data"],
   "economic_bridge": {
     "revenue_side": {
-      "reported_revenue_y0_today_$": 638000000000,
+      "reported_revenue_y0_nominal_$": 638000000000,
       "adjustments": [],
-      "economic_revenue_y0_today_$": 638000000000,
+      "economic_revenue_y0_nominal_$": 638000000000,
       "basis_used_in_layers": "reported",
       "audit_status": "completed",
       "audit_notes": "No accounting-economic divergence identified on revenue side. 10-K rev recognition policy confirms direct sale-to-consumer (1P) and marketplace facilitation (3P, presented net of seller share). No pass-through, no gross-up, no captive segment."
@@ -62,6 +64,7 @@ The session can be reconstructed entirely from these four files.
           "name": "us_population",
           "value": 335000000,
           "range": [330000000, 340000000],
+          "basis": "volume",
           "confidence": "high",
           "source_id": "src_us_census_2024",
           "user_confirmed": true,
@@ -71,6 +74,7 @@ The session can be reconstructed entirely from these four files.
           "name": "per_capita_online_retail_spend_today",
           "value": 4200,
           "range": [3800, 4600],
+          "basis": "today_dollar_snapshot",
           "confidence": "moderate",
           "source_id": "src_census_ecommerce_q4",
           "user_confirmed": true,
@@ -86,11 +90,12 @@ The session can be reconstructed entirely from these four files.
       "pool_at_maturity": {
         "year": "Y15",
         "value": 2100000000000,
+        "_basis_note": "pool_at_maturity.value is in TODAY'S $ — driver CAGRs below MUST be real (volume / penetration / real-rate). Inflation overlay applied later, at multiplication sub-step 4, NOT inside pool projection.",
         "confidence": "moderate",
         "drivers": [
-          {"name": "population_growth", "cagr": 0.005, "source_id": "src_un_pop_proj"},
-          {"name": "per_capita_usage_shift", "cagr": 0.025, "source_id": "src_emarketer_ecommerce_2024"},
-          {"name": "online_share_of_retail_shift", "cagr": 0.015, "source_id": "..."}
+          {"name": "population_growth", "cagr": 0.005, "basis": "volume_rate", "source_id": "src_un_pop_proj"},
+          {"name": "per_capita_usage_shift_real", "cagr": 0.025, "basis": "real_rate", "basis_conversion_applied": true, "conversion_note": "eMarketer source reported 4.5% nominal; subtracted 2% USD inflation → 2.5% real. Today's-$ pool grows at real rate; nominal added at sub-step 4.", "source_id": "src_emarketer_ecommerce_2024"},
+          {"name": "online_share_of_retail_shift", "cagr": 0.015, "basis": "penetration_rate", "source_id": "..."}
         ]
       },
       "share": {
@@ -111,11 +116,28 @@ The session can be reconstructed entirely from these four files.
         "reason": "Cross-border buyers double-counted at the household level"
       },
       "layer_revenue_at_maturity_today_$": {
+        "_provenance": "Internal sizing artifact (today's purchasing power at the layer's own maturity year). Used inside per-layer multiplication; NOT part of the hand-off contract, NOT emitted to handoff.md. Lives in state.json only.",
         "bear": 110000000000,
         "low": 165000000000,
         "base": 220000000000,
         "high": 260000000000,
         "bull": 310000000000
+      },
+      "layer_revenue_at_maturity_nominal_$": {
+        "_provenance": "DERIVED intermediate. layer_revenue_at_maturity_today_$ × (1+inflation)^layer_maturity_year. Nominal at the LAYER's own maturity year. Internal artifact; not part of the contract. Used to validate per-layer monotonicity bear<low<base<high<bull at layer maturity.",
+        "bear": 147000000000,
+        "low": 220000000000,
+        "base": 295000000000,
+        "high": 348000000000,
+        "bull": 415000000000
+      },
+      "layer_revenue_at_horizon_nominal_$": {
+        "_provenance": "DERIVED. For layers maturing on/before the hand-off horizon: layer_revenue_at_maturity_today_$ × (1+inflation)^horizon_years (equivalent to layer_revenue_at_maturity_nominal_$ × (1+inflation)^(horizon - layer_maturity)). For layers maturing after horizon: still-ramping today's-$ projection at horizon × (1+inflation)^horizon. This is the unit that feeds AGGREGATION — sum across layers equals aggregated.revenue_at_maturity_nominal_$.",
+        "bear": 178000000000,
+        "low": 267000000000,
+        "base": 356000000000,
+        "high": 421000000000,
+        "bull": 502000000000
       },
       "activation_schedule": {
         "shared_across_scenarios": true,
@@ -133,18 +155,20 @@ The session can be reconstructed entirely from these four files.
     "rationale": "Speculative robotics layer matures Y25; sets the hand-off horizon."
   },
   "aggregated": {
-    "last_reported_revenue_today_$": 638000000000,
-    "last_reported_yoy_growth": 0.092,
+    "last_reported_revenue_nominal_$": 638000000000,
+    "last_reported_yoy_growth_nominal": 0.092,
+    "inflation_assumption": 0.02,
     "y1_3_guidance_anchor": {
       "midpoint": 0.095,
       "range": [0.085, 0.105],
+      "basis": "nominal_as_reported",
       "source_id": "src_company_guidance_2026",
       "consensus_midpoint": 0.093,
       "consensus_source_id": "src_consensus_2026"
     },
-    "revenue_at_maturity_today_$": {"bear": "...", "low": "...", "base": "...", "high": "...", "bull": "..."},
     "revenue_at_maturity_nominal_$": {"bear": "...", "low": "...", "base": "...", "high": "...", "bull": "..."},
     "growth_path_cagrs_per_scenario": {
+      "_basis": "nominal",
       "bear": {"y1_3": 0.04, "y4_5": 0.05, "y6_10": 0.05, "y11_20": 0.04, "y21_maturity": 0.02},
       "low":  {"y1_3": 0.07, "y4_5": 0.08, "y6_10": 0.08, "y11_20": 0.07, "y21_maturity": 0.04},
       "base": {"y1_3": 0.095, "y4_5": 0.105, "y6_10": 0.10, "y11_20": 0.09, "y21_maturity": 0.05},
@@ -165,8 +189,9 @@ The session can be reconstructed entirely from these four files.
       "high": 6,
       "bull": 8
     },
-    "annual_revenue_today_$_per_scenario": {
-      "_provenance": "DERIVED via linear interpolation in growth-rate space; anchored on last_reported_yoy_growth at Y0 and on period-CAGR midpoints. Period CAGRs are the contract; this series is regenerable.",
+    "annual_revenue_nominal_per_scenario": {
+      "_provenance": "DERIVED via linear interpolation in growth-rate space; anchored on last_reported_yoy_growth_nominal at Y0 nominal revenue and on nominal period-CAGR midpoints. Nominal period CAGRs are the contract; this series is regenerable.",
+      "_basis": "nominal",
       "bear": [638e9, 663e9, 690e9, "..."],
       "low":  [638e9, 682e9, 735e9, "..."],
       "base": [638e9, 698e9, 770e9, "..."],
@@ -175,7 +200,7 @@ The session can be reconstructed entirely from these four files.
     },
     "scenario_monotonicity_test": {
       "status": "passed",
-      "notes": "revenue_at_maturity_today_$ monotone: bear < low < base < high < bull. Same for layer_revenue_at_maturity_today_$ per layer."
+      "notes": "revenue_at_maturity_nominal_$ monotone: bear < low < base < high < bull. Same for layer_revenue_at_horizon_nominal_$ per layer."
     },
     "handoff_contract_test": {
       "bear": {"compounded_endpoint": 4.80e9, "stated_endpoint": 4.80e9, "delta_pct": 0.0, "status": "passed"},
@@ -197,6 +222,33 @@ The session can be reconstructed entirely from these four files.
       "base": {"status": "passed", "notes": "SP-A activates Y4 (contributes 18% of base endpoint); Y4-5 CAGR 10.5% > Y1-3 9.5% — consistent"},
       "high": {"status": "passed", "notes": "SP-A + SP-F both active; mid-cycle elevation traceable to both"},
       "bull": {"status": "passed", "notes": "SP-A activates Y4, SP-F activates Y6; Y6-10 elevation justified"}
+    },
+    "macro_sanity_test": {
+      "_provenance": "Results of math-checker check 9b. Per-scenario flags + user acknowledgments. Informational, not blocking — but each flagged item requires user ack logged in sources.md before hand-off emits.",
+      "endpoint_vs_global_gdp_horizon": {
+        "bear": {"pct_of_global_gdp": 0.0002, "flagged": false, "ack": null},
+        "base": {"pct_of_global_gdp": 0.0008, "flagged": false, "ack": null},
+        "bull": {"pct_of_global_gdp": 0.0015, "flagged": true, "ack": "0.15% of global GDP at horizon — justified by Agentforce paid work-unit thesis capturing X% of global enterprise labor budget; precedent: SAP+ORCL combined at peak captured ~0.3% of global GDP in late-90s."}
+      },
+      "endpoint_vs_us_gdp_horizon": {
+        "bear": {"pct_of_us_gdp": 0.0010, "flagged": false, "ack": null},
+        "bull": {"pct_of_us_gdp": 0.0075, "flagged": true, "ack": "..."}
+      },
+      "endpoint_vs_largest_cap_precedent": {
+        "bear": {"multiple": 0.06, "flagged": false},
+        "bull": {"multiple": 1.8, "flagged": false}
+      },
+      "per_layer_share_of_pool_horizon": {
+        "core_layer": {"bull_share_of_pool": 0.27, "flagged": false},
+        "agentic_layer": {"bull_share_of_pool": 0.10, "flagged": false}
+      },
+      "multi_decade_super_growth_at_scale": {
+        "base": {"flagged": false},
+        "bull": {"y6_10_cagr": 0.12, "y11_20_cagr": 0.06, "flagged": false}
+      },
+      "pool_implied_share_gain_cagr": {
+        "core_layer": {"pool_real_cagr": 0.04, "sector_real_growth": 0.025, "implied_share_gain": 0.015, "flagged": false}
+      }
     }
   },
   "pacing_mode": "per_anchor",
@@ -228,38 +280,39 @@ The session can be reconstructed entirely from these four files.
   - `horizon_proposed`
   - `handoff_emitted`
 - **`anchors[]`**: every confirmed anchor logged here, with `source_id` linking to `sources.md`. `user_confirmed: true` means the user accepted (after pushback if any). If user overrode the source range, `override_reason` is populated.
-- **`economic_bridge.revenue_side`**: results of Step 1 revenue hygiene audit. `reported_revenue_y0_today_$` and `economic_revenue_y0_today_$` together with `adjustments` form the bridge. `basis_used_in_layers` flags which figure downstream layer pool-sizing + per-scenario CAGR build uses (`reported` if no adjustments, `economic_adjusted` otherwise). Field consumed downstream by `/tam-dcf` via the hand-off block. Adjustment types: `pass_through_ad_fund`, `gross_up_reseller`, `gross_up_distributor`, `one_time_non_recurring`, `captive_intra_segment`. Treatments: `STRIP` (excluded from Y0), `KEEP` (no adjustment), `SEGMENT` (modeled as own layer in `layers[]`). `audit_status` is `completed` after Step 1 runs (regardless of whether adjustments were found); `pending` only at session start before Step 1.
+- **`economic_bridge.revenue_side`**: results of Step 1 revenue hygiene audit. `reported_revenue_y0_nominal_$` and `economic_revenue_y0_nominal_$` together with `adjustments` form the bridge. Y0 = today, so nominal $ at Y0 equals today's purchasing power $ trivially. `basis_used_in_layers` flags which figure downstream layer pool-sizing + per-scenario CAGR build uses (`reported` if no adjustments, `economic_adjusted` otherwise). Field consumed downstream by `/tam-dcf` via the hand-off block. Adjustment types: `pass_through_ad_fund`, `gross_up_reseller`, `gross_up_distributor`, `one_time_non_recurring`, `captive_intra_segment`. Treatments: `STRIP` (excluded from Y0), `KEEP` (no adjustment), `SEGMENT` (modeled as own layer in `layers[]`). `audit_status` is `completed` after Step 1 runs (regardless of whether adjustments were found); `pending` only at session start before Step 1.
 
   Worked example for a Wingstop-shaped company (advertising fund collected from franchisees, near-zero shareholder economic value):
 
   ```json
   "economic_bridge": {
     "revenue_side": {
-      "reported_revenue_y0_today_$": 467000000,
+      "reported_revenue_y0_nominal_$": 467000000,
       "adjustments": [
         {
           "type": "pass_through_ad_fund",
-          "amount_today_$": -250000000,
+          "amount_nominal_$": -250000000,
           "rationale": "Advertising fund revenue ($250M of $467M reported FY24). Franchisees contribute ~5.3% of sales to a marketing pool spent on national/local advertising; collected and disbursed at zero net margin to shareholders. Strip both the revenue and the offsetting marketing expense.",
           "treatment": "STRIP",
           "source_id": "src_wing_10k_fy24_segment_note_3",
           "user_confirmed": true
         }
       ],
-      "economic_revenue_y0_today_$": 217000000,
+      "economic_revenue_y0_nominal_$": 217000000,
       "basis_used_in_layers": "economic_adjusted",
       "audit_status": "completed"
     }
   }
   ```
 
-  Downstream consumption: Y0 anchor = $217M (not $467M); per-scenario CAGRs apply to the economic series; mature monetization at the franchise-royalty layer back-solves from $217M; peer comparisons in `/tam-dcf` Step 1.5 + Step 2 normalize peer revenue the same way.
+  Downstream consumption: Y0 nominal anchor = $217M (not $467M); per-scenario nominal CAGRs apply to the economic nominal series; mature monetization at the franchise-royalty layer back-solves from $217M; peer comparisons in `/tam-dcf` Step 1.5 + Step 2 normalize peer revenue the same way.
 - **Scenarios**: five — `bear`, `low`, `base`, `high`, `bull`. `bear` = absolute worst plausible (named bear mechanism fully materializes; speculative layers contribute zero by hard rule). `low` = realistic adverse ("things don't go very well" — partial bear-mechanism materialization). `base` = bottom-up evidence-weighted. `high` = realistic upside ("things go above base expectations" — partial bull-adjacency realization). `bull` = absolute best plausible (full bull adjacencies + named catalysts). Math-checker enforces monotonicity `bear < low < base < high < bull` for headline revenue and per-layer revenue.
 - **`activation_schedule`** (per layer): metadata describing when the layer contributes meaningful revenue (`activation_year`), the year of peak %-contribution to consolidated growth (`peak_contribution_year`), and the year the layer is mostly built out (`maturity_year`). This is **discipline metadata**, not a revenue-path generator — the consolidated growth path is declared per scenario via `aggregated.growth_path_cagrs_per_scenario`. The math-checker runs a `layer_schedule_consistency_test` that flags when the declared CAGRs are incompatible with the activation schedule (e.g., a layer activating Y4 with ≥15% contribution but Y4-5 CAGR < Y1-3 CAGR — layer would be invisible).
-- **`aggregated.last_reported_revenue_today_$`** + **`aggregated.last_reported_yoy_growth`**: today's actuals. Anchor the Y0 point of the derived annual revenue series. Must be cited (latest 10-K/20-F).
-- **`aggregated.y1_3_guidance_anchor`**: mandatory anchor researched at the multiplication step. Management guidance midpoint + range + consensus midpoint. The **base** scenario's Y1-3 CAGR is constrained to ±3pp of `midpoint`. Other scenarios (bear / low / high / bull) take reasoned spreads from base — typical: bear -4 to -6pp; low -2 to -3pp; high +1 to +2pp; bull +3 to +5pp. Each non-base deviation logs an `override_reason`.
-- **`aggregated.growth_path_cagrs_per_scenario`**: the contract. User-confirmed period CAGRs per scenario (bear/low/base/high/bull), declared at the multiplication step, validated by math-checker against (a) `handoff_contract_test` (compound-to-endpoint, all five), (b) `y1_3_anchor_test` (base within ±3pp of guidance, others reasoned spreads with override), (c) `layer_schedule_consistency_test` (compatible with activation schedule per scenario), (d) `scenario_monotonicity_test` (bear < low < base < high < bull).
-- **`aggregated.annual_revenue_today_$_per_scenario`**: DERIVED via linear interpolation in growth-rate space between period-CAGR midpoints, anchored on `last_reported_yoy_growth` at Y0, with per-period renormalization to hit each stated CAGR exactly. Provided for DCF-consumer convenience. Regenerable from the CAGRs.
+- **`aggregated.last_reported_revenue_nominal_$`** + **`aggregated.last_reported_yoy_growth_nominal`**: today's actuals as reported, in nominal $ (Y0 = today, so nominal $ at Y0 equals today's $ trivially). Anchor the Y0 point of the derived nominal annual revenue series. Must be cited (latest 10-K/20-F).
+- **`aggregated.inflation_assumption`**: long-run inflation expectation for the reporting currency. Used by the per-layer inflation overlay to roll today's-$ at layer-maturity to nominal $, AND by downstream `/tam-dcf` to derive terminal real growth from the period CAGRs. Not used to inflate the consumed annual nominal series (DCF reads it directly).
+- **`aggregated.y1_3_guidance_anchor`**: mandatory anchor researched at the multiplication step. Management guidance midpoint + range + consensus midpoint. All three are **nominal** as reported by management/consensus. The **base** scenario's nominal Y1-3 CAGR is constrained to ±3pp of `midpoint` (nominal-on-nominal). Other scenarios (bear / low / high / bull) take reasoned spreads from base — typical: bear -4 to -6pp; low -2 to -3pp; high +1 to +2pp; bull +3 to +5pp. Each non-base deviation logs an `override_reason`.
+- **`aggregated.growth_path_cagrs_per_scenario`**: the contract. User-confirmed **nominal** period CAGRs per scenario (bear/low/base/high/bull), declared at the multiplication step, validated by math-checker against (a) `handoff_contract_test` (nominal CAGRs compound Y0-nominal to nominal endpoint, all five), (b) `y1_3_anchor_test` (base nominal CAGR within ±3pp of nominal guidance, others reasoned spreads with override), (c) `layer_schedule_consistency_test` (compatible with activation schedule per scenario), (d) `scenario_monotonicity_test` (bear < low < base < high < bull).
+- **`aggregated.annual_revenue_nominal_per_scenario`**: DERIVED via linear interpolation in growth-rate space between nominal period-CAGR midpoints, anchored on `last_reported_yoy_growth_nominal` at Y0 nominal revenue, with per-period renormalization to hit each stated nominal CAGR exactly. Provided for DCF-consumer convenience. Regenerable from the nominal CAGRs.
 - **`math_check_status`**: `pending` / `passed` / `failed`. If `failed`, surface to user immediately.
 - **`history[]`**: append-only log of completed steps. Useful for debugging resume.
 

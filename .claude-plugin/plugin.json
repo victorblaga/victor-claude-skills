@@ -1,7 +1,7 @@
 {
   "name": "victor-claude-skills",
   "description": "Custom Claude Code skills: forge, deep-implement, mega-review, review-triage, grill-me, cross-examine, long-form-article, argument-structure, llm-council, sweep, tam-analysis, tam-dcf",
-  "version": "1.19.0",
+  "version": "1.20.0",
   "author": {
     "name": "Victor Blaga"
   },

@@ -4,6 +4,8 @@ The math engine for the `/tam-dcf` skill. EVERY numeric output in the final DCF 
 
 The orchestrator does not do math inline. LLMs are unreliable on compounded multi-decade computation (CAGR, discount factors, terminal-value formulas, real-vs-nominal conversions, reverse-DCF root-solving). All of this is Python. No exceptions.
 
+**Unit convention.** TAM hand-off carries the revenue stream in **nominal $**. This subagent consumes the nominal series as-is — no inflation pass, no real/nominal conversion on the revenue side. WACC is nominal (composition embeds currency inflation). Discount factors apply to nominal cash flows with nominal WACC. The Growth% column emitted in the forecast is nominal growth and must match the TAM nominal CAGRs by construction. Terminal real growth is DERIVED from nominal terminal CAGR minus the TAM-declared inflation for a sanity cross-check (and to populate `terminal_growth_real_pct` in state); it is NOT used to re-inflate.
+
 ## Subagent Type and Model
 
 - Subagent type: `general-purpose`.
@@ -30,8 +32,10 @@ Output paths:
   - dcf_md: <path to write/regenerate dcf.md>
   - dcf_html: <path to write/regenerate dcf.html>
   - check_log: <path to append .dcf-check.log>
-TAM revenue path source: <handoff.md path; the period CAGRs and revenue-at-maturity feed the revenue series>
-Revenue basis: <reported | economic_adjusted> (from TAM `revenue_basis`; if economic_adjusted, use economic_revenue_y0 as Y0 anchor — do NOT use reported_revenue_y0)
+TAM revenue path source: <handoff.md path; consume the NOMINAL annual revenue series directly from aggregated.annual_revenue_nominal_per_scenario>
+Revenue path basis: nominal $. NO inflation pass. NO real-to-nominal conversion on revenue. (revenue_basis from TAM is `reported | economic_adjusted` — orthogonal to nominal/real, controls economic-vs-reported.)
+Y0 anchor: aggregated.last_reported_revenue_nominal_$ (or economic_revenue_y0_nominal_$ if revenue_basis: economic_adjusted)
+TAM inflation reference: tam_session.inflation_assumption_pct (REQUIRED — passed explicitly so the WACC inflation consistency check can fire without re-reading TAM state)
 Margin basis: economic (from `dcf-state.economic_bridge.margin_side.economic_ebit_margin_y0`); peer benchmarks already normalized via Step 2 dispatch spec
 Growth engine: <opex_funded | capex_funded | acquisition_funded | mature_cash_cow | mixed_engine> (from `dcf-state.growth_engine.type`)
 Forecast method: <cash_conversion_margin | sales_to_capital | acquisition_track | maintenance_fcff | per_segment> (from `dcf-state.growth_engine.forecast_method`)
@@ -39,8 +43,10 @@ Engine-specific anchors: read from `dcf-state.growth_engine.engine_specific_anch
 SBC treatment for forecast: use `run_rate_sbc_pct_rev` only (NOT the reported SBC line, which may include one-time vintage)
 SBC treatment for equity bridge: add `one_time_components[].probability_weighted_expected_value` as contingent dilution at the vesting conditions; do not double-count in opex
 Implied-multiples basis: compute BOTH on economic AND reported basis (Section 10 dual-basis block) when economic ≠ reported; single-block when clean. Flag negative implied multiples as sanity #13 FAIL.
-Reverse DCF basis: economic FCFF stream against current EV. For acquisition_funded engine, use `fcff_post_ma` as the cash-flow basis (cash actually distributable during engine-running phase).
+Reverse DCF basis: economic nominal FCFF stream against current EV. For acquisition_funded engine, use `fcff_post_ma` as the cash-flow basis (cash actually distributable during engine-running phase).
 Cash-reality check: run sanity #12 after forecast build. Halt thresholds: 500bp Y1, 1000bp Y2-Y3 absent override mechanism.
+Series consumption audit: run sanity #15 BEFORE forecast generation. Halt if any cell of re-derived nominal series differs from TAM-stored series by >50bp.
+Mgmt-guide reconciliation: run sanity #14 AFTER forecast generation. Halt thresholds: 100bp base, 300bp non-base, absent logged override.
 Specific concerns (optional): <e.g., "the residual share looked suspicious — recheck">
 ```
 
@@ -127,18 +133,28 @@ NOPAT = EBIT × (1 − normalized tax rate)
 
 Full definition + lease/SBC handling in `references/dcf-protocol.md`.
 
-### Revenue path from TAM — NO SILENT RESCALING
+### Revenue path from TAM — NO INFLATION PASS, NO SILENT RESCALING
 
-The TAM hand-off carries **per-scenario period CAGRs** (5 rows: bear/low/base/high/bull) as the contract, plus a **derived per-scenario annual revenue series** (regenerable from the CAGRs). Consume both.
+The TAM hand-off carries the revenue stream in **nominal $**:
+- `aggregated.last_reported_revenue_nominal_$` — Y0 nominal anchor.
+- `aggregated.growth_path_cagrs_per_scenario` (`_basis: nominal`) — period CAGRs, nominal.
+- `aggregated.annual_revenue_nominal_per_scenario` (`_basis: nominal`) — derived annual series, nominal.
+- `aggregated.revenue_at_maturity_nominal_$` — endpoint at hand-off horizon.
 
-Input preference order, highest fidelity first:
+**Consumption rule.** Consume the nominal annual series directly. NO `× (1+inflation)^year` pass. NO real-to-nominal conversion on revenue. The series is already nominal at every year. The Growth% column in the emitted forecast is nominal growth and matches the TAM nominal CAGRs by construction.
 
-1. **TAM hand-off includes per-scenario annual revenue series** (preferred). Use directly.
-2. **TAM hand-off includes per-scenario period CAGRs only**. Re-derive locally using the same algorithm as TAM math-checker: linear interpolation in growth-rate space between period-CAGR midpoints (anchors at Y0=`last_reported_yoy_growth`, Y2=Y1-3 CAGR, Y4.5=Y4-5 CAGR, Y8=Y6-10 CAGR, Y15.5=Y11-20 CAGR, Y(21+maturity)/2=Y21-maturity CAGR), then renormalize per period so the compounded ratio within each period exactly equals `(1 + period_cagr)^period_years`.
+**Series Consumption Audit (Step 7.0; sanity check #15; mandatory; runs BEFORE forecast generation).**
 
-**Y0 anchoring check (mandatory).** Verify the consumed annual series Y0 equals `data_snapshot.current_revenue_today_$` within 50bps. HALT on mismatch — TAM and DCF are anchored on different starting revenues.
+1. Read `aggregated.annual_revenue_nominal_per_scenario.<scenario>` for all 5 scenarios.
+2. Re-derive locally using the same algorithm as TAM math-checker: linear interpolation in growth-rate space between nominal period-CAGR midpoints (anchors at Y0=`last_reported_yoy_growth_nominal`, Y2=Y1-3 nominal CAGR, Y4.5=Y4-5 nominal CAGR, Y8=Y6-10 nominal CAGR, Y15.5=Y11-20 nominal CAGR, Y(21+horizon)/2=Y21-maturity nominal CAGR), then renormalize per period so the compounded ratio within each period exactly equals `(1 + nominal_period_cagr)^period_years`. Anchor on `last_reported_revenue_nominal_$`.
+3. **Cell-by-cell diff** of the re-derived series against the TAM-stored series, per scenario, per year. Tolerance: 50bp per cell.
+4. HALT on any cell exceeding tolerance — TAM CAGRs and TAM stored series are not internally consistent. Resolve in TAM via `/tam-analysis resume`.
 
-**Hand-off contract test (mandatory).** Per-scenario CAGRs must compound to per-scenario endpoint within 2%. HALT on violation. **Do not silently rescale.**
+**Basis-flag check (mandatory).** Verify `aggregated.annual_revenue_nominal_per_scenario._basis == "nominal"` AND `aggregated.growth_path_cagrs_per_scenario._basis == "nominal"` AND `aggregated.y1_3_guidance_anchor.basis == "nominal_as_reported"`. Any stale/missing flag → HALT (TAM was produced under pre-nominal-throughout schema).
+
+**Y0 anchoring check (mandatory).** Verify the consumed nominal annual series Y0 equals `data_snapshot.current_revenue_nominal_$` (or `aggregated.economic_revenue_y0_nominal_$` if `revenue_basis: economic_adjusted`) within 50bps. HALT on mismatch — TAM and DCF are anchored on different starting revenues.
+
+**Hand-off contract test (mandatory).** Per-scenario nominal CAGRs must compound from Y0 nominal revenue to per-scenario nominal endpoint within 2%. HALT on violation. **Do not silently rescale.**
 
 **Layer-schedule consistency (carried from TAM).** Re-read `aggregated.layer_schedule_consistency_test`. Refuse to proceed if any scenario has unresolved violations.
 
@@ -171,7 +187,7 @@ TV = FCFF_(N+1) / (WACC − g_nominal)
 PV_TV = TV / (1 + WACC)^N
 ```
 
-`g_nominal = real_terminal_growth + inflation`. Sanity: `g_nominal < WACC` (mathematical requirement) — FAIL if violated.
+`g_nominal` for the TV formula comes directly from the TAM nominal Y21-maturity CAGR for the terminal step (or is anchored on a user-set `terminal_growth_nominal_pct` if explicitly overridden). `g_real_terminal = g_nominal − inflation_assumption_pct` is DERIVED for sanity cross-check + sensitivity Matrix 3 — not used to re-inflate. Sanity: `g_nominal < WACC` (mathematical requirement) — FAIL if violated. Sanity: `g_real_terminal ∈ [-1%, 2.5%]` typical; flag outside.
 
 ### WACC composition (required-return framework)
 
@@ -183,6 +199,8 @@ WACC_used = max(WACC_blended, WACC_floor_local)
 ```
 
 The script consumes the pre-composed WACC from `dcf-state.json`. It does NOT compute beta, pull a current Treasury yield, or use CAPM. Validate that the components in `dcf-state.json.assumptions.wacc.components` sum (after debt-blend) to `wacc_used` within 5bps tolerance. FAIL on mismatch. FAIL with a clear message if any component is missing — do not silently fill in a default.
+
+**Inflation consistency (mandatory).** The `currency_inflation` component in WACC composition MUST equal `tam_session.inflation_assumption_pct` within 25bps tolerance. If a USD-listed company has TAM `inflation_assumption: 0.02` but WACC was composed with `reporting_currency_inflation: 0.025`, the TV formula's `g_nominal = g_real_terminal + inflation` uses one inflation value while the discount factor `(1+WACC)^t` uses another — silent ~50bp drift between numerator and denominator. FAIL with explicit reconciliation prompt: user picks one inflation value, updates both fields.
 
 ### EV → equity → per share
 
@@ -242,7 +260,7 @@ Run all of these after every computation. Failures: do NOT proceed to save final
 1. **Bear < low < base < high < bull** for value-per-share, total EV, implied IRR. Violations indicate inconsistent assumptions.
 2. **PV by period sum = total EV** within 0.1% rounding tolerance.
 3. **Terminal growth < WACC** (mathematical requirement).
-4. **Cross-check revenue at maturity** against TAM hand-off: `series[maturity_year] ≈ TAM revenue_at_maturity_today_$` within 2%.
+4. **Cross-check revenue at hand-off horizon** against TAM hand-off: `series[horizon_year] ≈ TAM revenue_at_horizon_nominal_$` within 2%.
 5. **Reinvestment-rate × ROIC consistency — at maturity AND Y1-Y10 plausibility.**
    - Terminal-stage: `rate_mature × ROIC_mature` within 1pp of `growth_mature`. Flag both "low rate + high growth without named operating-leverage mechanism" AND "high rate + modest growth (FCFF suppression risk)." See `references/dcf-protocol.md` Terminal-Stage ROIC Consistency Check.
    - Y1-Y10 plausibility: for each year, compute `reinvestment_rate_y = net_reinvestment_y / NOPAT_y`. FAIL on:
@@ -254,9 +272,22 @@ Run all of these after every computation. Failures: do NOT proceed to save final
 8. **Single base case**: ensure no two distinct "base" totals appear in `dcf-state.json` or `dcf.md`.
 9. **Hand-off contract**: per-scenario declared CAGRs compound to per-scenario endpoint within 2% PER SCENARIO. FAIL if violated for any scenario. **No silent rescaling.**
 10. **Layer-schedule consistency (carried from TAM)**: re-read `aggregated.layer_schedule_consistency_test`. Refuse if any scenario has unresolved violations.
-11. **Y0 anchoring**: consumed series Y0 == `data_snapshot.current_revenue_today_$` within 50bps. FAIL on mismatch.
+11. **Y0 anchoring**: consumed nominal series Y0 == `data_snapshot.ttm_revenue_$` (nominal by construction; or `economic_revenue_y0_nominal_$` from `tam_session.economic_bridge` if `revenue_basis: economic_adjusted`) within 50bps. FAIL on mismatch.
 12. **Cash-reality reconciliation** (Step 8). See spec above. Halt thresholds: 500bp Y1, 1000bp Y2-Y3, absent logged override mechanism. Engine-aware: for acquisition_funded use `fcff_post_ma / revenue`.
 13. **Implied-multiple plausibility**. FAIL on negative implied multiple (e.g., `EV/FCFF < 0` because modeled FCFF < 0 at the year in question) — a cash-generative company should not produce negative multiples at its intrinsic value. See `references/dcf-protocol.md` Known Failure Mode appendix. Soft warning (not hard FAIL) on implied multiple > 5× peer median on economic basis without named structural reason.
+14. **Mgmt-guide reconciliation** (Step 7.1; nominal-throughout firewall). After forecast generation, compare per-scenario modeled Y1 nominal growth to mgmt FY+1 guide midpoint:
+    - `delta_y1_pp[scenario] = (modeled_y1_nominal_growth[scenario] − mgmt_y1_guide_midpoint) × 100`
+    - HALT on base scenario if `|delta_y1_pp.base| > 1.0` (100bp) absent logged override mechanism.
+    - HALT on non-base scenarios if `|delta_y1_pp[scenario]| > 3.0` (300bp) absent logged override mechanism.
+    - Override mechanism logged in `dcf-state.mgmt_guide_reconciliation.override.<scenario>.mechanism` + `sources.md`. Free-text but specific (e.g., "Bear assumes FY+1 customer loss cuts growth 5pp below guide; recovers Y3+").
+    - This check catches the canonical nominal-vs-real drift: if TAM stored mgmt's nominal 10.8% guide as a 10.8% real CAGR, the DCF Y1 nominal growth lands at ~13% — failing the 100bp threshold immediately. Closes the bug class structurally.
+    - Save results to `dcf-state.mgmt_guide_reconciliation`.
+15. **Series consumption audit** (Step 7.0; nominal-throughout firewall). Re-derive nominal annual series from nominal period CAGRs and diff cell-by-cell vs TAM-stored `aggregated.annual_revenue_nominal_per_scenario`. Tolerance 50bp per cell. HALT on any mismatch — TAM CAGRs vs stored series have drifted internally. Resolve in TAM.
+16. **Basis-flag consistency** (nominal-throughout firewall). All revenue-path basis flags must read nominal:
+    - `aggregated.annual_revenue_nominal_per_scenario._basis == "nominal"`
+    - `aggregated.growth_path_cagrs_per_scenario._basis == "nominal"`
+    - `aggregated.y1_3_guidance_anchor.basis == "nominal_as_reported"`
+    - HALT if any flag is missing or set to a stale value (`real`, `today's_$`, `today_dollar`).
 
 ## HTML Rendering
 

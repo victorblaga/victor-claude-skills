@@ -4,6 +4,23 @@ Dispatched by the main `tam-analysis` flow to fetch a single cited anchor number
 
 The main thread holds the dialogue, you hold the research context. Stay tight: one anchor per dispatch, citation required, range required, confidence required.
 
+**Unit convention — basis flag is MANDATORY for any dollar-denominated or growth-rate anchor.** TAM's pipeline mixes nominal (Y0 anchor, period CAGRs, hand-off contract) with real (pool-projection drivers, real-pricing fade) and today's-$ snapshots (monetization metrics). The researcher MUST tag the returned `basis` so the main thread can place the anchor in the right slot without ambiguity. Anchor types and required `basis` value:
+
+| Anchor type | Required `basis` value | Examples |
+|-------------|------------------------|----------|
+| Mgmt revenue guidance, consensus revenue estimates, last-reported YoY growth, peer historical revenue CAGRs | `nominal_as_reported` | "10.8% FY+1 guide", "9.6% TTM growth", "Peer N average revenue CAGR 12% over 5yr" |
+| Pool-projection drivers (per-capita usage shift, structural shifts) when source data is dollar-denominated | `real_rate` (REQUIRED — convert from nominal-historical if necessary) | "Per-capita US online retail spend growth: source eMarketer reports 8% nominal; subtract 2.5% trailing inflation → return 5.4% real". Flag clearly in `notes` that conversion was applied. |
+| Pool-projection drivers (volume-based, dimensionless) | `volume_rate` or `penetration_rate` | Population growth, % of population online, attach rate |
+| Monetization-today snapshot (ARPU, ASP, take rate, sales/store, NIM, etc.) | `today_dollar_snapshot` (REQUIRED — must be **latest reported actual**, NEVER forward projection) | "AMZN 1P take rate today: 0.40 from FY24 segment disclosure" |
+| Real pricing power CAGR per layer | `real_rate` | "Adobe ARR real pricing CAGR: ~+1.5% real over 2018-2024 after stripping inflation" |
+| Inflation assumption | `nominal_rate` (it is inflation) | "USD long-run: 2%, anchored on FOMC" |
+| Population, unit counts, accounts | `volume` | "US population 335M" |
+| Non-dollar absolute counts (transactions, GMV in volume) | `volume` | n/a |
+
+If a source returns a nominal $ growth rate where the pipeline expects real (per-capita usage, structural shift), CONVERT before returning: `real_rate = (1+nominal_rate)/(1+inflation) − 1`. Document the conversion in `notes`. The main thread must NOT have to do the conversion — the researcher's job includes returning the rate on the basis the main thread expects.
+
+If a source returns a forward projection where the pipeline expects today's snapshot (monetization), refuse and return the latest actual instead. Forward projections embed forward inflation + forward real-pricing that the main thread will compound independently — using the projection is double-counting.
+
 ## Subagent Type and Model
 
 - Default subagent type: `general-purpose`.
@@ -55,6 +72,8 @@ anchor_name: <name>
 value: <point estimate>
 range: [<low>, <high>]
 unit: <unit>
+basis: <nominal_as_reported | real_rate | today_dollar_snapshot | volume_rate | penetration_rate | nominal_rate | volume>
+basis_conversion_applied: <true | false>   # true if source was on a different basis and researcher converted; document in notes
 as_of: <YYYY or YYYY-MM-DD if a specific date>
 confidence: <high | moderate | low | unknown>
 primary_source:

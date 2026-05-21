@@ -2,9 +2,9 @@
 name: tam-analysis
 description: >
   Conversational bottom-up Fermi TAM analysis for a single growth stock. Builds defensible
-  revenue-at-maturity across 5 scenarios (bear / low / base / high / bull) layer by layer through slow per-anchor dialogue, with
+  revenue-at-maturity in nominal $ across 5 scenarios (bear / low / base / high / bull) layer by layer through slow per-anchor dialogue, with
   cited research for every number, code-validated math, per-layer maturity + real pricing
-  power, and a final DCF-ingestible hand-off block. Trigger ONLY on explicit invocation:
+  power as an internal sizing tool, and a final DCF-ingestible hand-off block. Trigger ONLY on explicit invocation:
   "/tam-analysis", "/tam-analysis <TICKER>", "/tam-analysis resume <TICKER>". Do not
   trigger on generic phrases like "let's value X", "analyze TAM for X", "what's the TAM of X" —
   this is a deliberate, multi-session workflow the user opts into by name.
@@ -12,7 +12,9 @@ description: >
 
 # TAM Analysis
 
-Bottom-up Fermi TAM build for a single company. Produces revenue-at-maturity across 5 scenarios (bear / low / base / high / bull) in today's $ and nominal $, plus a clean hand-off block for a downstream long-horizon DCF.
+Bottom-up Fermi TAM build for a single company. Produces revenue-at-maturity across 5 scenarios (bear / low / base / high / bull) in **nominal $** at the hand-off horizon, plus a clean hand-off block for a downstream long-horizon DCF.
+
+**Unit convention: nominal throughout.** All contract numbers (per-scenario endpoints, period CAGRs, the annual revenue series consumed by `/tam-dcf`) are in **nominal $**. Anchors that arrive in nominal form — management guidance, consensus analyst estimates, last reported YoY growth, peer historical CAGRs — feed directly into the contract with no real/nominal conversion. Per-layer sizing math still uses today's-$ pool × share × monetization plus a real pricing fade as a structural sizing tool, but the inflation overlay rolls everything to nominal **before** the layer revenue feeds the aggregate. Period CAGRs and the annual series are nominal. The downstream `/tam-dcf` consumes the nominal series directly and does NOT inflate.
 
 Scenario framing:
 - **Bear** = absolute worst plausible (bear mechanism fully materializes; speculative layers = 0 by hard rule)
@@ -58,7 +60,7 @@ Schema details: `references/state-schema.md`.
 
 ## Working Pattern: Per-Anchor Confirm
 
-The skill walks the analysis one anchor at a time. An "anchor" is any number that materially shapes the result: population, per-capita usage, online penetration, average price, take rate, market share at maturity, real pricing CAGR, inflation rate, geographic split, segment mix.
+The skill walks the analysis one anchor at a time. An "anchor" is any number that materially shapes the result: population, per-capita usage, online penetration, average price, take rate, market share at maturity, real pricing CAGR (internal sizing tool), inflation rate (rolls per-layer sizing to nominal), geographic split, segment mix.
 
 For each anchor:
 
@@ -89,7 +91,7 @@ Apply commands immediately. Announce the new mode. When `autopilot` or `faster` 
 First message of every fresh session. Confirm the following before proposing any layer structure:
 
 1. **Company identification**. Name, ticker, exchange, reporting currency. Always confirm: "To confirm, this is the `<TICKER>` stock — `<short company description>`?" Wait for user yes.
-2. **Current state**. Last reported annual revenue and the geographic + product footprint. Source from the latest 10-K, 20-F, or annual report. Cite. This is the anchor today's-$ figure.
+2. **Current state**. Last reported annual revenue and the geographic + product footprint. Source from the latest 10-K, 20-F, or annual report. Cite. This is the Y0 nominal anchor (today's nominal $ = today's purchasing power by definition — they coincide at Y0).
 3. **Asset-backed wedge today**. What does the company have that others don't? Run through the standard inventory: customer relationships, data, distribution, installed base, real estate, regulatory position, brand, technology, network effects, payments / financial flows, workflow ownership. Surface 2-3 strongest wedges; ask user to confirm or correct. The wedge inventory drives the speculative layer later — do not skip.
 4. **Adjacencies on the user's mind (optional)**. Ask: "Any adjacencies you already want me to size for this company, or should I surface them as we go?" This is the only optional input — if the user has nothing in mind, say "no" and the skill surfaces adjacencies organically from the asset-backed wedge inventory.
 
@@ -144,7 +146,7 @@ After Step 0, Step 1, and Step 2 are confirmed, propose the layer structure adap
 
 ## Per-Layer Protocol
 
-Walk each layer through these eight steps. Full details and examples in `references/per-layer-protocol.md`. Summary:
+Walk each layer through these eight steps (1, 2, 3, 3.5, 4, 5, 6, 7). Full details and examples in `references/per-layer-protocol.md`. Summary:
 
 1. **Plain-English brief + demand unit**. Open every layer with the structured plain-English template — `Plain English` / `Buyer` / `Job-to-be-done` (Christensen JTBD framing) / `Proposed demand unit` / `Monetization`. Operator language, no marketing copy. Confirm with user before sizing. Full template + worked PANW/AMZN examples in `references/per-layer-protocol.md` Step 1.
 2. **Build the pool today**. Top-down from authoritative sources via anchor-researcher. Cite. Show ranges. For consumer / retail, ground in regional demographic decomposition (population × per-capita usage by region) before aggregating.
@@ -162,25 +164,28 @@ After every layer's step 3 (the pool projection), dispatch the math-checker suba
 Only after ALL layers are pool-sized. Four sub-steps per layer per scenario (bear / low / base / high / bull). Full reference: `references/multiplication-protocol.md`.
 
 1. **Mature share / penetration**. Anchor on real category-leader precedents (table in references). Don't pick a number without citing precedent. Pick all 5 scenario values per layer. Math-checker enforces monotonicity `bear ≤ low ≤ base ≤ high ≤ bull`.
-2. **Mature monetization in today's $, today's mix**. Use the metric appropriate to the model (ARPU / sales-per-store / take rate / ASP / NIM / etc.) — full mapping in references. Build from current actuals, peer benchmarks, explicit mix shift. All 5 scenarios.
-3. **Real pricing power per year (above inflation)**. Per layer. Express as fading profile in real %. All 5 scenarios. Math-checker validates compounding.
-4. **Inflation overlay (apply LAST)**. Today's-$ output → nominal $ at the per-layer maturity year. Anchor inflation on the long-run expectation for the reporting currency. Math-checker validates real→nominal conversion.
+2. **Mature monetization in today's $, today's mix** (internal sizing). Use the metric appropriate to the model (ARPU / sales-per-store / take rate / ASP / NIM / etc.) — full mapping in references. Build from current actuals, peer benchmarks, explicit mix shift. All 5 scenarios. Today's-$ is an intuitive sizing unit here; conversion to nominal happens at sub-step 4.
+3. **Real pricing power per year (above inflation)** (internal sizing). Per layer. Express as fading profile in real %. All 5 scenarios. Compounds the today's-$ monetization across the layer maturity. Math-checker validates compounding.
+4. **Inflation overlay (apply LAST, before aggregation)**. Convert per-layer today's-$ at layer-maturity → nominal $ at the layer's maturity year via `× (1+inflation)^layer_maturity`. The aggregate that feeds the hand-off contract is the **nominal sum across layers at the hand-off horizon**. Anchor inflation on the long-run expectation for the reporting currency. Math-checker validates the conversion. After this step, every contract number downstream is nominal.
 
-Before declaring per-scenario CAGRs, **dispatch anchor-researcher for Y1-3 guidance + consensus** (mandatory). The dispatch payload: "For `<TICKER>`, fetch (a) latest management revenue guidance for next FY (range + midpoint, with source), (b) 2-3 year consensus analyst revenue estimates. Express both as implied YoY growth rates from the last reported FY." Result saved to `aggregated.y1_3_guidance_anchor`. The **base** scenario's Y1-3 CAGR is picked within ±3pp of guidance midpoint, OR with a named `override_reason` logged in `sources.md`. The other 4 scenarios take reasoned spreads from base, each with a named `override_reason` describing the bear-mechanism / bull-adjacency intensity that drives the spread (typical: bear -4 to -6pp; low -2 to -3pp; high +1 to +2pp; bull +3 to +5pp).
+Before declaring per-scenario CAGRs, **dispatch anchor-researcher for Y1-3 guidance + consensus** (mandatory). The dispatch payload: "For `<TICKER>`, fetch (a) latest management revenue guidance for next FY (range + midpoint, with source), (b) 2-3 year consensus analyst revenue estimates. Express both as implied YoY growth rates from the last reported FY. These are **nominal** growth rates as reported — do not strip inflation." Result saved to `aggregated.y1_3_guidance_anchor`. The **base** scenario's Y1-3 CAGR is picked within ±3pp of guidance midpoint, OR with a named `override_reason` logged in `sources.md`. The other 4 scenarios take reasoned spreads from base, each with a named `override_reason` describing the bear-mechanism / bull-adjacency intensity that drives the spread (typical: bear -4 to -6pp; low -2 to -3pp; high +1 to +2pp; bull +3 to +5pp).
 
-Walk the user through declaring per-scenario period CAGRs (Y1-3, Y4-5, Y6-10, Y11-20, Y21-maturity), one period at a time across all 5 scenarios. Per-anchor confirm. Later periods reflect the layer thesis (stay-elevated when adjacencies activate; smooth-fade when no late activators).
+**All period CAGRs are nominal.** Management guidance is naturally nominal. Consensus is naturally nominal. The base Y1-3 CAGR is compared to the nominal guidance midpoint directly — no real/nominal conversion. The downstream DCF consumes the same nominal CAGRs without re-inflating.
+
+Walk the user through declaring per-scenario period **nominal** CAGRs (Y1-3, Y4-5, Y6-10, Y11-20, Y21-maturity), one period at a time across all 5 scenarios. Per-anchor confirm. Later periods reflect the layer thesis (stay-elevated when adjacencies activate; smooth-fade when no late activators).
 
 Dispatch math-checker after each layer's multiplication. Dispatch again at final aggregation to:
 
-- Validate the cross-layer sum per scenario (5 scenarios).
-- Run the **hand-off contract test**: per-scenario declared CAGRs compound to per-scenario endpoint within 2%. Fail-stop if any scenario violates.
-- Run the **Y1-3 anchor test**: base within ±3pp of guidance midpoint (or override); non-base scenarios carry their own `override_reason` for the spread.
+- Validate the cross-layer sum per scenario (5 scenarios), aggregating per-layer nominal revenue at the hand-off horizon.
+- Run the **hand-off contract test**: per-scenario declared nominal CAGRs compound from Y0 nominal revenue to per-scenario nominal endpoint within 2%. Fail-stop if any scenario violates.
+- Run the **Y1-3 anchor test**: base nominal Y1-3 CAGR within ±3pp of nominal guidance midpoint (or override); non-base scenarios carry their own `override_reason` for the spread.
 - Run the **layer-schedule consistency test**: for each of the 5 scenarios, the declared CAGRs are compatible with the per-layer activation schedule (late-activator check + smooth-fade check, see `agents/math-checker.md`).
-- Run the **scenario monotonicity test**: `bear < low < base < high < bull` at aggregated and per-layer levels. Strict inequality; equality requires logged justification.
-- Run the **speculative-bear-zero check**: any layer flagged `speculative: true` must have `layer_revenue_at_maturity_today_$.bear == 0`. Hard rule.
-- Derive per-scenario annual revenue series via linear interpolation in growth-rate space, anchored on `last_reported_yoy_growth`, with per-period renormalization. Saved to `aggregated.annual_revenue_today_$_per_scenario` as a derived artifact regenerable from the CAGRs.
+- Run the **scenario monotonicity test**: `bear < low < base < high < bull` at aggregated and per-layer nominal levels. Strict inequality; equality requires logged justification.
+- Run the **speculative-bear-zero check**: any layer flagged `speculative: true` must have `layer_revenue_at_horizon_nominal_$.bear == 0` AND `layer_revenue_at_maturity_today_$.bear == 0`. Hard rule.
+- Run the **macro sanity check** (informational; each flagged item requires user ack): endpoint vs global / US GDP at horizon, endpoint vs largest-cap precedent grown at sector pace, per-layer share of pool at horizon, multi-decade super-growth at scale, pool-implied share-gain CAGR. Saved to `aggregated.macro_sanity_test`. Flagged items without `ack` halt the hand-off emission.
+- Derive per-scenario nominal annual revenue series via linear interpolation in growth-rate space, anchored on `last_reported_yoy_growth` (nominal) at Y0, with per-period renormalization. Saved to `aggregated.annual_revenue_nominal_per_scenario` as a derived artifact regenerable from the nominal CAGRs.
 
-The hand-off block in `handoff.md` emits per-scenario period CAGRs (bear/low/base/high/bull rows) as the contract. Downstream `/tam-dcf` consumes the CAGRs and the derived annual series directly — no silent rescaling permitted.
+The hand-off block in `handoff.md` emits per-scenario nominal period CAGRs (bear/low/base/high/bull rows) as the contract. Downstream `/tam-dcf` consumes the nominal CAGRs and the derived nominal annual series directly — no silent rescaling permitted, no inflation pass on the DCF side.
 
 ## Pushback Discipline
 
@@ -236,8 +241,8 @@ Output is saved (appended) to `~/.investing/companies/<TICKER>/<DATE>/expert-opi
 Dispatched to a fresh Sonnet subagent (`agents/math-checker.md`). Runs at:
 
 - After every layer's **pool projection** (step 3): validates pool compounding from today → maturity.
-- After every layer's **multiplication step**: validates real-pricing compounding, today's-$ math, real→nominal conversion.
-- At **final aggregation**: validates cross-layer sum, per-period CAGRs for the growth path, hand-off block numbers.
+- After every layer's **multiplication step**: validates real-pricing compounding, today's-$ sizing math, and the today's-$ → nominal conversion at layer maturity (the only inflation overlay in the whole pipeline).
+- At **final aggregation**: validates cross-layer nominal sum at the hand-off horizon, per-period nominal CAGRs for the growth path, hand-off block numbers.
 - **On-demand**: if the user says "check the math" or "recheck" at any turn, dispatch immediately on the current state.
 
 The math-checker writes a Python script in a temp file, runs it, reports any discrepancy. If it finds one, present to user before continuing.
@@ -257,12 +262,12 @@ The hand-off block reports revenue-at-maturity at this single horizon. Each laye
 
 Save to `handoff.md`. Structure:
 
-- **A. Layer summary table** — pool today (range, confidence), pool at maturity, mature share (bear/low/base/high/bull), mature monetization in today's $, real pricing CAGR, layer revenue at maturity in today's $ (bear/low/base/high/bull).
-- **B. Headline numbers** — total revenue at maturity in today's $ (5 scenarios); same in nominal $ at Y`<N>`; implied share of total addressed pool at maturity (base).
+- **A. Layer summary table** — pool today (range, confidence), pool at maturity, mature share (bear/low/base/high/bull), mature monetization in today's $ (internal sizing), real pricing CAGR (internal sizing), layer revenue at maturity in **nominal $** at the hand-off horizon (bear/low/base/high/bull).
+- **B. Headline numbers** — total revenue at maturity in **nominal $** at Y`<N>` (5 scenarios); implied share of total addressed pool at maturity (base).
 - **C. Dominant Fermi drivers** — the 2-3 inputs that move the answer most.
-- **D. Growth path declaration** — per-scenario period CAGRs (5 rows: bear/low/base/high/bull) for Y1-3 / Y4-5 / Y6-10 / Y11-20 / Y21-maturity. Y1-3 base anchored on management guidance + consensus. Per-scenario growth shape labels (stay-elevated / smooth-fade / front-loaded / back-loaded). Layer activation schedule listed alongside for the consistency check.
+- **D. Growth path declaration** — per-scenario **nominal** period CAGRs (5 rows: bear/low/base/high/bull) for Y1-3 / Y4-5 / Y6-10 / Y11-20 / Y21-maturity. Y1-3 base anchored directly on management guidance + consensus (both naturally nominal). Per-scenario growth shape labels (stay-elevated / smooth-fade / front-loaded / back-loaded). Layer activation schedule listed alongside for the consistency check.
 - **E. Scenario mechanisms** — bear (absolute worst: substitution / commoditization / disintermediation / regulatory / value-pool-migration / customer-insourcing path); low (which elements of the bear mechanism partially materialize); high (which bull adjacencies partially realize); bull (each adjacency named with its asset-backed wedge).
-- **F. Pre-emit checks** — single scenario set (no silent haircut, no parallel base); real-vs-nominal separated; declared CAGRs match layer activation schedule; monotonicity `bear < low < base < high < bull`; speculative-bear-zero; revenue hygiene complete. Fix before emitting hand-off.
+- **F. Pre-emit checks** — single scenario set (no silent haircut, no parallel base); per-layer real-pricing + inflation overlay applied once each (no double-counting); declared nominal CAGRs match layer activation schedule; monotonicity `bear < low < base < high < bull`; speculative-bear-zero; revenue hygiene complete. Fix before emitting hand-off.
 - **G. Hand-off block** — the clean DCF-ingestible block. Exact format in `references/handoff-format.md`.
 
 Tell user: "Hand-off saved to `<path>/handoff.md`. Pass that block into your DCF prompt. Sources in `sources.md`, full transcript in `dialogue.md`. Want me to dispatch a final math-check?"
@@ -303,7 +308,8 @@ These hold for every turn:
 - Don't anchor the TAM on reported revenue without running Step 1 hygiene check. Pass-through lines, gross-up presentation, captive-segment flows must be surfaced and STRIPPED or KEPT (with named mechanism) — never silently inherited as economic. WING-shaped ad-fund inflation propagates 2x corruption through every downstream layer if missed.
 - Don't multiply pool × share × monetization × pricing until ALL layers are pool-sized. Early anchoring destroys discipline.
 - Don't pick scope for the user. Propose tight / plausible / aggressive; let them choose.
-- Don't apply inflation at intermediate steps. Real first, nominal last.
+- Don't apply inflation twice. Real pricing first (within today's-$ sizing), inflation overlay once at the per-layer maturity. After that, every number is nominal — no further conversion.
+- Don't treat management's nominal guidance as a real CAGR. Guidance, consensus, and last reported YoY growth are nominal — they feed nominal CAGRs directly, with no stripping. Mis-treating nominal anchors as real produces a uniformly inflated growth path (mgmt guides 10.8% nominal → mis-stored as 10.8% real → 13% nominal after re-inflation: silent 2pp drift in every period).
 - Don't fold a speculative adjacency into the base case at the same weight as proven layers. Conservative in base, generous in bull, zero in bear.
 - Don't claim a number is sourced when it's assumed. Confidence label: `unknown` is a valid answer.
 - Don't quietly haircut a layer's revenue at the multiplication step "for safety". Margin of safety lives in the bear/bull spread and downstream in the DCF, not in silent base-case haircuts.
