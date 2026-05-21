@@ -1,8 +1,10 @@
 # Per-Layer Protocol
 
-The 7-step walk for sizing a single layer. The skill repeats this for every layer in the analysis. Conversation runs per-anchor confirm by default — each step is one or more turns with the user.
+The 8-step walk (numbered 1, 2, 3, 3.5, 4, 5, 6, 7) for sizing a single layer. The skill repeats this for every layer in the analysis. Conversation runs per-anchor confirm by default — each step is one or more turns with the user.
 
-The seven steps are sequential. Do not skip ahead. Do not pre-pick scope (step 4) before pool-sizing (steps 1-3). Do not size with confidence (step 6) before scope is set (step 5).
+The steps are sequential. Do not skip ahead. Do not pre-pick scope (step 4) before pool-sizing (steps 1-3). Do not size with confidence (step 6) before scope is set (step 5).
+
+**Unit convention (read first).** Layer sizing runs in today's-$ as an intuitive unit (pool today × per-capita usage × share × monetization in today's purchasing power × real pricing fade). The conversion to nominal happens once per layer, at the inflation overlay (`multiplication-protocol.md` sub-step 4). After that overlay, the layer's contribution to aggregation, the contract endpoint, and the annual series feeding `/tam-dcf` is **nominal**. Today's-$ does not leak into the hand-off contract.
 
 ## Step 1 — Plain-English Brief, Then Pin the Demand Unit
 
@@ -120,11 +122,15 @@ Confidence labels per anchor:
 
 Pool growth = population growth × per-capita usage shift × structural shifts.
 
+**Unit discipline — read first.** The pool stays in **today's $** through Step 3 (the inflation overlay at multiplication sub-step 4 is the only nominal conversion in the pipeline). Therefore the driver CAGRs that compound the pool MUST be **real** rates — population in volume (people), per-capita usage in volume or real-$, structural shifts in penetration % (dimensionless). If a driver is sourced as a nominal-$ growth rate (e.g., eMarketer "US e-commerce spending up 8% YoY" — historical nominal), the researcher MUST subtract that period's inflation BEFORE storing in `pool_at_maturity.drivers[*].cagr`. Otherwise the inflation overlay at sub-step 4 double-counts and the pool inflates twice.
+
 Drivers to source (with anchor-researcher):
 
-- **Population projection** — UN World Population Prospects, national statistics.
-- **Per-capita usage shift** — secular trend in usage, citing recent CAGR or directional research. Don't extrapolate a temporary trend.
-- **Structural shifts** — digital adoption, regulation, urbanization, electrification, demographic transitions. Anchor each on a source.
+- **Population projection** (volume-rate, dimensionless): UN World Population Prospects, national statistics. No basis ambiguity — counting people.
+- **Per-capita usage shift** (real-rate or volume-rate; NEVER nominal-$): secular trend in volume of usage OR per-capita real-$ spend. If the source is nominal-$ growth (typical for industry-body retail/spend surveys), convert: `real_rate = (1+nominal_rate)/(1+inflation) − 1`. Don't extrapolate a temporary trend.
+- **Structural shifts** (real-rate or penetration-pp): digital adoption, regulation, urbanization, electrification, demographic transitions. Anchor each on a source. If sourced as nominal-$ growth, convert to real before storing.
+
+The anchor-researcher dispatch for any dollar-denominated growth-rate driver must explicitly request the basis (nominal-historical vs real). See `agents/anchor-researcher.md` — basis flag taxonomy.
 
 Show the pool size:
 - Today
@@ -139,11 +145,13 @@ Math-checker dispatched after this step to validate compounding:
 ```
 pool_at_year_N = pool_today
     × (1 + population_CAGR_in_period) per period
-    × (1 + per_capita_usage_CAGR) per period
-    × (1 + structural_shift_CAGR) per period
+    × (1 + per_capita_usage_real_CAGR) per period
+    × (1 + structural_shift_real_CAGR) per period
 ```
 
-If the compounding produces a number that surprises the user, that's a feature — it surfaces the mechanism. Don't smooth or pre-haircut.
+All CAGRs in the product above are **real** (or volume / penetration). If the compounding produces a number that surprises the user, that's a feature — it surfaces the mechanism. Don't smooth or pre-haircut.
+
+**Math-checker guard.** Math-checker flags any `pool_at_maturity.drivers[*].cagr > inflation_assumption` without an explicit `basis: "real"` tag on the driver — likely-nominal value masquerading as real produces silent inflation double-count.
 
 ## Step 3.5 — Layer Activation Schedule
 
@@ -289,12 +297,18 @@ Every step writes to `state.json`:
       "share": {"bear": "...", "low": "...", "base": "...", "high": "...", "bull": "..."},
       "monetization": {...},
       "real_pricing_cagr": {"d1": "...", "d2": "...", "d3": "..."},
+      "inflation_overlay": "...",
+      "layer_revenue_at_maturity_today_$": {"bear": "...", "low": "...", "base": "...", "high": "...", "bull": "..."},
+      "layer_revenue_at_maturity_nominal_$": {"bear": "...", "low": "...", "base": "...", "high": "...", "bull": "..."},
+      "layer_revenue_at_horizon_nominal_$": {"bear": "...", "low": "...", "base": "...", "high": "...", "bull": "..."},
       "overlap_haircut": "...",
       "sources": ["url1", "url2"]
     }
   ]
 }
 ```
+
+Today's-$ layer revenue is an internal sizing artifact. The aggregate hand-off contract sums `layer_revenue_at_horizon_nominal_$` across layers.
 
 Schema: `state-schema.md`.
 

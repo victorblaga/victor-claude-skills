@@ -2,6 +2,8 @@
 
 The DCF skill writes its session state to `dcf-state.json` alongside the existing TAM artifacts. This file is the resume contract + the input to dcf-math + the source from which `dcf.md` and `dcf.html` are regenerated.
 
+**Unit convention.** All revenue / endpoint / growth fields are **nominal $**. DCF consumes TAM's nominal stream as-is — no inflation pass. WACC is nominal. Terminal real growth is a derived quantity for cross-check; the underlying ledger is nominal throughout.
+
 Files in `~/.investing/companies/<TICKER>/<DATE>/`:
 
 | File | Owner | Read/Write |
@@ -26,14 +28,7 @@ Files in `~/.investing/companies/<TICKER>/<DATE>/`:
     "tam_handoff_hash": "sha256:7f3a9b2c8e5d4f1a6b9c3e2d5f8a1b4c7e0d3a6b9c2e5f8a1b4c7e0d3a6b9c2e",
     "tam_handoff_hash_verified_at": "2026-05-19T10:00:00Z",
     "horizon_year": "Y25",
-    "maturity_calendar_year": 2051,
-    "revenue_at_maturity_today_$": {
-      "bear": 4800000000,
-      "low":  8100000000,
-      "base": 13700000000,
-      "high": 21500000000,
-      "bull": 35900000000
-    },
+    "horizon_calendar_year": 2051,
     "revenue_at_maturity_nominal_$": {
       "bear": 7880000000,
       "low":  13290000000,
@@ -42,11 +37,12 @@ Files in `~/.investing/companies/<TICKER>/<DATE>/`:
       "bull": 58880000000
     },
     "inflation_assumption_pct": 0.02,
-    "last_reported_revenue_today_$": 2330000000,
-    "last_reported_yoy_growth": 0.092,
+    "_inflation_assumption_use": "Informational only. Used at WACC composition (currency-inflation component) and to derive terminal real growth from nominal terminal CAGR. NOT used to inflate the consumed annual series — that series is already nominal at every year.",
+    "last_reported_revenue_nominal_$": 2330000000,
+    "last_reported_yoy_growth_nominal": 0.092,
     "revenue_basis": "reported",
     "economic_bridge_summary_from_tam": "no adjustments — reported = economic",
-    "y1_3_guidance_anchor": {"midpoint": 0.095, "range": [0.085, 0.105], "consensus_midpoint": 0.093},
+    "y1_3_guidance_anchor": {"midpoint": 0.095, "range": [0.085, 0.105], "consensus_midpoint": 0.093, "basis": "nominal_as_reported"},
     "growth_shape_per_scenario": {
       "bear": "smooth_fade",
       "low":  "smooth_fade",
@@ -55,7 +51,8 @@ Files in `~/.investing/companies/<TICKER>/<DATE>/`:
       "bull": "stay_elevated"
     },
     "peak_growth_year_per_scenario": {"bear": 1, "low": 3, "base": 4, "high": 6, "bull": 8},
-    "period_cagrs_per_scenario": {
+    "growth_path_cagrs_per_scenario": {
+      "_basis": "nominal",
       "bear": {"y1_3": 0.04, "y4_5": 0.05, "y6_10": 0.05, "y11_20": 0.04, "y21_maturity": 0.02},
       "low":  {"y1_3": 0.07, "y4_5": 0.08, "y6_10": 0.08, "y11_20": 0.07, "y21_maturity": 0.04},
       "base": {"y1_3": 0.095, "y4_5": 0.105, "y6_10": 0.10, "y11_20": 0.09, "y21_maturity": 0.05},
@@ -70,10 +67,12 @@ Files in `~/.investing/companies/<TICKER>/<DATE>/`:
     "consistency_check": "passed | failed",
     "consistency_notes": [
       "No two-bases pathology",
-      "Per-scenario CAGRs compound to per-scenario endpoint (handoff contract test PASS, 5 scenarios)",
-      "Y1-3 anchor test PASS (base within ±3pp of guidance; bear/low/high/bull with override_reason)",
+      "Per-scenario nominal CAGRs compound from Y0 nominal to per-scenario nominal endpoint (handoff contract test PASS, 5 scenarios)",
+      "Y1-3 anchor test PASS nominal-on-nominal (base within ±3pp of nominal guidance midpoint; bear/low/high/bull with override_reason)",
       "Layer-schedule consistency PASS (5 scenarios)",
-      "Scenario monotonicity PASS (bear < low < base < high < bull)"
+      "Scenario monotonicity PASS on nominal endpoints (bear < low < base < high < bull)",
+      "Series consumption audit PASS (Step 7.0): re-derived nominal series matches TAM-stored series cell-by-cell within 50bp",
+      "Basis flags verified nominal across period_cagrs, annual_revenue_nominal series, y1_3_guidance_anchor"
     ]
   },
   "data_snapshot": {
@@ -85,6 +84,7 @@ Files in `~/.investing/companies/<TICKER>/<DATE>/`:
     "net_debt_$": -800000000,
     "ev_$": 21037000000,
     "ttm_revenue_$": 1618600000,
+    "_ttm_basis_note": "All ttm_* and market-related $ figures are nominal $ as reported (last 12 months). Y0 nominal anchor for series consumption audit uses ttm_revenue_$.",
     "ttm_ebit_$": -52600000,
     "ttm_ebit_margin": -0.0325,
     "ttm_fcff_$": 80000000,
@@ -194,6 +194,30 @@ Files in `~/.investing/companies/<TICKER>/<DATE>/`:
     "periodic": [
       {"year": 15, "revenue": 12e9, "growth": 0.11, "ebit_margin": 0.24, "nopat": 2.16e9, "da": 250e6, "capex": 600e6, "delta_nwc": 200e6, "fcff": 1.61e9, "roic": 0.20, "reinvestment_rate": 0.40}
     ]
+  },
+  "mgmt_guide_reconciliation": {
+    "mgmt_y1_guide_midpoint_nominal": 0.108,
+    "mgmt_y1_guide_range_nominal": [0.103, 0.113],
+    "mgmt_guide_source_id": "src_<ticker>_fyguide_2026",
+    "modeled_y1_nominal_growth_per_scenario": {
+      "bear": 0.045,
+      "low":  0.080,
+      "base": 0.108,
+      "high": 0.125,
+      "bull": 0.150
+    },
+    "delta_y1_pp_per_scenario": {
+      "bear": -6.3,
+      "low":  -2.8,
+      "base": 0.0,
+      "high": 1.7,
+      "bull": 4.2
+    },
+    "halt_thresholds_pp": {"base": 1.0, "non_base": 3.0},
+    "halt_triggered_scenarios": [],
+    "override": null,
+    "audit_status": "completed",
+    "audit_notes": "Base Y1 nominal growth (10.8%) reconciles exactly to mgmt FY+1 guide midpoint (10.8%). Non-base scenarios within ±3pp threshold; intentional spreads logged at TAM Y1-3 anchor test."
   },
   "cash_reality_check": {
     "comparable": {
@@ -319,7 +343,14 @@ Files in `~/.investing/companies/<TICKER>/<DATE>/`:
 
 ### Field Notes
 
-- **`tam_session.consistency_check`**: set at Step 0. Must be `passed` before any further step runs. If `failed`, the skill halts.
+- **`tam_session.*`**: mirror of selected fields from TAM `state.json` `aggregated.*`. Field names match TAM source one-to-one (`growth_path_cagrs_per_scenario`, `annual_revenue_nominal_per_scenario`, `revenue_at_maturity_nominal_$`, `last_reported_revenue_nominal_$`, `last_reported_yoy_growth_nominal`, `y1_3_guidance_anchor`, `inflation_assumption_pct`) — no rename across the boundary. The DCF state's `tam_session` block exists so DCF Step 0 can re-load and re-verify without re-parsing `handoff.md`; the canonical source of truth remains the TAM `state.json`.
+- **`tam_session.consistency_check`**: set at Step 0. Must be `passed` before any further step runs. If `failed`, the skill halts. Includes nominal-throughout basis-flag verification — if TAM was produced under pre-nominal-throughout schema (real/today's-$ basis flags), halt.
+- **`tam_session.revenue_at_maturity_nominal_$`**: per scenario, in nominal $ at the hand-off horizon (= overall TAM maturity year). The ONLY revenue endpoint field — today's-$ companion is intentionally absent (TAM hand-off contract is nominal-only).
+- **`tam_session.last_reported_revenue_nominal_$` + `tam_session.last_reported_yoy_growth_nominal`**: Y0 anchors. Nominal as reported — Y0 = today, so nominal $ at Y0 equals today's $ trivially.
+- **`tam_session.inflation_assumption_pct`**: informational. Used at WACC composition + terminal-real-growth derivation. NOT used to inflate the annual series.
+- **`tam_session.y1_3_guidance_anchor.basis`**: must be `"nominal_as_reported"`. Mgmt guidance and consensus are nominal by construction.
+- **`tam_session.growth_path_cagrs_per_scenario._basis`**: must be `"nominal"`.
+- **`mgmt_guide_reconciliation`**: results of Step 7.1 mgmt-guide reconciliation (sanity check #14). Per-scenario modeled Y1 nominal growth vs mgmt FY+1 guide midpoint. Halt thresholds: ±100bp on base, ±300bp on non-base (without logged override). Catches silent nominal-vs-real drift.
 - **`current_step`**: must reflect the latest completed step. Resume reads this.
 - **`history[]`**: append-only log of completed steps.
 - **`sensitivity.matrix_2: null`** is valid — Matrix 2 is omitted when Matrix 1 captures the variance.

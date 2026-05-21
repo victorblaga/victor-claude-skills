@@ -20,6 +20,8 @@ Long-horizon FCFF DCF for a single growth stock, **anchored** to a TAM analysis 
 
 **Hard prerequisite**: a completed TAM analysis at `~/.investing/companies/<TICKER>/<DATE>/handoff.md`. If one does not exist for the requested ticker, the skill refuses to proceed and tells the user to run `/tam-analysis <TICKER>` first.
 
+**Unit convention: nominal throughout.** The TAM hand-off carries the revenue stream in **nominal $** — Y0 nominal anchor, nominal period CAGRs, nominal annual series, nominal endpoint. The DCF consumes that nominal stream **as-is** and does NOT inflate it. The Growth% column in `dcf.md` Section 5 is nominal growth. Terminal real growth is derived from nominal terminal CAGR minus the TAM-declared inflation assumption. WACC is itself nominal (composition embeds currency inflation), so nominal cash flows discount with nominal WACC — no real/nominal mixing.
+
 The TAM/revenue path is mostly settled by the time this skill runs — don't relitigate it. The DCF skill is for the *math*, *margin assumptions*, and *sensitivity*, where most of the iteration value lives.
 
 ## Execution Notes
@@ -112,26 +114,28 @@ Pacing commands inherited from `/tam-analysis`: `faster`, `autopilot`, `pause`, 
 First message of every fresh DCF session:
 
 1. **Load** `~/.investing/companies/<TICKER>/<DATE>/handoff.md` and `state.json`. Parse the hand-off block (section G) into structured form.
-2. **Summarize** the user's TAM interpretation: company, currency, hand-off horizon (Y`<N>`), last reported revenue + YoY growth, revenue at maturity across 5 scenarios (bear/low/base/high/bull), **per-scenario period CAGRs** (5 rows), Y1-3 guidance anchor, growth shape per scenario, dominant Fermi drivers, bear mechanism, low/high partial materializations, bull adjacencies, speculative layer values per scenario, layer activation schedule.
+2. **Summarize** the user's TAM interpretation: company, currency, hand-off horizon (Y`<N>`), last reported nominal revenue + nominal YoY growth, nominal revenue at horizon across 5 scenarios (bear/low/base/high/bull), **per-scenario nominal period CAGRs** (5 rows), Y1-3 nominal guidance anchor, growth shape per scenario, dominant Fermi drivers, bear mechanism, low/high partial materializations, bull adjacencies, speculative layer values per scenario, layer activation schedule.
 3. **Run hand-off verification checks**. Any failure HALTS the DCF — do not silently work around:
 
-   **3a. Required fields present.** Hand-off must carry: per-scenario period CAGRs (bear/low/base/high/bull, 5 scenarios × 5 periods = 25 CAGRs); per-scenario endpoints (today's $ + nominal $, 5 scenarios); last reported revenue + last reported YoY growth; **`revenue_basis` field (`reported` | `economic_adjusted`) + economic bridge summary** (from TAM Step 1); Y1-3 guidance anchor; per-layer activation schedule; growth shape + peak-growth year per scenario. If anything is missing, halt and prompt user to re-run TAM with the missing field.
+   **3a. Required fields present.** Hand-off must carry: per-scenario **nominal** period CAGRs (bear/low/base/high/bull, 5 scenarios × 5 periods = 25 CAGRs); per-scenario **nominal endpoints** at the hand-off horizon (5 scenarios); last reported **nominal** revenue + last reported **nominal** YoY growth; inflation assumption (informational, for terminal-real-growth derivation only); **`revenue_basis` field (`reported` | `economic_adjusted`) + economic bridge summary** (from TAM Step 1); Y1-3 guidance anchor (`basis: nominal_as_reported`); per-layer activation schedule; growth shape + peak-growth year per scenario. If anything is missing, halt and prompt user to re-run TAM with the missing field.
 
-   **3b. Hand-off contract test (per scenario).** For each scenario, verify the stated period CAGRs compound to the stated endpoint within 2%. If any scenario fails, halt and force user choice between revising the TAM endpoint, revising the TAM CAGRs, or providing an explicit annual series. Do NOT silently rescale CAGRs to fit endpoint.
+   **3b. Hand-off contract test (per scenario).** For each scenario, verify the stated nominal period CAGRs compound from `last_reported_revenue_nominal_$` to the stated nominal endpoint within 2%. If any scenario fails, halt and force user choice between revising the TAM endpoint, revising the TAM CAGRs, or providing an explicit nominal annual series. Do NOT silently rescale CAGRs to fit endpoint.
 
-   **3c. Y1-3 anchor test.** Verify the **base** scenario's Y1-3 CAGR is within ±3pp of `aggregated.y1_3_guidance_anchor.midpoint`, OR carries a logged `override_reason`. Bear / low / high / bull must each carry their own `override_reason` describing the bear-mechanism / bull-adjacency intensity that drives the spread from base. Halt on failure — resolve in TAM.
+   **3c. Y1-3 anchor test (nominal-on-nominal).** Verify the **base** scenario's nominal Y1-3 CAGR is within ±3pp of `aggregated.y1_3_guidance_anchor.midpoint` (which carries `basis: nominal_as_reported`), OR carries a logged `override_reason`. Bear / low / high / bull must each carry their own `override_reason` describing the bear-mechanism / bull-adjacency intensity that drives the spread from base. Halt on failure — resolve in TAM.
 
    **3d. Layer-schedule consistency.** Re-read `aggregated.layer_schedule_consistency_test`. Refuse to proceed if any of the 5 scenarios has unresolved violations.
 
-   **3e. Y0 anchoring.** Verify the consumed annual series Y0 (per scenario) equals `last_reported_revenue_today_$` within 50bps. Mismatch → halt.
+   **3e. Y0 anchoring.** Verify the consumed nominal annual series Y0 (per scenario) equals `last_reported_revenue_nominal_$` within 50bps. Mismatch → halt.
 
-   **3f. Scenario monotonicity.** Re-read `aggregated.scenario_monotonicity_test`. `bear < low < base < high < bull` must hold for revenue at maturity (aggregated and per-layer). Halt on violation.
+   **3f. Scenario monotonicity.** Re-read `aggregated.scenario_monotonicity_test`. `bear < low < base < high < bull` must hold for nominal revenue at maturity (aggregated and per-layer). Halt on violation.
 
-   **3g. Speculative-bear-zero.** Any layer flagged `speculative: true` must have `layer_revenue_at_maturity_today_$.bear == 0`. Halt on violation.
+   **3g. Speculative-bear-zero.** Any layer flagged `speculative: true` must have `layer_revenue_at_horizon_nominal_$.bear == 0`. Halt on violation.
 
    **3h. Two-bases pathology.** If the TAM output mentions an "alternative haircut base" or "analyst-conservative base" alongside the bottom-up base, surface as TAM-side error. DCF cannot proceed with two bases.
 
-   **3i. Internal arithmetic.** Revenue at maturity nominal vs today's-$ × inflation^N — must reconcile per scenario.
+   **3i. Series basis check (nominal-throughout firewall).** The TAM annual series at `aggregated.annual_revenue_nominal_per_scenario._basis` must read `"nominal"`. The period CAGRs at `aggregated.growth_path_cagrs_per_scenario._basis` must read `"nominal"`. The Y1-3 guidance anchor's `basis` must read `"nominal_as_reported"`. If any basis flag is missing, set to a real-flavor value, or implies real/today's-$ accounting, HALT — the TAM was produced under a stale pre-nominal-throughout schema. Prompt the user to re-run TAM. The DCF cannot inflate the series itself — that's exactly the bug class this convention closes.
+
+   **3j. Mgmt-guide vs Y1 nominal CAGR sanity (informational here, hard at Step 7.0).** Compare base nominal Y1-3 CAGR to mgmt FY+1 guide midpoint. Difference >300bp without an override note in TAM = warn, do not halt. Hard reconciliation at Step 7.0 once the DCF series is materialized.
 
 4. If any check fails, **HALT and prompt user with the specific options** for that failure. Never silently work around. Never silently rescale.
 5. Once all checks pass, ask: "Hand-off verified consistent across all scenarios. Ready to start the DCF assumptions? Same per-anchor pacing as `/tam-analysis`."
@@ -348,25 +352,51 @@ Per-anchor confirmation. WACC and lease/SBC choices are sticky — flag them as 
 ## Step 7 — Build the Forecast (Dispatch dcf-math)
 
 Once all assumptions are pinned, dispatch the **dcf-math** subagent (`agents/dcf-math.md`) with explicit **basis + engine declarations**:
-- Revenue path on the basis from TAM hand-off (`revenue_basis: reported | economic_adjusted`).
+- Revenue path consumed as **nominal series directly** from TAM `aggregated.annual_revenue_nominal_per_scenario`. NO inflation pass. NO real/nominal conversion. (`revenue_basis: reported | economic_adjusted` still controls economic-vs-reported revenue, orthogonal to nominal.)
 - Margins on `economic_ebit_margin_y0` per Step 2.
 - **Growth engine** from `dcf-state.growth_engine.type` and **forecast method** from `dcf-state.growth_engine.forecast_method` (set at Step 3). dcf-math branches its forecast generator per engine — opex_funded uses cash-conversion margin, capex_funded uses sales-to-capital, acquisition_funded uses two-track, etc.
 - SBC at run-rate only; one-time vintage handled separately in the equity bridge as contingent dilution.
 
+### Step 7.0 — Series Consumption Audit (BEFORE forecast generation)
+
+dcf-math, before generating any FCFF line, must run a **series consumption audit**:
+
+1. Read `aggregated.annual_revenue_nominal_per_scenario.<scenario>` from TAM state for all 5 scenarios.
+2. Re-derive locally from the nominal period CAGRs anchored on `aggregated.last_reported_revenue_nominal_$` + `aggregated.last_reported_yoy_growth_nominal` using the same algorithm as the TAM math-checker (linear interp in growth-rate space + per-period renormalization).
+3. **Cell-by-cell diff** of the re-derived series against the TAM-stored series, per scenario, per year. Tolerance: 50bp per cell.
+4. HALT on any cell exceeding tolerance — TAM series and CAGRs are not internally consistent, resolve in TAM via `/tam-analysis resume`.
+
+This audit makes silent path divergence impossible. The DCF cannot consume the CAGRs to one path while ignoring the stored series along a different path.
+
 Computes:
 
-1. **Annual forecast Y1-Y10**: revenue (from TAM ramp), EBIT margin, NOPAT, D&A, capex, ΔNWC, FCFF, ROIC, reinvestment rate.
-2. **Periodic forecast Y11-maturity**: 5-year intervals. Same columns.
+1. **Annual forecast Y1-Y10**: nominal revenue (from TAM nominal series, as-is), nominal growth%, EBIT margin, NOPAT, D&A, capex, ΔNWC, FCFF, ROIC, reinvestment rate. Growth% column is nominal — matches the TAM nominal CAGRs by construction.
+2. **Periodic forecast Y11-horizon**: 5-year intervals. Same columns.
 3. **PV of FCFF** by period: Y1-10, Y11-20, Y21-maturity, residual. Flag if residual > 50% of EV.
 4. **EV → equity bridge**: subtract net debt, lease liabilities (if capitalized framework), preferred / minorities; divide by diluted share count → value per share.
-5. **Reverse DCF per scenario**: solve for the unlevered enterprise discount rate that reconciles current EV with the scenario's FCFF + residual. Plus the 10%-required-return case — what TAM / margin / adjacency assumptions clear 10%?
+5. **Reverse DCF per scenario**: solve for the nominal unlevered enterprise discount rate that reconciles current EV with the scenario's nominal FCFF + residual. Plus the 10%-required-return case — what TAM / margin / adjacency assumptions clear 10%?
 6. **Sensitivity matrices** (see `references/sensitivity-matrices.md`):
    - TAM scenario × mature EBIT margin (primary).
    - Two-Fermi-driver (from TAM dominant drivers).
-   - Discount rate × mature growth (sanity).
+   - Discount rate × mature growth (sanity). Mature growth in Matrix 3 is the **real** terminal growth column — converted internally to nominal terminal growth via `g_nominal = g_real + inflation` using TAM's stated inflation assumption.
 7. **Implied multiples** at the base value: entry EV/EBIT, EV/FCFF, P/E. Compare to current and peer benchmarks.
 
 dcf-math returns structured numbers + a Python compute log to `.dcf-check.log`. Main thread surfaces results to user.
+
+### Step 7.1 — Mgmt-Guide Reconciliation (sanity check #14)
+
+After dcf-math returns the forecast, the main thread (or dcf-math, before returning) compares modeled Y1 nominal growth across all 5 scenarios to the management FY+1 guide midpoint:
+
+- |modeled_y1_nominal_growth − mgmt_y1_guide_midpoint| < 100bp on the **base** scenario, absent a logged override mechanism, is the clean condition.
+- Tolerance widens to ±300bp on bear/low/high/bull (since those carry intentional reasoned spreads from the guidance anchor — overrides logged at TAM time).
+- On halt:
+
+  > Mgmt-guide reconciliation FAIL for `<scenario>`: modeled Y1 nominal growth `<X%>` vs mgmt FY+1 guide midpoint `<Y%>` (delta `<Z>bp`, threshold `<T>bp`). Options:
+  > (a) Revise the TAM Y1-3 nominal CAGR — re-run `/tam-analysis resume <TICKER>`.
+  > (b) Log an override mechanism in `dcf-state.mgmt_guide_reconciliation.override.<scenario>.mechanism` + `sources.md`. Free-text but specific.
+  > (c) Halt the DCF.
+
+This check exists because mgmt guidance is the most-cited and least-ambiguous external nominal anchor. If the modeled Y1 nominal growth doesn't reconcile to it, the contract has drifted somewhere (TAM stripped inflation against the convention, or DCF inflated against the convention, or a stale series is being consumed). Catch it here, not at output emission.
 
 ## Step 8 — Cash-Reality Reconciliation Check
 

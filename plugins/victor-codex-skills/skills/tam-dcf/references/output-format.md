@@ -7,6 +7,8 @@ Two deliverables. Both saved to `~/.investing/companies/<TICKER>/<DATE>/`.
 
 This file specifies both.
 
+**Unit convention for output.** Revenue, FCFF, NOPAT, EBIT and all $-denominated quantities are in **nominal $**. Growth% column in the forecast table is **nominal growth %** (matches the TAM nominal CAGRs by construction). Terminal real growth surfaces as a derived quantity in sensitivity Matrix 3 and the assumption table only — for reader intuition, not a separate ledger. No today's-$ column appears in the forecast — that lives in the TAM dialogue, not in the DCF output.
+
 ## `dcf.md` — Canonical Markdown Report
 
 ### Required Section Order
@@ -68,7 +70,7 @@ From Step 2. Surfaces the accounting-to-economic reconciliation so the rest of t
 
 | Item | Reported | Adjustment | Economic | Rationale |
 |------|----------|------------|----------|-----------|
-| Revenue (Y0, today's $) | $X | -$Y (pass-through ad fund, inherited from TAM) | $Z | <link to TAM `economic_bridge.revenue_side` source> |
+| Revenue (Y0, nominal $) | $X | -$Y (pass-through ad fund, inherited from TAM) | $Z | <link to TAM `economic_bridge.revenue_side` source> |
 | EBIT (Y0) | $X | +$Y (strategic store segment reclassified) - $Z (run-rate SBC normalization removes one-time vintage) | $W | <link to source> |
 | EBIT margin (Y0) | X% | computed | Y% | bridge math from rows above |
 | Diluted shares | X | + Y (one-time CEO grant, probability-weighted dilution at hurdle prices) | X+Y (contingent) | <link to DEF14A source> |
@@ -87,13 +89,13 @@ Footer:
 
 ONE PARAGRAPH. Reference `handoff.md`, don't redo. Required content:
 
-- Bear / low / base / high / bull revenue at maturity (today's $ + nominal $).
+- Bear / low / base / high / bull revenue at hand-off horizon (**nominal $**, single unit).
 - Growth shape per scenario.
 - 2-3 dominant Fermi drivers.
 - Bear mechanism (one line) + low partial materialization (one line).
 - Bull adjacencies (one line each) + high partial realization (one line).
 - Speculative-layer values per scenario (bear=0 hard rule).
-- Hand-off horizon year.
+- Hand-off horizon year + inflation assumption used (for terminal real-growth derivation).
 
 End with: "Full TAM analysis at `<absolute path to handoff.md>`."
 
@@ -115,24 +117,31 @@ Each assumption cites a source or a TAM hand-off field.
 
 ### Section 5 — Explicit Forecast
 
-Annual to Y10, then 5-year intervals to maturity (Y15, Y20, Y25, Y30 ... up to maturity).
+Annual to Y10, then 5-year intervals to hand-off horizon (Y15, Y20, Y25, Y30 ... up to horizon).
 
 Columns (per scenario, base case shown in detail; bear and bull in supplementary tables):
 
-| Year | Revenue | Growth% | TAM_share | EBIT margin | NOPAT | D&A | Capex | ΔNWC | FCFF | ROIC | Reinv rate |
-|------|---------|---------|-----------|-------------|-------|-----|-------|------|------|------|-----------|
+| Year | Revenue (nominal $) | Nominal growth % | TAM_share | EBIT margin | NOPAT | D&A | Capex | ΔNWC | FCFF | ROIC | Reinv rate |
+|------|---------------------|------------------|-----------|-------------|-------|-----|-------|------|------|------|-----------|
 
-**The per-scenario growth path declared in TAM (period CAGRs + growth shape label) MUST be visible in the Growth% column.** If TAM declared `stay-elevated` and the column shows smooth fade, the math is wrong — re-run dcf-math. Same the other way: if TAM declared `smooth-fade` and the column shows mid-cycle elevation, also wrong.
+**Column units are explicit.** Revenue is nominal $. Growth% is nominal growth (matches the TAM nominal CAGRs). EBIT margin, ROIC, Reinv rate are dimensionless ratios on the same nominal flows. No real columns in this table — real terminal growth is a derived cross-check, surfaced in the assumption table + Matrix 3.
+
+**The per-scenario growth path declared in TAM (nominal period CAGRs + growth shape label) MUST be visible in the Nominal-growth% column.** If TAM declared `stay-elevated` and the column shows smooth fade, the math is wrong — re-run dcf-math. Same the other way: if TAM declared `smooth-fade` and the column shows mid-cycle elevation, also wrong.
+
+**Nominal-throughout disclosure (required at top of Section 5):**
+
+> Revenue stream consumed from TAM hand-off as nominal $ directly. No inflation overlay applied in DCF. Growth% column is nominal growth, matches TAM-declared nominal period CAGRs by construction. WACC is nominal (composition embeds `<X>%` currency inflation). Terminal real growth derived as `g_nominal_Y21-maturity − inflation_assumption_pct = <X>%`.
 
 #### Revenue Path Method Disclosure (REQUIRED)
 
 At the top of Section 5, before the per-scenario tables, include an explicit method disclosure block:
 
 ```markdown
-**Revenue path method**: <one of>
-
-- "Per-scenario annual revenue series sourced directly from TAM hand-off (preferred — derived in TAM via linear interp in growth-rate space, anchored on last_reported_yoy_growth at Y0)."
-- "Per-scenario annual revenue series re-derived locally from TAM per-scenario period CAGRs (Y1-3 / Y4-5 / Y6-10 / Y11-20 / Y21-maturity). Hand-off contract test PASS per scenario (CAGRs compound to endpoint within 2%). Y0 anchoring verified against data snapshot."
+**Revenue path method**: Per-scenario nominal annual revenue series sourced directly from TAM hand-off
+(`aggregated.annual_revenue_nominal_per_scenario`). No inflation pass — series is nominal at every year.
+Re-derived locally and audited cell-by-cell against TAM-stored series within 50bp tolerance (Step 7.0
+series consumption audit, sanity check #15). Mgmt-guide reconciliation at Step 7.1 (sanity check #14)
+confirms modeled Y1 nominal growth matches mgmt FY+1 guide midpoint within 100bp on base.
 
 **Per-scenario path shape**:
 - Bear: <stay-elevated / smooth-fade / front-loaded / back-loaded>, peak year Y<N>
@@ -155,9 +164,11 @@ For `mixed_engine`, list per segment:
 - Segment name, engine type, revenue weight at maturity (per scenario), forecast method, primary anchor.
 
 **Layer-schedule consistency**: <PASS / FAIL>. Read from `aggregated.layer_schedule_consistency_test` in TAM state. If FAIL, halt before dcf.md emission.
+**Series consumption audit (Step 7.0)**: <PASS / FAIL>. If FAIL, halt — TAM CAGRs vs stored series have drifted.
+**Mgmt-guide reconciliation (Step 7.1)**: <PASS / OVERRIDE / FAIL>. If FAIL, halt — modeled Y1 nominal growth doesn't reconcile to mgmt guide.
 ```
 
-The disclosure must appear in every `dcf.md` output. No silent revenue-path generation. No silent engine choice. The user should be able to read the disclosure and know exactly how the revenue path was constructed AND which forecasting identity drives FCFF generation.
+The disclosure must appear in every `dcf.md` output. No silent revenue-path generation. No silent engine choice. No silent inflation overlay. The user should be able to read the disclosure and know exactly how the revenue path was constructed AND which forecasting identity drives FCFF generation AND that the nominal-throughout firewall held.
 
 ### Section 6 — WACC and EV → Equity Bridge
 
@@ -324,13 +335,16 @@ Run dcf-math one last time with the "final pass" check:
 5. **No magic haircuts**: scan the markdown for "haircut," "conservative alternative base," "applied a X% reduction," "for margin of safety we cut" — these phrases trigger a hard fail and require regenerating.
 6. PV-by-period sums to total EV.
 7. Terminal value flag set correctly (> 50% of EV → flagged in section 6).
-8. **Revenue path method disclosure** present in Section 5. If missing → FAIL.
+8. **Revenue path method disclosure** present in Section 5, including nominal-throughout disclosure block. If missing → FAIL.
 9. **Layer-schedule consistency (carried from TAM)** PASS per scenario. If any scenario has unresolved violations → FAIL the final pass.
-10. **Y0 anchoring** verified: consumed series Y0 == `data_snapshot.current_revenue_today_$` within 50bps. If `revenue_basis: economic_adjusted`, Y0 anchor uses `economic_revenue_y0`, not `reported_revenue_y0` — verify the right field flowed through.
+10. **Y0 anchoring** verified: consumed nominal series Y0 == `data_snapshot.ttm_revenue_$` (nominal by construction) within 50bps. If `revenue_basis: economic_adjusted`, Y0 anchor uses `economic_revenue_y0_nominal_$` from `tam_session.economic_bridge`, not the reported figure — verify the right field flowed through.
 11. **Section 2.5 (Reported → Economic Bridge)** present in dcf.md. Clean case = one-line "no adjustments." Quirky case = bridge table populated with rationale per row. If missing → FAIL.
 12. **Section 10 dual-basis presentation** when economic ≠ reported. If `economic_bridge.margin_side` shows any adjustment OR `revenue_basis: economic_adjusted`, multiples must show both bases. If single-block presentation under those conditions → FAIL.
 13. **Section 5 growth engine + forecast method disclosure** present. Engine type, forecast method, rationale, engine-specific anchor summary, maintenance-only FCFF margin all populated. If missing → FAIL.
-14. **Section 10 negative-multiple warning** present if any implied multiple is negative. Without the warning block → FAIL. (Don't silently emit negative multiples — see `references/dcf-protocol.md` Known Failure Mode appendix for the canonical instance.)
+14. **Section 10 negative-multiple warning** present if any implied multiple is negative. Without the warning block → FAIL.
 15. **Cash-reality check result reflected in dcf.md.** Section 9 or a new sub-block must surface the comparable + per-scenario delta + any override mechanisms logged. If `cash_reality_check.audit_status != "completed"` in dcf-state.json → FAIL.
+16. **Series consumption audit (Step 7.0)** PASS. Re-derived nominal series matches TAM-stored series cell-by-cell within 50bp per scenario per year. If FAIL → halt.
+17. **Mgmt-guide reconciliation (Step 7.1)** PASS or OVERRIDE. Modeled Y1 nominal growth within 100bp of mgmt FY+1 guide midpoint on base (300bp on non-base) absent logged override. If FAIL without override → halt.
+18. **Nominal-throughout basis-flag check** PASS. All TAM basis flags (`annual_revenue_nominal_per_scenario._basis`, `growth_path_cagrs_per_scenario._basis`, `y1_3_guidance_anchor.basis`) carry nominal labels. If any flag stale → halt; TAM must be re-run under nominal-throughout schema.
 
 Failures: surface to user before declaring the output done.
