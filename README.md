@@ -20,6 +20,7 @@ Codex-native variants live under `plugins/victor-codex-skills/skills/` and are d
 - **argument-structure** — Diagnose a draft or idea against the Minto Pyramid Principle and deliver a restructuring plan as a visual HTML artifact
 - **llm-council** — Run decisions through 5 AI advisors who analyze, peer-review, and synthesize a final verdict
 - **sweep** — Whole-codebase hygiene sweep across duplication, dead code, weak types, defensive code, and comment slop
+- **workstream-implementer** — Project-aware implementation workflow from JIRA ticket or idea through multi-repo planning, PRs, CI, and review handoff
 
 ## Claude Installation
 

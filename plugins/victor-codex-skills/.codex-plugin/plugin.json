@@ -1,6 +1,6 @@
 {
   "name": "victor-codex-skills",
-  "version": "1.20.0",
+  "version": "1.21.0",
   "description": "Codex-native variants of Victor Blaga's Claude workflow skills. The Claude skills remain canonical.",
   "author": {
     "name": "Victor Blaga",
@@ -24,6 +24,7 @@
     "sweep",
     "tam-analysis",
     "tam-dcf",
+    "workstream-implementer",
     "tam",
     "dcf",
     "fermi",
@@ -31,13 +32,16 @@
     "growth-stock",
     "finance",
     "fcff",
-    "intrinsic-value"
+    "intrinsic-value",
+    "jira",
+    "multi-repo",
+    "project-workflow"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Victor Codex Skills",
     "shortDescription": "Codex-native workflow skills derived from canonical Claude prompts",
-    "longDescription": "Install Victor Blaga's workflow skills for Codex, including deep implementation, multi-dimensional review, review triage, architecture planning, structural refactoring, whole-codebase cleanup sweeps, codebase cross-examination, long-form writing support, conversational bottom-up Fermi TAM analysis for growth stocks, and long-horizon FCFF DCF anchored to those TAM outputs.",
+    "longDescription": "Install Victor Blaga's workflow skills for Codex, including project-aware workstream implementation from JIRA to PR, deep implementation, multi-dimensional review, review triage, architecture planning, structural refactoring, whole-codebase cleanup sweeps, codebase cross-examination, long-form writing support, conversational bottom-up Fermi TAM analysis for growth stocks, and long-horizon FCFF DCF anchored to those TAM outputs.",
     "developerName": "Victor Blaga",
     "category": "Coding",
     "capabilities": [
@@ -49,6 +53,7 @@
     "termsOfServiceURL": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
     "defaultPrompt": [
       "Run a deep implementation workflow from a proposal or review report",
+      "Use workstream-implementer to take a JIRA ticket through repo scope, implementation, PRs, and review",
       "Do a mega-review and then triage the findings into a plan",
       "Design a refactor top-down and then implement it in Codex"
     ],
