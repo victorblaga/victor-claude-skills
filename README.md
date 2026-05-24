@@ -21,6 +21,7 @@ Codex-native variants live under `plugins/victor-codex-skills/skills/` and are d
 - **llm-council** — Run decisions through 5 AI advisors who analyze, peer-review, and synthesize a final verdict
 - **sweep** — Whole-codebase hygiene sweep across duplication, dead code, weak types, defensive code, and comment slop
 - **workstream-implementer** — Project-aware implementation workflow from JIRA ticket or idea through multi-repo planning, PRs, CI, and review handoff
+- **frontend-review** — Design-quality review of implemented FE surfaces against composition / craft / content / structure rubrics, with one-by-one fix triage
 
 ## Claude Installation
 
