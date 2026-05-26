@@ -13,7 +13,9 @@ description: >
 
 ## Overview
 
-Coordinate implementation work that starts from a JIRA ticket or a new idea and may span multiple local repos. JIRA is the stakeholder contract. The local workbook under `~/.docs/workstream-implementer/` is the implementation state.
+Coordinate implementation work that starts from a JIRA ticket or a new idea and may span multiple local repos. Treat the initial ticket as raw input, not as a complete implementation contract, unless it is already clearly refined. JIRA is the stakeholder contract. The local workbook under `~/.docs/workstream-implementer/` is the implementation state.
+
+The first responsibility is ticket refinement: clarify the user, job, pain, desired outcome, constraints, non-goals, and acceptance criteria before repo scoping or implementation planning. Keep this conversational and appropriately sized for the ticket. Do not turn small mechanical work into a heavyweight product discovery exercise, but do challenge vague or solution-first tickets before building.
 
 This skill is the outer controller. It may implement small fixes directly, but for substantial work it routes into existing implementation patterns:
 
@@ -75,14 +77,57 @@ Read `references/project-profile-schema.md` when creating or updating a project 
    - Present a normal-language summary and ask before saving `project.json`.
 5. Validate the profile and repo paths.
 6. Create or load the ticket workbook.
-7. Check every candidate repo worktree before branching. If dirty, stop for that repo and ask how to handle the existing changes. Never overwrite user work.
+7. Run ticket refinement before repo scope unless the request is tiny/mechanical or already refined. Record the skip reason when refinement is skipped.
+8. Check every affected repo worktree before branching. If dirty, stop for that repo and ask how to handle the existing changes. Never overwrite user work.
+
+## Ticket Refinement
+
+Run this phase before repo scope and work mode selection. The goal is a documented, user-centered contract that can drive implementation. The raw ticket is only a starting point.
+
+Skip or shorten this phase only when:
+
+- the ticket already names the user or actor, job, desired outcome, acceptance criteria, non-goals, and meaningful constraints
+- the request is truly tiny and mechanical, such as a typo, one-line config fix, or obvious dependency bump
+- the user explicitly says to skip refinement
+
+Use a `grill-me` style posture adapted to implementation work:
+
+- Ask batched, high-signal questions instead of one question at a time.
+- Provide your recommended answer for each question.
+- Challenge weak assumptions, vague business value, premature solution choices, and unclear acceptance criteria.
+- If a question can be answered from JIRA, the project profile, repo search, docs, or existing behavior, inspect those sources instead of asking.
+- Stop when the remaining uncertainty no longer changes scope, acceptance criteria, or implementation risk.
+
+Use a lightweight Jobs-to-Be-Done framing. Center the refinement on users and jobs without forcing a full methodology when the ticket does not need it:
+
+- Identify the actor: external customer, operator, analyst, admin, internal developer, future maintainer, or LLM/code agent.
+- Describe the job in practical terms: "When <situation>, <actor> needs to <do something>, so they can <achieve outcome>."
+- For refactors and infrastructure work, treat the internal developer team, future maintainers, and LLM/code agents as valid users. Their jobs include understanding boundaries, making changes safely, reducing context needed for maintenance, improving testability, and lowering future regression risk.
+- Separate the user job from the proposed solution. The ticket may request a button, endpoint, migration, or refactor, but the refined contract should explain the underlying job it serves.
+
+Document the refined contract in `jira.md` before implementation. Preserve the original request and add a separate refined contract section with:
+
+- original request summary
+- refined problem statement
+- users / actors
+- jobs to be done
+- current pain or limitation
+- desired outcome
+- acceptance criteria
+- technical side-goals and constraints, such as performance, data volume, batching, compatibility, safety, observability, migration, or LLM-friendliness
+- non-goals and boundaries
+- assumptions and open questions
+
+Keep implementation detail shallow during refinement. Record technical constraints that shape the solution, but do not prematurely choose architecture, file-level changes, or exact implementation steps unless the ticket is already that specific.
+
+Present the refined contract to the user for approval before repo scope and implementation planning. If the work is tiny/direct and you proceed on an assumption, state the assumption clearly and record it in the workbook.
 
 ## JIRA Contract
 
 Use JIRA for externally visible contract and status only:
 
 - original stakeholder request
-- cleaned-up implementation contract
+- refined implementation contract with users, jobs, outcomes, constraints, and non-goals
 - acceptance criteria
 - blockers and scope changes
 - PR links
@@ -91,7 +136,7 @@ Use JIRA for externally visible contract and status only:
 
 Do not use JIRA for internal scratch notes, failed attempts, raw test logs, context summaries, or local workbook paths.
 
-If the skill creates the ticket, write a clean full description. If a stakeholder-created ticket exists, preserve the original request and add a separate implementation contract section. Prefer direct description edits for stable contract updates and comments for events such as blockers, PR links, verification, and review handoff.
+If the skill creates the ticket, write a clean full description from the refined contract. If a stakeholder-created ticket exists, preserve the original request and add a separate refined implementation contract section after user approval. Prefer direct description edits for stable contract updates and comments for events such as blockers, PR links, verification, and review handoff.
 
 Move tickets to In Review or Review when implementation is ready. Never move a ticket to Done unless the user explicitly instructs that the work is approved or done.
 
@@ -114,9 +159,9 @@ When the user gives reusable operational instructions mid-ticket, ask whether to
 
 ## Repo Scope
 
-Before implementation, propose the affected repo scope:
+After ticket refinement and before implementation, propose the affected repo scope:
 
-1. Read the JIRA ticket or idea.
+1. Read the refined contract, not just the raw JIRA ticket or idea.
 2. Load the project profile.
 3. Search active repos for ticket terms.
 4. Use reference repos only when the ticket implies migration, parity, legacy behavior, or the user asks.
@@ -136,7 +181,7 @@ For tiny obvious tickets, state the assumption and proceed only if the normal au
 
 ## Work Modes
 
-After repo scope is clear, choose a mode:
+After the refined contract and repo scope are clear, choose a mode:
 
 | Mode | Use When | Approval |
 |------|----------|----------|

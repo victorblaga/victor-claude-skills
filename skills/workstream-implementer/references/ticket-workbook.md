@@ -14,7 +14,7 @@ The workbook is local implementation state. Do not link these paths in JIRA.
 : Resumable control file. Update whenever phase, mode, repo scope, branch, PR, blocker, or next action changes.
 
 `jira.md`
-: Stakeholder contract mirror: original request, implementation contract, acceptance criteria, stakeholder-safe updates.
+: Stakeholder contract mirror: original request, refined problem statement, users / actors, jobs to be done, current pain, desired outcome, acceptance criteria, technical side-goals and constraints, non-goals, open questions, stakeholder-safe updates.
 
 `repos.md`
 : Proposed and final repo scope. Separate active repos from reference repos.
@@ -67,6 +67,7 @@ Use this shape:
 
 - Write detailed internal notes here, not in JIRA.
 - Keep JIRA updates sparse and stakeholder-safe.
+- Preserve the original request in `jira.md`; add the refined contract separately after ticket refinement.
 - Record failed attempts only if they matter for future implementation or risk.
 - Record exact verification commands and outcomes.
 - For multi-repo tickets, keep one workstream file per affected repo.
