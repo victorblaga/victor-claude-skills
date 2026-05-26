@@ -26,35 +26,31 @@ Codex-native variants live under `plugins/victor-codex-skills/skills/` and are d
 ## Claude Installation
 
 ```text
-/plugin marketplace add victorblaga/victor-skills-marketplace
-/plugin install victor-claude-skills
-/reload-plugins
+claude plugin marketplace add victorblaga/victor-skills-marketplace
+claude plugin install victor-claude-skills
+claude plugin update victor-claude-skills
 ```
 
 ## Codex Installation
 
-Codex does not mirror Claude Code's hosted marketplace flow. The supported path is the plugin bundle under `plugins/victor-codex-skills/`.
-
-Use `.agents/plugins/marketplace.json` in this repo as the template for your local `~/.agents/plugins/marketplace.json`.
-
-For ongoing updates, use the tracked sync script in this repo:
+Codex uses the plugin bundle under `plugins/victor-codex-skills/`. Add this repo as a local marketplace, then install the plugin through the Codex CLI:
 
 ```text
-./bin/victor-skills-sync
+codex plugin marketplace add .
+codex plugin add victor-codex-skills@victor-local-plugins
 ```
 
-If you prefer a global command, symlink it once:
+For ongoing updates after pulling this repo:
 
 ```text
-ln -sfn "$PWD/bin/victor-skills-sync" ~/.local/bin/victor-skills-sync
+codex plugin remove victor-codex-skills
+codex plugin add victor-codex-skills@victor-local-plugins
 ```
 
-The sync script:
+If the marketplace was added from a Git source rather than this local checkout, refresh the marketplace first:
 
-- pulls the latest repo state
-- refreshes the runtime bundle at `~/plugins/victor-codex-skills`
-- refreshes the Codex cache at `~/.codex/plugins/cache/victor-local-plugins/victor-codex-skills/<version>`
-- copies the plugin contents flat into the version root so Codex can load `.codex-plugin/plugin.json`
-- prunes legacy Victor skill symlinks from `~/.codex/skills` so the skills surface only once
+```text
+codex plugin marketplace upgrade victor-local-plugins
+```
 
 The Codex plugin bundle manifest is at `plugins/victor-codex-skills/.codex-plugin/plugin.json`.
