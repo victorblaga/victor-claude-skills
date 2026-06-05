@@ -1,11 +1,11 @@
 {
   "name": "victor-claude-skills",
-  "description": "Custom Claude Code skills: forge, deep-implement, mega-review, review-triage, grill-me, cross-examine, long-form-article, argument-structure, llm-council, sweep, tam-analysis, tam-dcf, workstream-implementer, frontend-review",
-  "version": "1.22.1",
+  "description": "Custom Claude Code skills: forge, deep-implement, mega-review, review-triage, grill-me, cross-examine, teach-me, long-form-article, argument-structure, llm-council, sweep, tam-analysis, tam-dcf, workstream-implementer, frontend-review",
+  "version": "1.23.0",
   "author": {
     "name": "Victor Blaga"
   },
   "repository": "https://github.com/victorblaga/victor-claude-skills",
   "license": "MIT",
-  "keywords": ["skills", "forge", "deep-implement", "mega-review", "review-triage", "code-review", "triage", "grill-me", "cross-examine", "long-form-article", "argument-structure", "minto", "pyramid", "writing", "refactor", "design", "implement", "construction", "clean-code", "llm-council", "council", "decision", "advisors", "sweep", "cleanup", "hygiene", "polyglot", "tam-analysis", "tam", "fermi", "valuation", "growth-stock", "finance", "tam-dcf", "dcf", "fcff", "intrinsic-value", "workstream-implementer", "jira", "multi-repo", "project-workflow", "frontend-review", "ui-review", "interface", "craft", "design-system"]
+  "keywords": ["skills", "forge", "deep-implement", "mega-review", "review-triage", "code-review", "triage", "grill-me", "cross-examine", "teach-me", "teaching", "learning", "quiz", "understanding", "eli5", "long-form-article", "argument-structure", "minto", "pyramid", "writing", "refactor", "design", "implement", "construction", "clean-code", "llm-council", "council", "decision", "advisors", "sweep", "cleanup", "hygiene", "polyglot", "tam-analysis", "tam", "fermi", "valuation", "growth-stock", "finance", "tam-dcf", "dcf", "fcff", "intrinsic-value", "workstream-implementer", "jira", "multi-repo", "project-workflow", "frontend-review", "ui-review", "interface", "craft", "design-system"]
 }

@@ -15,6 +15,7 @@ Codex-native variants live under `plugins/victor-codex-skills/skills/` and are d
 - **review-triage** — Interactive triage of mega-review findings into an implementation plan
 - **grill-me** — Interview the user relentlessly about a plan or design until reaching shared understanding
 - **cross-examine** — Become the codebase expert and answer the user's questions with evidence
+- **teach-me** — Teach a topic, codebase, change, bug, or design incrementally until the user demonstrates understanding
 - **forge** — Iterative top-down code construction (build, refactor, refine) with horizontal-slice design and challenger validation
 - **long-form-article** — Collaborative workflow for substantial article drafting and revision
 - **argument-structure** — Diagnose a draft or idea against the Minto Pyramid Principle and deliver a restructuring plan as a visual HTML artifact
