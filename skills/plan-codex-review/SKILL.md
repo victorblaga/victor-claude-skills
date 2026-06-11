@@ -1,0 +1,119 @@
+---
+name: plan-codex-review
+description: >
+  Three-phase coding pipeline that pairs Claude's reasoning with Codex's implementation muscle:
+  deep planning by Claude (Fable) with a relentless grill-me-style requirements interview and
+  cheap exploration subagents, implementation delegated to
+  Codex via the codex plugin (gpt-5.5-codex, high effort), and a fresh-context max-thinking review
+  by Claude (Fable) that produces a Codex-ready remediation plan (gpt-5.5-codex, xhigh effort).
+  Claude Code only — requires the Agent tool and the openai-codex plugin.
+  Trigger ONLY when the user explicitly says "plan-codex-review" or invokes via /plan-codex-review.
+  Do not trigger on general implementation requests — this is a deliberate pipeline the user opts
+  into by name.
+---
+
+# Plan / Codex / Review
+
+A three-phase pipeline for substantial coding tasks:
+
+1. **Plan** — Claude (Fable, deep thinking) explores the codebase via cheap subagents, interviews the user relentlessly until shared understanding, and writes an implementation plan. User approves before any code is written.
+2. **Implement** — Codex executes the approved plan (`gpt-5.5-codex`, `high` effort, write-capable).
+3. **Review** — a fresh-context Claude (Fable, max thinking) subagent judges the diff against the plan and produces severity-ranked findings plus a Codex-ready remediation plan. The user then chooses: stop, remediate (`gpt-5.5-codex`, `xhigh` effort), or remediate and re-review (loop).
+
+The division of labor is deliberate: Claude does the judgment-heavy ends (planning, reviewing), Codex does the implementation middle, and exploration is pushed to cheap models so Fable tokens are spent only on reasoning.
+
+## Prerequisites (check before Phase 1)
+
+1. **Task description.** If the user invoked the skill without one, ask what to build. Do not proceed on a guess.
+2. **Codex plugin availability.** Verify the codex companion is functional — the `codex:codex-rescue` subagent must exist and the Codex CLI must be authenticated. If a Codex invocation later reports the CLI is missing or unauthenticated, stop and tell the user to run `/codex:setup`. Do not silently fall back to implementing in the main thread.
+3. **Git state.** Record the baseline: `git rev-parse HEAD` and `git status --porcelain`. The review phase is diff-based, so a dirty working tree contaminates it. If the tree is dirty, warn the user and recommend committing or stashing first. If they choose to proceed anyway, record the pre-existing dirty paths and instruct the reviewer to ignore them.
+4. **Not a git repo?** Warn that the review will be plan-scoped (reading the files the plan names) instead of diff-based, and confirm the user wants to continue.
+
+## Artifacts
+
+All artifacts live in `.docs/plan/` inside the current working directory, named from a short kebab-case slug of the task plus the date:
+
+| Artifact | Path |
+|----------|------|
+| Implementation plan | `.docs/plan/YYYY-MM-DD-<slug>.md` |
+| Review + remediation plan (round 1) | `.docs/plan/YYYY-MM-DD-<slug>-review.md` |
+| Review + remediation plan (round N) | `.docs/plan/YYYY-MM-DD-<slug>-review-N.md` |
+
+Overrides: if the user names a different location, use it. If the user says they don't want a persistent plan, keep the plan in-conversation only and skip all file writes (the review is then also presented inline only).
+
+**Git scope: working tree only.** This skill never commits, branches, or pushes. Code changes and `.docs/plan/` artifacts are left for the user to commit (or ignore) themselves.
+
+## Phase 1 — Plan (Claude, main thread, deep thinking)
+
+Runs in the main conversation thread. Think hard throughout this phase — planning quality drives everything downstream.
+
+1. **Explore via cheap subagents.** Fan out `Explore` subagents with `model: sonnet` to map the relevant parts of the codebase (architecture, conventions, the files the task will touch, existing tests, CI checks). Spawn them in parallel when the questions are independent. Escalate an individual exploration to `model: opus` only when it requires real judgment (e.g., "which of these three abstractions should the change hook into"), not for search and retrieval. Never use Fable for exploration subagents.
+2. **Interview relentlessly** (grill-me style). Before writing the plan, interrogate the user about every aspect of the task until you reach shared understanding — walk down each branch of the decision tree, resolving dependencies between decisions one by one. Rules:
+   - For every question, provide your recommended answer.
+   - Batch related questions in one turn rather than dribbling them out; keep unrelated decision branches in separate turns.
+   - If a question can be answered by exploring the codebase, dispatch a sonnet explorer instead of asking the user.
+   - Keep grilling until there are no unresolved decisions that would change the plan. Ambiguity that survives the interview becomes a Codex hallucination later — resolve it now.
+3. **Synthesize the plan.** The plan must contain:
+   - **Context** — what exists today, in enough detail that Codex needs no further discovery
+   - **Approach** — the chosen design and why (alternatives rejected, in one line each)
+   - **Changes** — file-level change list: each file, what changes, and why
+   - **Verification** — exact commands Codex must run and have pass (tests, linter, type-checker, build), derived from the project's CI config where available
+   - **Out of scope** — explicit non-goals, so neither Codex nor the reviewer invents extra work
+4. **Write the plan file** to `.docs/plan/YYYY-MM-DD-<slug>.md` (unless the user opted out of persistence).
+5. **Gate: user approval.** Present a concise summary of the plan (not the whole file) and ask the user to approve, edit, or redirect. Iterate until approved. Do not start Phase 2 without explicit approval.
+
+## Phase 2 — Implement (Codex, gpt-5.5-codex, high effort)
+
+1. Invoke the `codex:codex-rescue` subagent via the **Agent tool** (`subagent_type: "codex:codex-rescue"`). That subagent parses runtime flags out of the prompt text itself, so the flags below are written literally into the prompt, not passed as Agent tool parameters. The prompt must contain:
+   - The flags, as literal text: `--model gpt-5.5-codex --effort high --write --fresh` (`--fresh` means "start a new Codex thread, don't resume a prior one"; if the runtime rejects the model name, surface the error to the user rather than picking a substitute)
+   - The full plan contents inlined (plus the plan file path for reference, omitted if the user opted out of persistence) — Codex must not depend on finding the file itself
+   - An instruction to implement exactly what the plan specifies, run the plan's verification commands, and report what was changed and what the verification output was
+2. **Foreground by default.** Run in the background (the Agent tool's `run_in_background: true`) only if the user asks for it or the plan is clearly long-running (many files, large refactor).
+3. **Sanity check on return.** When Codex finishes: confirm a diff exists (`git status`), confirm it touches roughly the planned files, and read Codex's verification report. Show the user a one-paragraph summary of what changed. If Codex reports failure or produced no diff, surface that verbatim and ask the user how to proceed — do not quietly re-implement in the main thread.
+4. No user gate here — flow directly into Phase 3.
+
+## Phase 3 — Review (fresh Fable subagent, max thinking)
+
+1. Spawn a **fresh `general-purpose` subagent with `model: fable`**. The prompt must begin with the word **ultrathink** and include:
+   - The original task description
+   - The full plan contents (longform documents near the top of the prompt, task at the end)
+   - The diff to review: `git diff <baseline-ref>` output plus the contents of any untracked files Codex created (or, in a non-git repo, the plan's file list to read directly)
+   - Pre-existing dirty paths to ignore, if any were recorded
+   - Permission to spawn its own `Explore` subagents with `model: sonnet` for surrounding-context questions — and an instruction never to use Fable or Opus for exploration
+   - The required output format (below)
+2. **The reviewer judges the diff against the plan**, with fresh eyes and no authorship bias: correctness, plan coverage (everything implemented? anything out-of-scope added?), integration with surrounding code, error handling, test adequacy, and whether verification commands actually passed.
+3. **Required reviewer output** — two parts:
+   - **Findings**, severity-ranked (Critical / Major / Minor / Nit), each with file:line evidence
+   - **Remediation plan** — a self-contained, Codex-ready plan covering every Critical and Major finding (Minor/Nit included at the reviewer's discretion): same structure as a Phase 1 plan (context, changes, verification). It must be executable by Codex without access to the review conversation.
+4. **Write the review file** to `.docs/plan/YYYY-MM-DD-<slug>-review.md` (subsequent rounds get `-review-2.md`, `-review-3.md`, …).
+5. **A clean review** (no Critical or Major findings) ends the run: report it, mention any Minor/Nit items inline, and stop.
+
+### Review gate
+
+Present the findings summary (all severities, Critical/Major in full, Minor/Nit at least as a count with one-liners), then ask the user (AskUserQuestion) with exactly these choices:
+
+- **Stop here** — leave the working tree and the remediation plan as-is; the user takes over.
+- **Remediate** — run the remediation, then stop.
+- **Remediate + re-review** — run the remediation, then loop back to a fresh Phase 3 review of the updated diff, followed by this gate again.
+
+**Remediation** = `codex:codex-rescue` with `--model gpt-5.5-codex --effort xhigh --write --fresh`, fed the full remediation plan inlined, with the same sanity check as Phase 2 on return.
+
+There is no hard iteration cap — every loop passes through this gate, so the user is the cap. If two consecutive reviews surface the same finding unresolved, say so explicitly and recommend stopping for manual intervention rather than looping again.
+
+## Failure handling
+
+- **Codex invocation fails** (CLI missing, unauthenticated, companion error): stop, show the error verbatim, point to `/codex:setup`. Never substitute main-thread implementation for a failed Codex run without asking.
+- **Reviewer subagent returns inadequate output** (empty, no remediation plan, no file:line evidence): retry once with a more specific prompt. If it fails again, do the review in the main thread and tell the user the subagent failed.
+- **Cancellation** ("stop", "abandon"): report what's in the working tree and `.docs/plan/`, and leave everything in place — this skill never deletes user work.
+
+## Model summary
+
+| Step | Who | Model / effort |
+|------|-----|----------------|
+| Planning | Main thread | Fable (session model), deep thinking |
+| Exploration (plan + review) | `Explore` subagents | sonnet (opus only for judgment calls) |
+| Implementation | `codex:codex-rescue` | `gpt-5.5-codex`, `high`, `--write` |
+| Review | `general-purpose` subagent | `fable`, ultrathink |
+| Remediation | `codex:codex-rescue` | `gpt-5.5-codex`, `xhigh`, `--write` |
+
+Note: the planning phase's thinking depth rides on the session model — this skill cannot switch the main thread's model. The review phase is pinned to Fable regardless, via the subagent model override.
