@@ -1,6 +1,6 @@
 {
   "name": "victor-codex-skills",
-  "version": "1.23.0",
+  "version": "1.23.1",
   "description": "Codex-native variants of Victor Blaga's Claude workflow skills. The Claude skills remain canonical.",
   "author": {
     "name": "Victor Blaga",
@@ -30,6 +30,8 @@
     "sweep",
     "tam-analysis",
     "tam-dcf",
+    "goal-prompt",
+    "goal-loop",
     "workstream-implementer",
     "frontend-review",
     "ui-review",
@@ -52,7 +54,7 @@
   "interface": {
     "displayName": "Victor Codex Skills",
     "shortDescription": "Codex-native workflow skills derived from canonical Claude prompts",
-    "longDescription": "Install Victor Blaga's workflow skills for Codex, including project-aware workstream implementation from JIRA to PR, deep implementation, multi-dimensional review, review triage, architecture planning, structural refactoring, whole-codebase cleanup sweeps, codebase cross-examination, guided teaching sessions with mastery checks, long-form writing support, design-quality frontend review of implemented UI surfaces, conversational bottom-up Fermi TAM analysis for growth stocks, and long-horizon FCFF DCF anchored to those TAM outputs.",
+    "longDescription": "Install Victor Blaga's workflow skills for Codex, including project-aware workstream implementation from JIRA to PR, copy-paste-ready goal prompt generation, deep implementation, multi-dimensional review, review triage, architecture planning, structural refactoring, whole-codebase cleanup sweeps, codebase cross-examination, guided teaching sessions with mastery checks, long-form writing support, design-quality frontend review of implemented UI surfaces, conversational bottom-up Fermi TAM analysis for growth stocks, and long-horizon FCFF DCF anchored to those TAM outputs.",
     "developerName": "Victor Blaga",
     "category": "Coding",
     "capabilities": [
@@ -65,6 +67,7 @@
     "defaultPrompt": [
       "Run a deep implementation workflow from a proposal or review report",
       "Use workstream-implementer to take a JIRA ticket through repo scope, implementation, PRs, and review",
+      "Generate a /goal prompt for a ticket-backed implementation loop",
       "Do a mega-review and then triage the findings into a plan",
       "Teach me this code or change until I can explain it back",
       "Design a refactor top-down and then implement it in Codex"
