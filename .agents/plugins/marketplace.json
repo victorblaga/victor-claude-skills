@@ -1,14 +1,14 @@
 {
-  "name": "victor-local-plugins",
+  "name": "victor-skills-marketplace",
   "interface": {
-    "displayName": "Victor Local Plugins"
+    "displayName": "Victor Skills Marketplace"
   },
   "plugins": [
     {
       "name": "victor-codex-skills",
       "source": {
-        "source": "local",
-        "path": "./plugins/victor-codex-skills"
+        "source": "url",
+        "url": "https://github.com/victorblaga/victor-claude-skills.git"
       },
       "policy": {
         "installation": "AVAILABLE",

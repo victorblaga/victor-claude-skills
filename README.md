@@ -36,24 +36,19 @@ claude plugin update victor-claude-skills
 
 ## Codex Installation
 
-Codex uses the plugin bundle under `plugins/victor-codex-skills/`. Add this repo as a local marketplace, then install the plugin through the Codex CLI:
+Codex uses this Git repository as the marketplace source and installs the plugin through the Codex CLI:
 
 ```text
-codex plugin marketplace add .
-codex plugin add victor-codex-skills@victor-local-plugins
+codex plugin marketplace add victorblaga/victor-claude-skills --ref master
+codex plugin add victor-codex-skills@victor-skills-marketplace
 ```
 
-For ongoing updates after pulling this repo:
+For ongoing updates:
 
 ```text
-codex plugin remove victor-codex-skills
-codex plugin add victor-codex-skills@victor-local-plugins
+codex plugin marketplace upgrade victor-skills-marketplace
+codex plugin remove victor-codex-skills@victor-skills-marketplace
+codex plugin add victor-codex-skills@victor-skills-marketplace
 ```
 
-If the marketplace was added from a Git source rather than this local checkout, refresh the marketplace first:
-
-```text
-codex plugin marketplace upgrade victor-local-plugins
-```
-
-The Codex plugin bundle manifest is at `plugins/victor-codex-skills/.codex-plugin/plugin.json`.
+The root Codex plugin manifest is at `.codex-plugin/plugin.json`; it points Codex at the plugin skills under `plugins/victor-codex-skills/skills/`.

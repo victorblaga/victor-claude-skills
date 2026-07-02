@@ -50,7 +50,7 @@
     "multi-repo",
     "project-workflow"
   ],
-  "skills": "./skills/",
+  "skills": "./plugins/victor-codex-skills/skills/",
   "interface": {
     "displayName": "Victor Codex Skills",
     "shortDescription": "Codex-native workflow skills derived from canonical Claude prompts",
