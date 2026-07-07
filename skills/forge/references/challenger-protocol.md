@@ -70,7 +70,7 @@ This criterion only applies when exemplars exist. If no exemplars yet, skip.
 **FAIL examples:**
 - Exemplar uses actors → services → infrastructure; new code puts SQL in the actor
 - Exemplar uses frozen dataclasses for domain types; new code uses dicts
-- Exemplar names stagers by source (DqsStager, SitetroveStager); new code uses generic names (DataStager1, DataStager2)
+- Exemplar names stagers by source (CrmStager, RegistryStager); new code uses generic names (DataStager1, DataStager2)
 
 ## How to Prompt the Challenger
 

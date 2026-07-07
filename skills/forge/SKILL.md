@@ -45,6 +45,12 @@ Every request starts here. Assess before committing to workflow depth:
 
 Announce: "This looks like a [scope] task. I'll use [abbreviated/standard/full] forge. Sound right?"
 
+**Wrong-tool check:** If the request has no architectural intent — pure cruft removal, dead code, duplication, comment slop across many files — that's `/sweep`, not forge. If it's a reactive fix for a specific problem or review finding, that's `/deep-implement`. Say so and offer to switch.
+
+### Resuming a Session
+
+Before starting fresh, check for `.docs/plans/*/progress.md`. If a matching in-progress forge exists, read its `progress.md` and ask: "Found an in-progress forge for <name> at <level/phase>. Resume from there?" On resume, reload `plan.md`, `exemplars.md`, and `corrections.md` before continuing — they carry the accumulated design state and the user's calibration.
+
 ### Prototype Escape Hatch
 
 If — at any point during forge — the design feels speculative because the problem isn't well-understood:
@@ -165,7 +171,7 @@ The project will be un-compilable between horizontal slices. This is fine. Resis
 | Role | Who | Fresh context? | When |
 |------|-----|---------------|------|
 | **Orchestrator** | Main conversation | No — persistent | Always. Holds state, talks to user, coordinates. |
-| **Explorer** | Subagent (opus) | Yes | Phase 0 + Phase 1: scan code, discover constraints |
+| **Explorer** | Subagent (sonnet for Phase 0 constraint scans; opus for Phase 1 behavioral-model extraction) | Yes | Phase 0 + Phase 1: scan code, discover constraints |
 | **Challenger** | Subagent (opus) | Yes — always fresh | After each design or implementation: skeptical review |
 | **Implementer** | Subagent (opus) | Yes — fresh | Each implementation pass: write code |
 
@@ -205,6 +211,8 @@ All artifacts live in `.docs/plans/<name>/`:
 - `<name>`: derived from the target (e.g., `forge-ingestion-pipeline`, `refactor-facility-matching`)
 
 The plan document is the source of truth. Write to disk first, then summarize in conversation. The user reviews in their editor, not in chat.
+
+**Git checkpoints**: For medium/large forges, work on a dedicated branch. Commit at each user-approved level boundary — even though downstream code may still be broken; the branch is a construction site, not a PR. Record the commit sha in `progress.md` so a resumed session can find the last stable point. Merging or opening a PR is the user's call, after tests pass.
 
 ## Plan Document Structure
 
@@ -297,6 +305,7 @@ At the start of every session:
 | Skill | Relationship |
 |-------|-------------|
 | `/forge` | **This skill.** Build, refactor, or refine code with architectural intent. |
+| `/sweep` | Sibling, not a sub-mode. Sweep removes cruft *within* the existing structure (dead code, duplication, doc drift) autonomously; forge reshapes the structure itself with the user in the loop. Run a sweep after a large forge to mop up. |
 | `/deep-implement` | Coexists. Problem → investigation → proposal → implementation. Different trigger (reactive to a problem/review, not proactive construction). |
 | `/mega-review` | Feeds into forge. Review findings can trigger a `/forge refine`. |
 | `/grill-me` | Complementary. Use before forge to stress-test a design idea. |

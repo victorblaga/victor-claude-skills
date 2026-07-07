@@ -38,7 +38,7 @@ Implementation agents MUST read these before writing new code and match their pa
 - `src/workflows/snapshot/staging_assembler.py` — Assembler calls stagers in order
 
 ## Infrastructure Pattern
-- `src/workflows/snapshot/internals/staging/dqs.py` — Stager streams from source, batch-inserts
+- `src/workflows/snapshot/internals/staging/crm.py` — Stager streams from source, batch-inserts
 
 ## Domain Types
 - `src/types/snapshot.py` — Frozen dataclass conventions, typed boundaries
@@ -87,16 +87,16 @@ Implementation agents MUST read this before writing code.
 
 ## Naming
 - CORRECTION: Agent named method `process_records()`
-  → User changed to `stage_dqs_sources()`
+  → User changed to `stage_crm_sources()`
   LESSON: Use domain-specific verbs (stage, resolve, assemble, publish),
   not generic verbs (process, handle, manage, do).
-  WHY: Domain verbs make the code self-documenting. "stage_dqs_sources"
+  WHY: Domain verbs make the code self-documenting. "stage_crm_sources"
   tells you what data source and what operation; "process_records" tells
   you nothing.
 
 ## Abstraction Levels
 - CORRECTION: Agent wrote SQL query inside `BuildSnapshotService.build()`
-  → User extracted to `DqsStager.stage()`
+  → User extracted to `CrmStager.stage()`
   LESSON: Service layer speaks domain language only. SQL, S3 operations,
   file I/O belong in infrastructure components.
   WHY: When the data source changes (e.g., S3 → database), only the
@@ -111,7 +111,7 @@ Implementation agents MUST read this before writing code.
 
 ## File Granularity
 - CORRECTION: Agent put stager + resolver in same file
-  → User split into `staging/dqs.py` and `staging/studies.py`
+  → User split into `staging/crm.py` and `staging/studies.py`
   LESSON: One responsibility per file. If two classes have different
   reasons to change, they go in different files.
   WHY: Smaller files are easier to navigate, review, and test independently.

@@ -47,15 +47,15 @@ class BuildSnapshotService:
 class StagingAssembler:
     def assemble(self, sources):
         db = StagingDatabase.create()
-        self.dqs_stager.stage(db, sources)           # pipeline step
-        self.sitetrove_stager.stage(db, sources)     # pipeline step
+        self.crm_stager.stage(db, sources)           # pipeline step
+        self.registry_stager.stage(db, sources)     # pipeline step
         self.study_resolver.resolve(db)              # pipeline step
         return db
 
 # INFRASTRUCTURE — speaks I/O
-class DqsStager:
+class CrmStager:
     def stage(self, db, sources):
-        for record in dqs.stream_records(s3, sources.dqs.path):  # I/O
+        for record in crm.stream_records(s3, sources.crm.path):  # I/O
             if not record.get("facility_golden_id"):              # data cleaning
                 continue
             db.insert_raw_site(...)                                # I/O
@@ -106,8 +106,8 @@ SRP means each component has one reason to change. But **coordination IS a singl
 class StagingAssembler:
     """Coordinates staging of all data sources into a temporary database."""
     def assemble(self, sources):
-        self.dqs_stager.stage(db, sources)
-        self.sitetrove_stager.stage(db, sources)
+        self.crm_stager.stage(db, sources)
+        self.registry_stager.stage(db, sources)
         self.study_resolver.resolve(db)
         self.site_resolver.resolve(db)
         return db

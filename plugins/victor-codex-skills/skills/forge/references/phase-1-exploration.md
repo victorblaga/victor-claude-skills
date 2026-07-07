@@ -28,26 +28,26 @@ After all agents complete, synthesize their findings into a behavioral model in 
 
 ### Workflows
 1. **Snapshot Build**: Triggered by cron or SQS command. Stages data from 3 sources
-   (DQS, Sitetrove, SiteSentry), resolves studies via union-find, assembles SQLite
+   (CRM, Registry, Billing), resolves studies via union-find, assembles SQLite
    snapshot, publishes to S3.
 2. **Model Scoring**: Triggered after snapshot publish. Reads sites from snapshot,
    scores against model, publishes results to S3 + EventBridge.
 ...
 
 ### Business Rules
-- Study resolution uses union-find on (member_study_id, nct_number) pairs
+- Study resolution uses union-find on (member_study_id, registry_id) pairs
 - Sites are deduplicated by golden_id within each source
-- Pfizer studies are identified by sponsor name containing "pfizer" (case-insensitive)
+- Acme studies are identified by sponsor name containing "acme" (case-insensitive)
 ...
 
 ### External Interactions
 - S3: reads source data, writes snapshots and results
-- PostgreSQL: reads SiteSentry data, does NOT write
+- PostgreSQL: reads Billing data, does NOT write
 - SQS: receives commands, deletes processed messages
 ...
 
 ### Hidden Requirements
-- DQS records with empty golden_id are silently skipped (not an error)
+- CRM records with empty golden_id are silently skipped (not an error)
 - NaN embeddings in scoring must be handled gracefully (v1 line 85)
 ...
 ```
@@ -67,7 +67,7 @@ Guard against this:
 For refine mode (improving existing working code), exploration is lighter:
 
 - Focus on the specific target the user pointed at, not the whole system.
-- Diagnose structural problems (same checklist as the surgeon skill): primitive obsession, responsibility sprawl, mixed abstraction levels, leaky boundaries.
+- Diagnose structural problems (the red-flags checklist in design-principles.md): primitive obsession, responsibility sprawl, mixed abstraction levels, leaky boundaries.
 - Still extract the behavioral model for the target area, so you understand what it does before proposing structural changes.
 
 ## Completion

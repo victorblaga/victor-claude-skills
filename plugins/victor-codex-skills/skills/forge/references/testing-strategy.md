@@ -64,7 +64,7 @@ my_package/                         tests/
 │   ├── snapshot/                   │   ├── snapshot/
 │   │   ├── builder.py              │   │   ├── test_builder.py
 │   │   └── staging/                │   │   └── staging/
-│   │       ├── dqs.py              │   │       ├── test_dqs.py
+│   │       ├── crm.py              │   │       ├── test_crm.py
 │   │       └── studies.py          │   │       └── test_studies.py
 │   └── scoring/                    │   └── scoring/
 │       └── scorer.py               │       └── test_scorer.py

@@ -171,5 +171,5 @@ Level 2: Services — designing internal structure for all actors
 - ModelScoringActor references ModelWorkflowService (not implemented)
 
 ## Next up
-- Level 3: Infrastructure stagers (DQS, Sitetrove, SiteSentry)
+- Level 3: Infrastructure stagers (CRM, Registry, Billing)
 ```
