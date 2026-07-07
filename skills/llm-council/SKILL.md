@@ -24,10 +24,10 @@ You ask one AI a question, you get one answer. The council fixes this: it runs y
 
 **Not council questions:** Factual lookups, creation tasks, summarization, casual "should I" without real tradeoffs.
 
-## Agentic Execution Notes (Claude Opus 4.7)
+## Execution Notes
 
-- **Effort**: Run all advisors and the chairman at `xhigh` effort. Multi-perspective analysis and synthesis are judgment-heavy and benefit from maximum reasoning depth.
-- **Parallel subagents**: Launch all 5 advisors simultaneously in a single turn. Run peer-review subagents in parallel as well. Opus 4.7 spawns fewer subagents by default—explicitly fan out.
+- **Effort**: If the harness exposes an effort control, run all advisors and the chairman at the highest tier. Multi-perspective analysis and synthesis are judgment-heavy.
+- **Parallel subagents**: Launch all 5 advisors simultaneously in a single turn. Run peer-review subagents in parallel as well — explicitly fan out.
 - **Task packaging**: Frame the full question, context, and constraints in the first turn. Avoid progressive revelation across multiple turns; each turn adds reasoning overhead.
 - **Literal scope**: Be explicit if a constraint applies broadly (e.g., "Consider this constraint for *all* options, not just the first one").
 

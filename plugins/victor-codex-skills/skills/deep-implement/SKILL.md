@@ -116,7 +116,7 @@ Suggested structure:
 - Mode: standard / review-driven
 - Current phase: 1 / 2 / 3 / 4 / 5 / 6 / 7
 - Current step: short label such as `2.2-discussing-finding-3`
-- Base branch: `dev`
+- Base branch: `<base branch>`
 - Next action: one sentence
 - Last updated: YYYY-MM-DD HH:MM TZ
 ```
@@ -272,23 +272,18 @@ Validation, verification, and implementation tasks use **subagents with fresh co
 
 ### Software Design Principles
 
-All implementation work must follow the project's software design guides. These guides are rooted in Ousterhout's *A Philosophy of Software Design* and define how we want code to be structured.
+All implementation work must follow the project's software design guides, if it has any. The defaults below are rooted in Ousterhout's *A Philosophy of Software Design*.
 
-**At the start of every implementation session**, check for design guides in the project:
-- `docs/architecture/software-design-guide.md` — language-agnostic principles (deep modules, information hiding, define errors out of existence, strategic vs tactical)
-- `docs/architecture/scala-zio-design-guide.md` — ZIO-specific application (when ZLayer is justified, environment type leaks, streams in interfaces)
-- `docs/architecture/python-design-guide.md` — Python pipeline application (functions over class hierarchies, integration-first testing)
-
-If these files exist, read the language-agnostic guide and the relevant language-specific guide before Phase 3 planning. Include them in subagent prompts for planning (Phase 3.1) and implementation (Phase 4) — these agents must apply the principles, not just know about them.
+**At the start of every implementation session**, check for design guides in the project (commonly under `docs/architecture/` — e.g. a language-agnostic `software-design-guide.md` plus language-specific guides). If they exist, read the language-agnostic guide and the guide for the language being changed before Phase 3 planning. Include them in subagent prompts for planning (Phase 3.1) and implementation (Phase 4) — these agents must apply the principles, not just know about them.
 
 **Key principles to enforce during implementation:**
-- **Deep modules**: every new module boundary must hide significant complexity. Don't create traits/classes/services for individual pipeline steps — only for genuine module boundaries.
-- **Information hiding**: internal types, storage paths, AWS mechanics stay behind the interface. Don't leak implementation details into public signatures.
+- **Deep modules**: every new module boundary must hide significant complexity. Don't create classes/services/traits for individual processing steps — only for genuine module boundaries.
+- **Information hiding**: internal types, storage paths, infrastructure mechanics stay behind the interface. Don't leak implementation details into public signatures.
 - **Pull complexity downward**: push complexity into the module, not onto callers.
 - **Define errors out of existence**: design interfaces so expected conditions (empty results, optional data) are normal return values, not exceptions.
 - **Strategic over tactical**: every change should leave the design at least slightly better. Don't take shortcuts that compound complexity. **But: small, isolated tactical fixes are not the same as compounding shortcuts.** A one-line bugfix that doesn't touch the surrounding design is fine. Strategic effort is reserved for places where the design is actively in your way.
-- **Integration-first testing**: prefer Testcontainers/LocalStack over mocks. Assert on outcomes, not call chains.
-- **Minimalism / anti-overengineering**: Avoid adding unnecessary abstractions, extra files, or defensive boilerplate. Do not create helpers, utilities, or abstractions for one-time operations. Don't add error handling for scenarios that can't happen. Don't design for hypothetical future requirements. The right amount of complexity is the minimum needed for the current task.
+- **Integration-first testing**: prefer real dependencies (containers, local emulators) over mocks where the project supports it. Assert on outcomes, not call chains.
+- **Minimalism / anti-overengineering**: do not create helpers, utilities, or abstractions for one-time operations. Don't add error handling for scenarios that can't happen. Don't design for hypothetical future requirements. The right amount of complexity is the minimum needed for the current task.
 
 During Phase 2 (validation) and Phase 3.2 (plan validation), reviewers should check that the proposed design follows these principles. Flag violations as review findings.
 

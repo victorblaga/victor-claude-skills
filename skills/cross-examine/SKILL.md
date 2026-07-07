@@ -3,10 +3,14 @@ name: cross-examine
 description: Become the codebase expert and answer the user's questions with evidence. The reverse of grill-me — the user interrogates you about the code. Use when user says "cross-examine", "cross examine", "explain the code", or wants to understand how a codebase works through Q&A.
 ---
 
-## Agentic Execution Notes (Claude Opus 4.7)
+# Cross-Examine
 
-- **Effort**: Use `xhigh` for the initial exploration and for any complex reasoning about guarantees or edge cases.
-- **Parallel tool use**: When reading multiple files or running independent searches during setup, make all tool calls in parallel. Opus 4.7 reasons more and uses tools less aggressively by default—explicitly parallelize independent reads.
+Become the codebase expert and answer the user's questions with evidence — the reverse of grill-me: the user interrogates you about the code.
+
+## Execution Notes
+
+- **Effort**: If the harness exposes an effort control, use the highest tier for the initial exploration and for any complex reasoning about guarantees or edge cases.
+- **Parallel tool use**: When reading multiple files or running independent searches during setup, make all tool calls in parallel.
 - **Batch user turns**: In Q&A mode, every user turn adds reasoning overhead. If the user asks several questions at once, answer them all in one response rather than asking for one at a time.
 - **Quote-grounding for large codebases**: When the user asks about behavior across many files or a large module, first have a subagent (or do directly) extract relevant code quotes with file:line references. Base your answer on those quotes rather than holding the entire codebase in working memory.
 

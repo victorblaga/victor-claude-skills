@@ -31,7 +31,7 @@ Interactive, finding-by-finding triage of a `$mega-review` report. The user and 
 
 The review folder contains:
 - `report.md` — the consolidated report (source of truth for findings and severities)
-- Dimension-specific files (`code-quality.md`, `architecture.md`, `correctness.md`, `test-quality.md`, `security-error-handling.md`, `pattern-conformity.md`, `refactoring-opportunities.md`, `performance.md`, `architectural-synthesis.md`, `skeptic.md`)
+- Dimension-specific files (`code-quality.md`, `architecture.md`, `correctness.md`, `test-quality.md`, `security-error-handling.md`, `pattern-conformity.md`, `refactoring-opportunities.md`, `performance.md`, `architectural-synthesis.md`, `calibration.md` — older reviews may name this last file `skeptic.md`)
 
 ## Setup
 

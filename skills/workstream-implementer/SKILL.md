@@ -71,7 +71,7 @@ Read `references/project-profile-schema.md` when creating or updating a project 
    - Then infer from ticket text and repo hints.
    - Ask if still ambiguous.
 4. If the project profile is missing, run interactive discovery:
-   - Ask for root hints, such as `~/work/pfizer`.
+   - Ask for root hints, such as `~/work/<client-or-project>`.
    - Search candidate repos under those roots.
    - Classify candidates as `active`, `reference`, or `ignored`.
    - Present a normal-language summary and ask before saving `project.json`.

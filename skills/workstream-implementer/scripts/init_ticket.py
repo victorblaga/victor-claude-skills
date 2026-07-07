@@ -18,7 +18,7 @@ def now() -> str:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("project", help="Project id, e.g. sitesentry")
+    parser.add_argument("project", help="Project id, e.g. acme-app")
     parser.add_argument("ticket", help="JIRA key or draft id")
     parser.add_argument("--summary", default="")
     parser.add_argument("--mode", default="untriaged")

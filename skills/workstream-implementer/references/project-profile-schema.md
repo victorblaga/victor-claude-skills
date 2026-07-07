@@ -13,9 +13,9 @@ They are local-machine config. Do not commit them. Use `~` in paths where possib
 ```json
 {
   "schema_version": 1,
-  "name": "sitesentry",
-  "display_name": "SiteSentry",
-  "root_hints": ["~/work/pfizer"],
+  "name": "acme-app",
+  "display_name": "Acme App",
+  "root_hints": ["~/work/acme"],
   "jira": {},
   "defaults": {},
   "repos": {},
@@ -57,7 +57,7 @@ Each repo entry describes one local git repo.
 {
   "repos": {
     "backend": {
-      "path": "~/work/pfizer/sitesentry/sitesentry-backend",
+      "path": "~/work/acme/acme-app/acme-backend",
       "status": "active",
       "kind": "backend",
       "default_branch": "dev",

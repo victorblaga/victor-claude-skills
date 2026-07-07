@@ -18,9 +18,9 @@ Interactive, finding-by-finding triage of a `/mega-review` report. The user and 
 
 **Core principle: architecture preservation.** The burden of proof is on the finding to justify a change, not on the developer to justify keeping the current design. Many review suggestions destroy more value than they create. This skill exists to separate the signal from the noise.
 
-## Agentic Execution Notes (Claude Opus 4.7)
+## Execution Notes
 
-- **Effort**: Use `xhigh` effort for this skill—triage requires judgment about trade-offs and architectural fit.
+- **Effort**: If the harness exposes an effort control, use the highest tier — triage requires judgment about trade-offs and architectural fit.
 - **Batched turns**: Every user turn adds reasoning overhead. When presenting findings, batch related low-severity items when possible. Keep the triage moving.
 - **Literal scope**: Be explicit about which findings a decision applies to (e.g., "This reject applies to *all* similar pattern-conformity findings in the review").
 
@@ -32,7 +32,7 @@ Interactive, finding-by-finding triage of a `/mega-review` report. The user and 
 
 The review folder contains:
 - `report.md` — the consolidated report (source of truth for findings and severities)
-- Dimension-specific files (`code-quality.md`, `architecture.md`, `correctness.md`, `test-quality.md`, `security-error-handling.md`, `pattern-conformity.md`, `refactoring-opportunities.md`, `performance.md`, `architectural-synthesis.md`, `skeptic.md`)
+- Dimension-specific files (`code-quality.md`, `architecture.md`, `correctness.md`, `test-quality.md`, `security-error-handling.md`, `pattern-conformity.md`, `refactoring-opportunities.md`, `performance.md`, `architectural-synthesis.md`, `calibration.md` — older reviews may name this last file `skeptic.md`)
 
 ## Setup
 

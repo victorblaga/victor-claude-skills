@@ -63,23 +63,6 @@ A prototype that runs is worth a hundred diagrams.
 
 ## Phase Overview
 
-```mermaid
-flowchart LR
-    P0["Phase 0<br/>Constraints"]
-    P1["Phase 1<br/>Exploration<br/>(refactor/refine)"]
-    HS["Horizontal Slices<br/>(design → challenge<br/>→ implement → descend)"]
-    VD["Vertical Dive<br/>(when details have<br/>upward pressure)"]
-    TEST["Tests<br/>(bottom-up)"]
-
-    P0 --> P1
-    P0 -->|"build mode"| HS
-    P1 --> HS
-    HS -->|"descend to<br/>next level"| HS
-    HS -->|"uncertainty or<br/>performance concern"| VD
-    VD -->|"rejoin<br/>horizontal"| HS
-    HS -->|"all levels<br/>complete"| TEST
-```
-
 | Phase | Purpose | Reference |
 |-------|---------|-----------|
 | **0 — Constraints** | Gather architecture-shaping facts (data scale, performance, infrastructure) | `references/phase-0-constraints.md` |
@@ -93,15 +76,13 @@ flowchart LR
 
 **Exemplars and corrections:** Progressive learning from user feedback uses `references/exemplars-and-corrections.md`.
 
-## Agentic Execution Notes (Claude Opus 4.7)
+## Execution Notes
 
-Opus 4.7 is stronger at long-horizon structural work, but its defaults differ from earlier models. Tune the harness:
-
-- **Effort**: Run design, exploration, and challenger subagents at `xhigh` effort. Use `high` only for narrow, mechanical tasks.
+- **Effort**: If the harness exposes an effort control, run design, exploration, and challenger subagents at the highest tier. Reduced effort is only for narrow, mechanical tasks.
 - **Parallel subagents**: Launch explorer and implementer subagents in parallel when tasks are independent. Spawn multiple subagents in the same turn when fanning out across files or components. Do not spawn a subagent for work you can complete directly in a single response.
-- **Parallel tool calls**: When reading multiple files or running independent searches, make all tool calls in parallel. Opus 4.7 reasons more and uses tools less aggressively by default—explicitly parallelize independent reads.
+- **Parallel tool calls**: When reading multiple files or running independent searches, make all tool calls in parallel.
 - **Literal scope**: State explicitly when instructions apply broadly (e.g., "Apply this pattern to *every* component at this level, not just the first one").
-- **Minimalism guardrail**: Opus 4.7 can overengineer. During design and implementation, challenge unnecessary abstractions. Only add a layer/type/helper if it hides meaningful complexity or is used more than once.
+- **Minimalism guardrail**: During design and implementation, challenge unnecessary abstractions. Only add a layer/type/helper if it hides meaningful complexity or is used more than once.
 - **Context hygiene**: Use fresh-context subagents for exploration and implementation to prevent main-thread bloat. The orchestrator holds state and talks to the user; subagents handle heavy tool use.
 - **Subagent mental test**: Before spawning a subagent, ask "Will I need this tool output again, or just the conclusion?" If only the conclusion matters, the subagent should return a tight summary and leave the raw exploration in its own context. If you'll need to reference detailed output repeatedly, write it to disk (e.g., `plan.md` or `progress.md`) and reference the file path.
 - **Proactive checkpointing**: If exploration or a horizontal slice involves extensive tool use, write `progress.md` mid-flight rather than waiting for the slice to finish. This preserves state if context compacts or the session is interrupted.

@@ -13,7 +13,7 @@ Now we build. The execution follows the strategy defined in the plan.
    - The overall plan context (so it understands how its task fits)
    - Access to the codebase
    - The CI checks list from the plan
-   - A directive to read and follow the project's software design guides (`docs/architecture/software-design-guide.md` and the relevant language-specific guide) — the implementing agent must apply the design principles, not just the task spec
+   - A directive to read and follow the project's software design guides, if they exist (see Software Design Principles in SKILL.md) — the implementing agent must apply the design principles, not just the task spec
    - A directive to read `references/implementation-agent-protocol.md` before editing
    - A short mandatory checklist in the prompt:
      - assess whether the task is performance-sensitive

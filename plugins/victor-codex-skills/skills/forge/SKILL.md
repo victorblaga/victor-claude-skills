@@ -63,23 +63,6 @@ A prototype that runs is worth a hundred diagrams.
 
 ## Phase Overview
 
-```mermaid
-flowchart LR
-    P0["Phase 0<br/>Constraints"]
-    P1["Phase 1<br/>Exploration<br/>(refactor/refine)"]
-    HS["Horizontal Slices<br/>(design → challenge<br/>→ implement → descend)"]
-    VD["Vertical Dive<br/>(when details have<br/>upward pressure)"]
-    TEST["Tests<br/>(bottom-up)"]
-
-    P0 --> P1
-    P0 -->|"build mode"| HS
-    P1 --> HS
-    HS -->|"descend to<br/>next level"| HS
-    HS -->|"uncertainty or<br/>performance concern"| VD
-    VD -->|"rejoin<br/>horizontal"| HS
-    HS -->|"all levels<br/>complete"| TEST
-```
-
 | Phase | Purpose | Reference |
 |-------|---------|-----------|
 | **0 — Constraints** | Gather architecture-shaping facts (data scale, performance, infrastructure) | `references/phase-0-constraints.md` |
@@ -177,12 +160,14 @@ The project will be un-compilable between horizontal slices. This is fine. Resis
 
 ## Agent Architecture
 
-| Role | Who | Fresh context? | When |
-|------|-----|---------------|------|
-| **Orchestrator** | Main conversation | No — persistent | Always. Holds state, talks to user, coordinates. |
-| **Explorer** | Subagent (opus) | Yes | Phase 0 + Phase 1: scan code, discover constraints |
-| **Challenger** | Subagent (opus) | Yes — always fresh | After each design or implementation: skeptical review |
-| **Implementer** | Subagent (opus) | Yes — fresh | Each implementation pass: write code |
+Use the latest available Codex model for every role; vary only `reasoning_effort`.
+
+| Role | Reasoning effort | Fresh context? | When |
+|------|------------------|---------------|------|
+| **Orchestrator** | (session) | No — persistent | Always. Holds state, talks to user, coordinates. |
+| **Explorer** | `medium` | Yes | Phase 0 + Phase 1: scan code, discover constraints |
+| **Challenger** | `xhigh` | Yes — always fresh | After each design or implementation: skeptical review |
+| **Implementer** | `high` | Yes — fresh | Each implementation pass: write code |
 
 The challenger being **always fresh** is critical. The agent doing the work cannot judge its own work — a fresh agent with no investment in the output is more honest. This is the key lesson from Anthropic's harness design research: separating generation from evaluation, and tuning the evaluator to be skeptical rather than lenient.
 
@@ -193,7 +178,7 @@ The implementer being fresh prevents context drift on long sessions.
 - The specific task and expected output
 - Paths to plan.md, exemplars.md, corrections.md
 - The project's working directory
-- Constraints from CLAUDE.md / AGENTS.md
+- Constraints from `AGENTS.md` / `CLAUDE.md`
 - For implementers: "Read exemplar files FIRST, then match their patterns"
 - For challengers: "Be skeptical. Your job is to find problems, not approve work."
 

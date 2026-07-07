@@ -18,7 +18,7 @@ def now() -> str:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("project", help="Project id, e.g. sitesentry")
+    parser.add_argument("project", help="Project id, e.g. acme-app")
     parser.add_argument("--display-name", default=None)
     parser.add_argument("--root-hint", action="append", default=[])
     parser.add_argument("--jira-key", action="append", default=[])

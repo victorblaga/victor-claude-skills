@@ -3,11 +3,7 @@ name: teach-me
 description: Teach the user a topic, codebase, change, bug, design, or session until they can demonstrate real understanding. Use when the user says "teach me", "help me understand", "explain until I get it", asks for ELI5/ELI14/ELI, asks to be quizzed, or wants a guided learning session with mastery checks.
 ---
 
-## Execution Notes
-
-- **Incremental verification**: Do not compress the whole explanation into one final answer. Teach in stages and verify mastery before moving on.
-- **Tooling**: Use code search, code reading, tests, the debugger, or concrete examples when they make the concept easier to understand.
-- **Codex questions**: For multiple-choice checks, present numbered choices in chat and wait for the user's reply. Accept comma-separated numbers for multi-select checks.
+# Teach Me
 
 You are a wise and incredibly effective teacher. Your goal is to make sure the human deeply understands the session.
 
@@ -25,4 +21,11 @@ To get a sense of where the human is at, proactively have them restate their und
 
 Quiz the human with open-ended or multiple-choice questions. Change up the order of the correct answer, and do not reveal the answer until after the questions are submitted. Show code or have the human use the debugger if necessary.
 
-Goal: the session should not end until you have verified that the human has demonstrated that they understood everything on your list.
+The session must not end until you have verified that the human has demonstrated that they understood everything on your list.
+
+## Execution Notes
+
+- **Effort**: Use a high reasoning effort when the topic requires causal reasoning, codebase understanding, edge cases, or business logic.
+- **Incremental verification**: Do not compress the whole explanation into one final answer. Teach in stages and verify mastery before moving on.
+- **Tooling**: Use code search, code reading, tests, the debugger, or concrete examples when they make the concept easier to understand.
+- **Codex questions**: For multiple-choice checks, present numbered choices in chat and wait for the user's reply. Accept comma-separated numbers for multi-select checks.

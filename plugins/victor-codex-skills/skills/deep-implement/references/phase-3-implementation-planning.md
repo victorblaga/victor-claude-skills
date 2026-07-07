@@ -11,9 +11,7 @@ Launch a **subagent with fresh context** (latest available Codex model, `reasoni
 
 The subagent analyzes the proposal against the codebase and produces an implementation plan.
 
-Before planning, the subagent must read the project's software design guides (if they exist):
-- `docs/architecture/software-design-guide.md` — core principles
-- The language-specific guide (Scala ZIO or Python) relevant to the change
+Before planning, the subagent must read the project's software design guides if they exist (commonly under `docs/architecture/` — the language-agnostic guide plus the guide for the language being changed).
 
 The plan must reflect these principles. In particular: new module boundaries should only be introduced where they hide significant complexity, internal steps should be plain classes/functions (not framework services), and the design should pull complexity downward rather than pushing it onto callers.
 

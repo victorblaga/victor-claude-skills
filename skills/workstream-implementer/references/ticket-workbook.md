@@ -44,7 +44,7 @@ Use this shape:
 ```markdown
 # Status: CEN-123
 
-- Project: sitesentry
+- Project: acme-app
 - JIRA: CEN-123
 - Summary: Add source details action
 - Current phase: implementation

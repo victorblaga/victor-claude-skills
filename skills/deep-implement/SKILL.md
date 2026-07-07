@@ -88,15 +88,13 @@ All artifacts go in `.docs/plans/<feature-name>/`. The feature name is auto-gene
 
 **Phase transitions**: When completing a phase, explicitly announce it ("Phase 1 complete.") and then read the next phase's reference file before proceeding. Don't rely on memory — always load the reference. Update `.docs/plans/<feature-name>/status.md` at the same time so resumption does not depend on fragile heuristics.
 
-## Agentic Execution Notes (Claude Opus 4.7)
+## Execution Notes
 
-Opus 4.7 excels at long-horizon agentic work, but its defaults differ from earlier models. Adjust harness and prompting:
-
-- **Effort**: Use `xhigh` effort for planning, discovery, validation, and audit subagents. Use `high` for mechanical verification tasks. Avoid `medium`/`low` for any judgment-heavy step.
+- **Effort**: If the harness exposes an effort control, use the highest tier for planning, discovery, validation, and audit subagents. Judgment-heavy steps should never run at reduced effort; mechanical verification can.
 - **Parallel subagents**: Spawn multiple subagents in the same turn when tasks are independent (e.g., parallel task implementation, parallel file exploration, parallel verification batches). Do not spawn a subagent for work you can complete directly in a single response.
-- **Parallel tool calls**: When reading multiple files or running independent searches, make all tool calls in parallel. Opus 4.7 reasons more and uses tools less aggressively by default—explicitly parallelize independent reads and searches.
-- **Literal scope**: Be explicit about where instructions apply (e.g., "Apply this pattern to *every* new module, not just the first one"). Opus 4.7 generalizes less implicitly.
-- **Minimalism guardrail**: Opus 4.7 can overengineer by adding unnecessary abstractions, extra files, or defensive boilerplate. During implementation, keep solutions simple and focused: only add helpers/abstractions that hide meaningful complexity; don't add error handling for impossible scenarios; don't create extra config or utilities "just in case."
+- **Parallel tool calls**: When reading multiple files or running independent searches, make all tool calls in parallel.
+- **Literal scope**: Be explicit about where instructions apply (e.g., "Apply this pattern to *every* new module, not just the first one").
+- **Minimalism guardrail**: Keep solutions simple and focused — see the Software Design Principles section; the minimalism rules there bind the orchestrator too, not just implementation subagents.
 - **Task packaging**: In the first turn, provide the full problem statement, intent, constraints, acceptance criteria, and relevant file locations. Avoid dribbling requirements across turns—each user turn adds reasoning overhead.
 - **Context hygiene**: Use subagents for codebase exploration and implementation tasks to keep the main conversation lean. The main thread should orchestrate; heavy tool output should live in subagent contexts.
 - **Subagent mental test**: Before spawning a subagent, ask "Will I need this tool output again, or just the conclusion?" If only the conclusion matters, have the subagent return a concise summary and keep the raw tool noise in its own context. If you'll need to reference detailed output repeatedly, write it to disk and pass the file path forward.
@@ -120,7 +118,7 @@ Suggested structure:
 - Mode: standard / review-driven
 - Current phase: 1 / 2 / 3 / 4 / 5 / 6 / 7
 - Current step: short label such as `2.2-discussing-finding-3`
-- Base branch: `dev`
+- Base branch: `<base branch>`
 - Next action: one sentence
 - Last updated: YYYY-MM-DD HH:MM TZ
 ```
@@ -251,23 +249,18 @@ Validation, verification, and implementation tasks use **subagents with fresh co
 
 ### Software Design Principles
 
-All implementation work must follow the project's software design guides. These guides are rooted in Ousterhout's *A Philosophy of Software Design* and define how we want code to be structured.
+All implementation work must follow the project's software design guides, if it has any. The defaults below are rooted in Ousterhout's *A Philosophy of Software Design*.
 
-**At the start of every implementation session**, check for design guides in the project:
-- `docs/architecture/software-design-guide.md` — language-agnostic principles (deep modules, information hiding, define errors out of existence, strategic vs tactical)
-- `docs/architecture/scala-zio-design-guide.md` — ZIO-specific application (when ZLayer is justified, environment type leaks, streams in interfaces)
-- `docs/architecture/python-design-guide.md` — Python pipeline application (functions over class hierarchies, integration-first testing)
-
-If these files exist, read the language-agnostic guide and the relevant language-specific guide before Phase 3 planning. Include them in subagent prompts for planning (Phase 3.1) and implementation (Phase 4) — these agents must apply the principles, not just know about them.
+**At the start of every implementation session**, check for design guides in the project (commonly under `docs/architecture/` — e.g. a language-agnostic `software-design-guide.md` plus language-specific guides). If they exist, read the language-agnostic guide and the guide for the language being changed before Phase 3 planning. Include them in subagent prompts for planning (Phase 3.1) and implementation (Phase 4) — these agents must apply the principles, not just know about them.
 
 **Key principles to enforce during implementation:**
-- **Deep modules**: every new module boundary must hide significant complexity. Don't create traits/classes/services for individual pipeline steps — only for genuine module boundaries.
-- **Information hiding**: internal types, storage paths, AWS mechanics stay behind the interface. Don't leak implementation details into public signatures.
+- **Deep modules**: every new module boundary must hide significant complexity. Don't create classes/services/traits for individual processing steps — only for genuine module boundaries.
+- **Information hiding**: internal types, storage paths, infrastructure mechanics stay behind the interface. Don't leak implementation details into public signatures.
 - **Pull complexity downward**: push complexity into the module, not onto callers.
 - **Define errors out of existence**: design interfaces so expected conditions (empty results, optional data) are normal return values, not exceptions.
 - **Strategic over tactical**: every change should leave the design at least slightly better. Don't take shortcuts that compound complexity. **But: small, isolated tactical fixes are not the same as compounding shortcuts.** A one-line bugfix that doesn't touch the surrounding design is fine. Strategic effort is reserved for places where the design is actively in your way.
-- **Integration-first testing**: prefer Testcontainers/LocalStack over mocks. Assert on outcomes, not call chains.
-- **Minimalism / anti-overengineering**: Opus 4.7 can add unnecessary abstractions by default. Do not create helpers, utilities, or abstractions for one-time operations. Don't add error handling for scenarios that can't happen. Don't design for hypothetical future requirements. The right amount of complexity is the minimum needed for the current task.
+- **Integration-first testing**: prefer real dependencies (containers, local emulators) over mocks where the project supports it. Assert on outcomes, not call chains.
+- **Minimalism / anti-overengineering**: do not create helpers, utilities, or abstractions for one-time operations. Don't add error handling for scenarios that can't happen. Don't design for hypothetical future requirements. The right amount of complexity is the minimum needed for the current task.
 
 During Phase 2 (validation) and Phase 3.2 (plan validation), reviewers should check that the proposed design follows these principles. Flag violations as review findings.
 
