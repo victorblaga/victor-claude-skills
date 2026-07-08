@@ -15,7 +15,7 @@ Implementations change how systems work, but docs describing those systems do no
 
 ## Step 1: Discover project documentation
 
-Do not assume fixed paths - each project organizes docs differently. Use a subagent (latest available Codex model, `reasoning_effort: medium`) to:
+Do not assume fixed paths - each project organizes docs differently. Use a subagent (tier: LIGHT — see Capability Tiers in SKILL.md; this is search and retrieval) to:
 
 1. Search for documentation directories: scan for `docs/`, `documentation/`, `wiki/`, `architecture/`, or similar
 2. Extract key concepts from the proposal that changed (technologies, patterns, data flows, service boundaries)
@@ -47,7 +47,7 @@ If **no documentation is found**:
 
 ## Step 2: Update documentation
 
-Launch a subagent (latest available Codex model, `reasoning_effort: high`) with:
+Launch a subagent (tier: STANDARD — see Capability Tiers in SKILL.md) with:
 - The proposal (`.docs/plans/<feature-name>/proposal.md`)
 - The final validation (`.docs/plans/<feature-name>/final-validation.md`)
 - The full diff (`git diff <base-branch>...HEAD`)

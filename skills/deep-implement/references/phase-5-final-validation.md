@@ -8,7 +8,7 @@ Phase 3.2 validates the **plan** against the proposal. Per-task verification in 
 
 ## Phase 5.1: Proposal Coverage Audit
 
-Launch a **subagent with fresh context** (model: `opus`) that receives:
+Launch a **subagent with fresh context** (tier: DEEP — see Capability Tiers in SKILL.md; STANDARD for Small workflows) that receives:
 - The amended proposal (`.docs/plans/<feature-name>/proposal.md`)
 - The implementation plan (`.docs/plans/<feature-name>/implementation-plan.md`)
 - The full diff from the base branch (`git diff <base-branch>...HEAD`)

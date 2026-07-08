@@ -124,7 +124,7 @@ The mega-review `report.md` — contains findings across 8 dimensions, calibrati
 
 ### Transformation
 
-Launch a **subagent with fresh context** (model: `opus`) that receives:
+Launch a **subagent with fresh context** (tier: DEEP — see Capability Tiers in SKILL.md) that receives:
 - The mega-review report path
 - Access to the full codebase
 - Project conventions from CLAUDE.md

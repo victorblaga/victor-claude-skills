@@ -21,7 +21,7 @@ Now we build. The execution follows the strategy defined in the plan.
      - justify any intentional exceptions to the protocol's batching or data-structure defaults
      - report any performance-sensitive decisions back in the task summary
 
-2. **The implementing agent** (model: `opus`):
+2. **The implementing agent** (tier: STANDARD — see Capability Tiers in SKILL.md; the plan is explicit, so execution rarely needs more. Well-specified, low-risk tasks can drop to LIGHT; use DEEP only for tasks the plan flags as tricky — architectural, concurrency, performance-critical):
    - Reads the relevant parts of the codebase
    - **Assesses whether the code is performance-sensitive** (per the implementation agent protocol)
    - If performance-sensitive: writes a pseudocode/comment sketch first, maps out Big O complexity and I/O calls, identifies and resolves bottlenecks, THEN implements
@@ -32,7 +32,7 @@ Now we build. The execution follows the strategy defined in the plan.
    - Reports back: what was done, what files were changed, any performance decisions made, any concerns
 
 3. **Verify** — the level of verification depends on task complexity:
-   - **Complex tasks** (multi-file changes, architectural modifications, tricky logic): Spawn a **fresh verification subagent** (model: `sonnet`) that independently reviews the implementation — does it match the task spec? Do verification criteria pass? Any obvious issues?
+   - **Complex tasks** (multi-file changes, architectural modifications, tricky logic): Spawn a **fresh verification subagent** (tier: STANDARD — see Capability Tiers in SKILL.md) that independently reviews the implementation — does it match the task spec? Do verification criteria pass? Any obvious issues?
    - **Simple tasks** (single-file, small diff, straightforward logic): CI checks from step 2 are sufficient. Skip the verification subagent.
 
 4. **Commit** the task's changes with a clear commit message describing what was done

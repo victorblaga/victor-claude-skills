@@ -90,7 +90,7 @@ All artifacts go in `.docs/plans/<feature-name>/`. The feature name is auto-gene
 
 ## Execution Notes
 
-- **Effort**: If the harness exposes an effort control, use the highest tier for planning, discovery, validation, and audit subagents. Judgment-heavy steps should never run at reduced effort; mechanical verification can.
+- **Model/effort selection**: Every subagent spawn is a cost decision. Pick the cheapest capability tier that is plausibly adequate (see Capability Tiers in the Subagent Protocol) and escalate only on evidence. Do not default to the strongest model or maximum effort out of caution.
 - **Parallel subagents**: Spawn multiple subagents in the same turn when tasks are independent (e.g., parallel task implementation, parallel file exploration, parallel verification batches). Do not spawn a subagent for work you can complete directly in a single response.
 - **Parallel tool calls**: When reading multiple files or running independent searches, make all tool calls in parallel.
 - **Literal scope**: Be explicit about where instructions apply (e.g., "Apply this pattern to *every* new module, not just the first one").
@@ -168,25 +168,40 @@ When CI fails (after PR creation or during local checks):
 
 This skill relies heavily on subagents (via the Agent tool) to keep work in fresh contexts. Here's how to use them:
 
-### Model tiers for subagents
+### Capability tiers
 
-Match the model to the cognitive demand of the task. Use the `model` parameter on the Agent tool:
+Model and effort selection is deliberately harness-agnostic. Harnesses typically expose two levers — a **model tier** (frontier / mid / fast model families) and a **reasoning effort** (thinking budget: e.g. xhigh/high/medium/low). Provider lineups and parameter names change over time; what stays constant is the *relative* capability ladder. This skill uses three abstract tiers — map each to whatever your harness currently offers, using either lever or both:
 
-| Task type | Model | Rationale |
-|-----------|-------|-----------|
-| **Phase 1**: Discovery / proposal writing | `opus` | Root-cause analysis and proposal synthesis drive the rest of the workflow |
-| **Phase 2.1**: Proposal review | `opus` | Independent critical evaluation should be as sharp as possible |
-| **Phase 2.2**: Resolving review findings | `opus` | Structured judgment and trade-off analysis |
-| **Phase 3.1**: Implementation planning | `opus` | Architectural decisions and task decomposition benefit from maximum reasoning depth |
-| **Phase 3.2**: Plan validation | `opus` | Catching plan gaps early is high leverage |
-| **Phase 4**: Task implementation | `opus` | Performance-aware implementation requires experienced-dev judgment — see `references/implementation-agent-protocol.md` |
-| **Phase 4**: Task verification | `sonnet` | Checking implementation against plan is narrower and more mechanical |
-| **Phase 5.1**: Final validation (coverage audit) | `opus` | Proposal-to-implementation coverage review is a high-stakes audit |
-| **Phase 6**: Doc discovery + reconciliation | `opus` | Requires judgment about what changed and how much to update |
-| **Phase 7**: PR creation, cleanup | `sonnet` | Mostly structured git and PR operations |
-| Codebase exploration | `sonnet` | Search and retrieval, not judgment |
+- **DEEP** — the strongest reasoning you can get: frontier-tier model and/or maximum thinking effort. For open-ended synthesis, root-cause analysis, architectural decisions, and high-stakes audits where a missed insight costs far more than the tokens.
+- **STANDARD** — a capable general model at moderate effort. For well-framed judgment: implementing from an explicit spec, applying agreed decisions, updating docs.
+- **LIGHT** — the cheapest/fastest adequate option: a small model and/or minimal effort. For search and retrieval, mechanical verification against explicit criteria, and structured git/PR operations.
 
-**The principle:** use opus for planning, validation, audit, and any task requiring judgment or synthesis. Use sonnet for mechanical tasks like verification, exploration, and PR creation.
+Illustrative mappings (**snapshots only — likely outdated; always map to the current lineup, not these names**): on Anthropic-style lineups, DEEP ≈ Opus-class or a frontier model at high thinking, STANDARD ≈ Sonnet-class, LIGHT ≈ Haiku-class; on OpenAI/Codex-style lineups, DEEP ≈ the top model tier at high/xhigh reasoning effort, STANDARD ≈ medium effort or a mid model tier, LIGHT ≈ low effort or a small model tier. When a new generation ships with new tier names, apply the same relative mapping.
+
+**Selection discipline** — before every spawn:
+
+1. Pick the cheapest tier plausibly adequate for the task, using the defaults table below as a starting point.
+2. State the choice in one line when spawning ("STANDARD — task spec is explicit, no design decisions left").
+3. Escalate one tier on evidence: ambiguity discovered mid-task, a failed or inadequate attempt, or high blast radius (auth, data migrations, public API contracts, concurrency). Never retry a failed subagent at the same tier with the same prompt.
+4. Condition on triage size: the defaults below assume a Medium/Large workflow. For **Small** workflows, drop judgment tasks one tier (DEEP → STANDARD). Trivial workflows use no subagents at all.
+
+| Task type | Default tier | Rationale |
+|-----------|--------------|-----------|
+| **Phase 1**: Discovery / proposal writing | DEEP | Root-cause analysis and proposal synthesis drive the rest of the workflow |
+| **Phase 2.1**: Proposal review | DEEP | Independent critical evaluation should be as sharp as possible |
+| **Phase 2.2**: Resolving review findings | DEEP | Structured judgment and trade-off analysis |
+| **Phase 2.3**: Amending the proposal | STANDARD | Applying already-agreed decisions to a document |
+| **Phase 3.1**: Implementation planning | DEEP | Architectural decisions and task decomposition benefit from maximum reasoning depth |
+| **Phase 3.2**: Plan validation | DEEP | Catching plan gaps early is high leverage |
+| **Phase 4**: Task implementation | STANDARD | The plan is explicit by design; execution translates task specs into code. Well-specified, low-risk tasks can drop to LIGHT; use DEEP only for tasks the plan flags as tricky (architectural, concurrency, performance-critical) |
+| **Phase 4**: Task verification | LIGHT | Checking implementation against an explicit spec is mechanical; STANDARD for complex multi-file tasks |
+| **Phase 5.1**: Final validation (coverage audit) | DEEP | Proposal-to-implementation coverage review is a high-stakes audit |
+| **Phase 6**: Doc discovery | LIGHT | Search and grep for docs referencing what changed |
+| **Phase 6**: Doc reconciliation | STANDARD | Framed judgment: the proposal and diff define what changed; the task is mapping that onto existing docs |
+| **Phase 7**: PR creation, cleanup | LIGHT | Structured git and PR operations |
+| Codebase exploration | LIGHT | Search and retrieval, not judgment |
+
+**The principle:** the economics of this workflow are expensive-planning, cheap-execution. Spend DEEP where a missed insight compounds downstream (discovery, planning, validation, audit); everything else starts as cheap as plausible and earns an upgrade only by demonstrated need.
 
 ### When to spawn a subagent
 - Phase 2.1: proposal review
@@ -198,7 +213,7 @@ Match the model to the cognitive demand of the task. Use the `model` parameter o
 
 ### How to spawn
 Use the **Agent tool** with a clear, self-contained prompt. The subagent has no access to your conversation history — everything it needs must be in the prompt. Include:
-- The `model` parameter set according to the model tiers table above
+- The model/effort parameters set according to the tier chosen via the Capability Tiers section above (state the tier and the one-line justification)
 - The specific task and expected output format
 - Paths to relevant documents (proposal, plan, etc.)
 - The project's working directory
@@ -209,7 +224,7 @@ Use the **Agent tool** with a clear, self-contained prompt. The subagent has no 
 - Use the waiting time for non-overlapping orchestration work: status updates, reading the next phase reference, preparing commit messages, or gathering adjacent context.
 - For background agents (launched with `run_in_background: true`), you'll be notified when they complete — do not poll or sleep.
 - For foreground agents, the Agent tool blocks until completion — only use foreground when you need the result before proceeding.
-- Do not infer failure from slow execution. Planning, review, and audit subagents (opus) can take significant time — this is expected.
+- Do not infer failure from slow execution. Planning, review, and audit subagents (DEEP tier) can take significant time — this is expected.
 
 ### Failure handling
 - If a subagent returns clearly inadequate output (empty, off-topic, incomplete), **retry once** with a more specific prompt that addresses what went wrong

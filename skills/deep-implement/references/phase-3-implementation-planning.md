@@ -4,7 +4,7 @@ The amended proposal describes *what* and *why*. This phase turns it into an exe
 
 ## Phase 3.1: Create the Implementation Plan
 
-Launch a **subagent with fresh context** (model: `opus`) that receives:
+Launch a **subagent with fresh context** (tier: DEEP — see Capability Tiers in SKILL.md) that receives:
 - The amended proposal document path
 - Access to the full codebase
 - Access to project CI configuration (to understand what checks must pass)
@@ -91,7 +91,7 @@ Update `status.md` to `Current phase: 3`, `Current step: 3.1-plan-complete`, and
 
 ## Phase 3.2: Validate the Plan
 
-Launch another **subagent with fresh context** (model: `opus`) to validate the plan against the proposal. It receives:
+Launch another **subagent with fresh context** (tier: DEEP — see Capability Tiers in SKILL.md) to validate the plan against the proposal. It receives:
 - The amended proposal
 - The implementation plan
 - Access to the codebase
