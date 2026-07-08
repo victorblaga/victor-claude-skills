@@ -85,7 +85,7 @@ Read only the reference file for the step you're entering. Do not preload all re
 
 | Step | Purpose | Reference |
 |------|---------|-----------|
-| **1 — Gather context** | Read project conventions, resolve scope | (below) |
+| **1 — Gather context** | Read project conventions, resolve scope, establish runtime context | (below) |
 | **2 — Dimension review** | 8 parallel subagents produce findings | `references/dimension-agents.md` |
 | **3 — Verify & calibrate** | Fact-check findings, then assign final severity | `references/verification-calibration.md` |
 | **4 — Synthesize & consolidate** | Find architectural tensions, merge into `report.md` | `references/synthesis-consolidation.md` |
@@ -94,6 +94,41 @@ Read only the reference file for the step you're entering. Do not preload all re
 ### Step 1: Gather Context
 
 Read the project's `CLAUDE.md` (and any guideline documents it references). Summarize the conventions relevant to each dimension and pass them to every subagent as `{PROJECT_CONVENTIONS}`. Subagents evaluate code against these conventions, not generic preferences.
+
+Then establish the **runtime context** — the deployment and scale facts that decide whether assumption-dependent findings (race conditions, N+1 at scale, attacker-controlled input) are real or theoretical. It has two parts, combined into `{RUNTIME_CONTEXT}` and passed to every dimension subagent and the Calibrator.
+
+#### Runtime profile (persistent, per project)
+
+Derive a short project identifier (git remote name, or the working directory name) and check for:
+
+```
+.docs/reviews/{project}/runtime-profile.md
+```
+
+**If it exists:** read it, show the user a one-line summary ("Using runtime profile: single instance, ~50K rows/day, internal-only — say if outdated"), and proceed without blocking.
+
+**If it does not exist: interview the user.** First infer candidate answers from the repo — deployment manifests (k8s replicas, HPA, docker-compose scale), worker/queue configs, README, migrations, existing table sizes — then ask all questions in ONE batched turn, presenting inferred answers as suggested defaults the user can confirm or correct:
+
+1. **Concurrency** — how many instances/workers/threads run concurrently? Are there hard single-instance or single-writer guarantees?
+2. **Data scale** — rough current size and growth of the hot entities/tables/collections
+3. **Load profile** — request volume, batch vs. interactive, latency sensitivity
+4. **Exposure** — internet-facing or internal-only? Which inputs are attacker-controlled?
+5. **Durability & consistency** — tolerance for data loss, eventual consistency, delivery semantics (at-least-once vs. exactly-once)
+
+Write the answers to the profile file (dated, one section per topic). The user may answer "skip" to any question — record "unknown" rather than guessing.
+
+#### Change assumptions interview (per review)
+
+The persistent profile can't know assumptions specific to *this* change. After resolving scope, skim the changed files and identify assumption-sensitive spots: new loops over collections, queries, migrations, concurrency primitives (locks, threads, async), caches, retries, new endpoints or consumers, feature flags. Then ask the user up to 5 **targeted** questions derived from what you actually saw in the diff, e.g.:
+
+- "Who calls the new `/export` endpoint, and how often?"
+- "How large is the collection processed in `sync_orders()`?"
+- "Is this behind a feature flag or rolled out immediately?"
+- "Any guarantees not visible in the code — ordering, single writer, idempotent callers?"
+
+Always end with a catch-all: "Any other constraints or guarantees about this change that a reviewer couldn't see in the code?" Ask everything in one batched turn; "none" is a perfectly good answer. Record the Q&A in `{OUTPUT_DIR}/review-context.md`.
+
+Compose `{RUNTIME_CONTEXT}` from both files (profile content + change-specific answers). If the user is unavailable or declines the interview, proceed with whatever was inferred and mark low-confidence items as "unconfirmed" in `{RUNTIME_CONTEXT}`.
 
 ### Model Tiers
 

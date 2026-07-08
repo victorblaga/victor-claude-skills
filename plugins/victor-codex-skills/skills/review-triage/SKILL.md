@@ -31,6 +31,7 @@ Interactive, finding-by-finding triage of a `$mega-review` report. The user and 
 
 The review folder contains:
 - `report.md` — the consolidated report (source of truth for findings and severities)
+- `review-context.md` — change-specific runtime assumptions gathered by the mega-review interview (absent in older reviews)
 - Dimension-specific files (`code-quality.md`, `architecture.md`, `correctness.md`, `test-quality.md`, `security-error-handling.md`, `pattern-conformity.md`, `refactoring-opportunities.md`, `performance.md`, `architectural-synthesis.md`, `calibration.md` — older reviews may name this last file `skeptic.md`)
 
 ## Setup
@@ -47,7 +48,11 @@ Derive a short project identifier from the review context. This is used for the 
 - The current working directory / git remote name
 - Ask the user if unclear
 
-### 3. Create output files
+### 3. Read the runtime context
+
+Read `.docs/reviews/{project}/runtime-profile.md` (persistent deployment/scale facts) and `{review_folder}/review-context.md` (change-specific guarantees) if they exist. Findings carry an `Assumes` field stating the runtime conditions they depend on — these two files are the ground truth for judging whether those assumptions hold. If neither file exists, assumptions in findings are unverified; ask the user when a decision hinges on one.
+
+### 4. Create output files
 
 Create two files:
 
@@ -113,6 +118,8 @@ Display the finding to the user with this structure:
 **What the review found:**
 {Brief summary of the issue — 2-3 sentences max. Pull from the dimension-specific file for detail.}
 
+**Assumes:** {The runtime conditions the finding depends on, and whether the runtime profile / change context confirms or contradicts them. Omit if the finding holds unconditionally.}
+
 **Risk if we fix it:**
 {What could go wrong with the change — regressions, added complexity, abstraction cost, maintenance burden. Be honest.}
 
@@ -136,7 +143,8 @@ Apply these principles when making recommendations:
 - Race conditions or concurrency bugs
 
 **Accept with scrutiny:**
-- Performance issues — is there evidence of real impact, or is it theoretical? "This is O(n^2)" matters only if n is large enough to matter in practice.
+- Performance issues — is there evidence of real impact, or is it theoretical? "This is O(n^2)" matters only if n is large enough to matter in practice. Check the claimed scale against the runtime profile, not the reviewer's guess.
+- Concurrency findings — real only under the deployment's actual parallelism. A race that requires ≥2 instances is not a bug under a hard single-instance guarantee; recommend reject with that rationale, noting the condition under which it becomes real.
 - Test gaps — missing tests for important behavior are worth adding. Missing tests for trivial getters are not.
 - DRY violations — is the duplication actually causing maintenance problems, or is it harmless parallelism?
 
@@ -149,6 +157,9 @@ Apply these principles when making recommendations:
 **Always reject:**
 - Suggestions that would undo deliberate architectural decisions (check `notes.md` for prior decisions)
 - Findings that were already addressed in a previous review cycle (check `notes.md`)
+- Findings whose stated assumptions the runtime profile or change context contradicts — record the contradicted assumption in the rejection rationale so the decision is revisitable if the guarantee changes
+
+**Keeping the runtime profile current:** when the user's triage answers reveal a runtime fact not yet in `.docs/reviews/{project}/runtime-profile.md` (e.g. "we only ever run one instance", "that table is tiny"), append it to the profile — dated, like `notes.md` entries — so future reviews calibrate against it automatically.
 
 ### Trivial findings
 

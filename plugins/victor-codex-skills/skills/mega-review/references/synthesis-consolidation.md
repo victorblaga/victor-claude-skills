@@ -67,6 +67,7 @@ You are the Review Consolidator. Merge the dimension findings, Calibrator verdic
 **Dimension outputs (read these files):** {DIMENSION_OUTPUTS}
 **Calibrator verdicts:** {OUTPUT_DIR}/calibration.md
 **Architectural synthesis:** {OUTPUT_DIR}/architectural-synthesis.md
+**Runtime context:** {RUNTIME_CONTEXT}
 **Output file:** {OUTPUT_DIR}/report.md
 
 **Your tasks:**
@@ -84,6 +85,7 @@ You are the Review Consolidator. Merge the dimension findings, Calibrator verdic
 
 **Scope:** {target scope}
 **Dimensions reviewed:** {list}
+**Runtime context:** {one-line summary of the runtime profile and change-specific guarantees the review was calibrated against; "none provided" if empty}
 **Calibration pass:** {N} endorsed, {M} downgraded, {P} rejected out of {total}
 
 ## Executive Summary
@@ -106,6 +108,7 @@ You are the Review Consolidator. Merge the dimension findings, Calibrator verdic
 - **Tension:** Part of T-{N} (omit if independent)
 - **Issue:** (description)
 - **Impact:** (what could go wrong)
+- **Assumes:** (runtime conditions the finding depends on and whether the runtime context confirms/contradicts/is silent on them; omit if "none")
 - **Suggestion:** (how to address)
 
 ## High Findings

@@ -1,6 +1,6 @@
 # Step 2 — Dimension Agents
 
-Launch all applicable dimension subagents via the Agent tool **in a single message** so they run concurrently, each with `model: "opus"`. Each agent's prompt is the Common Preamble followed by its dimension-specific block, with `{TARGET}`, `{FILE_LIST}`, `{PROJECT_CONVENTIONS}`, `{USER_CONTEXT}`, and `{OUTPUT_DIR}` substituted.
+Launch all applicable dimension subagents via the Agent tool **in a single message** so they run concurrently, each with `model: "opus"`. Each agent's prompt is the Common Preamble followed by its dimension-specific block, with `{TARGET}`, `{FILE_LIST}`, `{PROJECT_CONVENTIONS}`, `{USER_CONTEXT}`, `{RUNTIME_CONTEXT}`, and `{OUTPUT_DIR}` substituted.
 
 ## Common Preamble (all 8 agents)
 
@@ -11,11 +11,14 @@ You are the {DIMENSION} reviewer in a multi-dimensional code review. Your findin
 **Changed files:** {FILE_LIST}
 **Project conventions:** {PROJECT_CONVENTIONS}
 **Background context:** {USER_CONTEXT}
+**Runtime context (deployment concurrency, data scale, exposure, change-specific guarantees):** {RUNTIME_CONTEXT}
 **Output file:** {OUTPUT_DIR}/{OUTPUT_FILE}
 
 **You are READ-ONLY. Do not modify any code.**
 
 **Coverage rule:** Report every issue you find, including ones you are uncertain about or consider low-severity. Do not self-filter for importance or confidence — the calibration step handles severity ranking. It is better to surface a finding that later gets downgraded than to silently drop a real bug. For each finding, include your confidence level and estimated severity.
+
+**Assumption rule:** Whenever a finding depends on runtime conditions — concurrency level, data size, call frequency, input trust, delivery semantics — state those conditions explicitly in the `Assumes` field and check them against the runtime context above. Do not invent scale or parallelism: if the runtime context specifies a fact (e.g. single-instance deployment, N stays under 1K), calibrate your severity to it. But do NOT suppress a finding whose assumption the runtime context contradicts — deployment guarantees change; report it with the assumption stated and let calibration set severity. If the runtime context is silent on a condition your finding needs, say so ("unconfirmed").
 
 **Scope rule:** Findings must be about the changed files, but explore surrounding code freely for context. Check every file in the target scope, not just the obvious ones.
 
@@ -29,6 +32,7 @@ You are the {DIMENSION} reviewer in a multi-dimensional code review. Your findin
 - **Issue:** (what's wrong)
 {EXTRA_FIELDS}
 - **Suggestion:** (how to address it)
+- **Assumes:** (runtime conditions this finding depends on — e.g. "≥2 concurrent instances", "collection grows beyond ~10K", "input is attacker-controlled" — and whether the runtime context confirms, contradicts, or is silent on each; write "none" if the finding holds unconditionally)
 - **Severity:** Critical / High / Medium / Low
 - **Confidence:** High / Medium / Low
 
