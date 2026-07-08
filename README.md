@@ -52,3 +52,22 @@ codex plugin add victor-codex-skills@victor-skills-marketplace
 ```
 
 The root Codex plugin manifest is at `.codex-plugin/plugin.json`; it points Codex at the plugin skills under `plugins/victor-codex-skills/skills/`.
+
+## Cursor Installation
+
+Cursor reads the marketplace manifest at `.cursor-plugin/marketplace.json` and the plugin manifest at `.cursor-plugin/plugin.json`. Both point at the canonical skills under `skills/`.
+
+### Marketplace (team or personal)
+
+1. In Cursor, go to **Dashboard → Plugins → Add Marketplace → Import from Repo**.
+2. Paste `https://github.com/victorblaga/victor-claude-skills`.
+3. Install **victor-claude-skills** from **Customize**.
+4. Optional: enable **Auto Refresh** and install the Cursor GitHub App on the repo so pushes re-index the marketplace.
+
+### Local development
+
+```text
+ln -sfn /path/to/victor-claude-skills ~/.cursor/plugins/local/victor-claude-skills
+```
+
+Then reload Cursor. Changes in your checkout are picked up immediately via the symlink.
