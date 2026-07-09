@@ -1,10 +1,10 @@
 ---
 name: goal-prompt
 description: >
-  Generate a copy-paste-ready /goal prompt for Claude Code or Codex implementation loops.
-  Use when the user asks for a goal prompt, goal-loop prompt, Claude /goal prompt, Codex goal
-  prompt, or wants to turn a JIRA ticket or software task into a durable implementation prompt
-  with workstream-implementer, review loops, optional mega-review, and performance profiling.
+  Generate a copy-paste-ready /goal prompt for Claude Code or Codex goal loops. Use when the
+  user asks for a goal prompt, goal-loop prompt, Claude /goal prompt, or Codex goal prompt —
+  whether the goal is a software task or JIRA ticket, or non-development work such as research,
+  writing, analysis, planning, data work, or operations in hosted tools.
 ---
 
 # Goal Prompt
@@ -18,14 +18,26 @@ Default target is **Claude Code** unless the user asks for Codex. For Claude pro
 Extract:
 
 - target runtime: Claude Code, Codex, or unspecified
-- task text or JIRA key
-- repo, project, branch, or PR hints
+- goal text, task description, or JIRA key
+- repo, project, branch, PR, or deliverable-destination hints
 - explicit quality gates: simplify, mega-review, performance-critical, browser verification, CI, commit/PR preferences
 - non-goals, constraints, and acceptance criteria
 
-Ask for the missing task only if there is no usable task, ticket, PR, or file context. If the user gives no JIRA key, do not block prompt generation; include the JIRA gate in the generated prompt.
+Ask for the missing goal only if there is no usable task, ticket, PR, or file context.
 
-## Prompt Requirements
+## Goal Classification Gate
+
+Classify the goal BEFORE generating. Do not default to the dev workstream shape.
+
+- **Dev-workstream goal** — changes code or repo-managed content, flows through branch/PR/CI, and could plausibly be ticket-backed. Use the Dev template.
+- **General goal** — research, writing, analysis, planning, data work, personal organization, or operations in hosted tools (Confluence, Notion, spreadsheets, dashboards). No repo/PR/CI surface. Use the General template.
+- **Unclear or mixed** — ask the user one question before generating: "Should this run as a dev workstream (repo, branch/PR/CI, optional JIRA) or as a general goal loop?" Do not guess.
+
+Signals the goal is NOT dev work: no repo or codebase mentioned, the deliverable is a document/decision/analysis, the work lives in hosted tools, no ticket or team process in sight. A JIRA key or a named repo is a strong dev signal, but confirm when the deliverable itself is non-code.
+
+The JIRA gate belongs to the Dev template. Add it to a General prompt only when the user explicitly mentions a ticket or tracker.
+
+## Dev Prompt Requirements
 
 The generated prompt must require the goal-loop agent to:
 
@@ -34,7 +46,7 @@ The generated prompt must require the goal-loop agent to:
    - If a JIRA key is supplied, read and manage that ticket through MCP first, falling back to the REST API only if MCP is unavailable.
    - If no JIRA key is supplied, ask whether to search for a related ticket, create a ticket, create/link a subtask under a parent ticket, or proceed without JIRA.
    - Treat JIRA as optional unless the user chooses ticket-backed work, but make the decision explicit before implementation.
-3. Work the task through implementation, verification, PR creation/update, CI, and JIRA review handoff according to `workstream-implementer`.
+3. Work the task through implementation, verification, PR creation/update, CI, and JIRA review handoff according to `workstream-implementer`. If during contract refinement the task turns out not to be dev work, pause and ask the user instead of forcing the workflow.
 4. Run an adversarial review loop after implementation:
    - Use the highest-reasoning reviewer available in the environment.
    - Review the diff against the ticket/task contract, repo conventions, tests, verification evidence, and user constraints.
@@ -54,11 +66,26 @@ The generated prompt must require the goal-loop agent to:
    - If no measurable performance surface exists, state why.
 7. Verify before declaring completion. Quote the relevant command output or browser evidence in the final summary.
 
+## General Prompt Requirements
+
+The generated prompt must require the goal-loop agent to:
+
+1. Refine the goal contract before producing anything: deliverable, audience, destination, format, acceptance criteria, constraints, non-goals. Confirm the destination (file, doc platform, message) before publishing. If during refinement the goal turns out to be dev work after all, pause and ask the user whether to switch to the dev workstream shape.
+2. Do the work with evidence appropriate to the deliverable: cite and date sources for factual claims, exercise flows end-to-end for how-to content, validate numbers with actual computation.
+3. Run an adversarial review loop after a draft or result exists:
+   - Use the highest-reasoning reviewer available in the environment.
+   - Review the deliverable against the goal contract, the evidence gathered, and user constraints.
+   - If Critical or Major findings remain, fix them and re-review.
+   - Stop after a clean review or 5 review cycles, whichever comes first.
+   - Ignore nits unless they affect accuracy, completeness, or usability of the deliverable.
+4. Skip code-only gates (simplify, mega-review, performance profiling, PR/CI). If the work grows a code surface (a script, a pipeline, site config), apply the relevant Dev requirements to that code only.
+5. Verify before declaring completion. Quote the concrete evidence — published URL, produced file path, command output — in the final summary.
+
 ## Output Format
 
 Output only one fenced `text` block unless the user asks for explanation. Make the prompt self-contained and directly pasteable.
 
-Use this structure:
+Dev template:
 
 ```text
 /goal
@@ -70,7 +97,7 @@ JIRA gate:
 <ticket-specific or no-ticket instructions>
 
 Execution:
-1. Refine the task contract and acceptance criteria before implementation.
+1. Refine the task contract and acceptance criteria before implementation. If the task turns out not to be dev work, pause and ask.
 2. Scope affected repos and check worktree state before branching.
 3. Implement the task, keeping changes focused on the approved contract.
 4. Run the relevant verification commands and browser checks.
@@ -89,4 +116,23 @@ Completion criteria:
 <stop conditions and final report requirements>
 ```
 
-Collapse empty sections when the user explicitly says they do not apply, but keep the JIRA gate unless the user already explicitly declined JIRA.
+General template:
+
+```text
+/goal
+You are working on: <goal summary>
+
+Goal contract:
+<deliverable, audience, destination, acceptance criteria, constraints, non-goals; confirm destination before publishing. If this turns out to be dev work, pause and ask.>
+
+Execution:
+<goal-specific steps, including the evidence standard for this deliverable>
+
+Adversarial review loop:
+<review-loop instructions scoped to the deliverable and goal contract>
+
+Completion criteria:
+<stop conditions, concrete verification evidence to quote in the final report>
+```
+
+Collapse empty sections when the user explicitly says they do not apply. In the Dev template, keep the JIRA gate unless the user already explicitly declined JIRA. Do not add workstream-implementer, JIRA, PR, or CI scaffolding to a General prompt.
