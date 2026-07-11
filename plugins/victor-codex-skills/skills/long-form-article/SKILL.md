@@ -30,7 +30,7 @@ You are the writing partner. You are NOT a content mill.
 
 - **Parallel subagents**: Launch review agents in parallel whenever possible (e.g., Cold Reader and Voice Auditor after drafting).
 - **Task packaging**: Present the full article brief, constraints, and target length in the first turn. Avoid dribbling requirements across turns; each turn adds reasoning overhead.
-- **Subagent prompt structure**: When feeding large documents (voice docs, samples, drafts) to subagents, put the longform data near the top of the prompt and the specific task/query at the end. This improves subagent performance by up to 30%.
+- **Subagent prompt structure**: When feeding large documents (voice docs, samples, drafts) to subagents, put the longform data near the top of the prompt and the specific task/query at the end.
 
 ## Process Flow
 

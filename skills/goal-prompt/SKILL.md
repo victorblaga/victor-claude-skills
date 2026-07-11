@@ -37,6 +37,18 @@ Signals the goal is NOT dev work: no repo or codebase mentioned, the deliverable
 
 The JIRA gate belongs to the Dev template. Add it to a General prompt only when the user explicitly mentions a ticket or tracker.
 
+## Prompt Style Requirements
+
+Generated prompts run under strong reasoning models (GPT-5.6-class Codex, Claude). Write them accordingly:
+
+- **Outcome-first**: state the goal, success criteria, hard constraints, and stop rules. Do not prescribe step-by-step tool usage the agent can work out itself.
+- **Each rule once**: never repeat an instruction for emphasis. These models follow prompt contracts closely — duplicated or contradictory rules destabilize behavior more than missing detail, and repeated "ask first" reminders cause needless approval pauses.
+- **Absolutes only for invariants**: reserve ALWAYS/NEVER/must for true invariants (safety, destructive actions, required evidence). For judgment calls — when to search, ask, or keep iterating — give decision criteria instead.
+- **One autonomy boundary**: state once that in-scope local work (reading, editing, running non-destructive verification) proceeds without asking, and that confirmation is required for destructive actions, external writes/publishing, material scope expansion, or material trade-offs.
+- **Stop rules**: completion criteria double as stop rules — say when to retry, when to fall back, when to ask, and when the loop is done. Keep loops bounded (e.g. the 5-cycle review cap).
+- **Progress cadence**: for long loops, require a one-to-two-sentence update at each phase change stating one concrete outcome and the next step — no narration of routine tool calls.
+- **Verification before done**: name the most relevant validation available and require quoting its output; if validation cannot run, the prompt must require explaining why and naming the next best check.
+
 ## Dev Prompt Requirements
 
 The generated prompt must require the goal-loop agent to:
@@ -48,7 +60,7 @@ The generated prompt must require the goal-loop agent to:
    - Treat JIRA as optional unless the user chooses ticket-backed work, but make the decision explicit before implementation.
 3. Work the task through implementation, verification, PR creation/update, CI, and JIRA review handoff according to `workstream-implementer`. If during contract refinement the task turns out not to be dev work, pause and ask the user instead of forcing the workflow.
 4. Run an adversarial review loop after implementation:
-   - Use the highest-reasoning reviewer available in the environment.
+   - Use a fresh reviewer on the flagship model tier at `high` reasoning effort (the workhorse setting). Escalate to `xhigh` only when the change is genuinely hard — architectural, concurrent, or security-sensitive. `max`-style settings only if the user explicitly asks.
    - Review the diff against the ticket/task contract, repo conventions, tests, verification evidence, and user constraints.
    - If Critical or Major findings remain, fix them and re-review.
    - Stop after a clean review or 5 review cycles, whichever comes first.
@@ -73,7 +85,7 @@ The generated prompt must require the goal-loop agent to:
 1. Refine the goal contract before producing anything: deliverable, audience, destination, format, acceptance criteria, constraints, non-goals. Confirm the destination (file, doc platform, message) before publishing. If during refinement the goal turns out to be dev work after all, pause and ask the user whether to switch to the dev workstream shape.
 2. Do the work with evidence appropriate to the deliverable: cite and date sources for factual claims, exercise flows end-to-end for how-to content, validate numbers with actual computation.
 3. Run an adversarial review loop after a draft or result exists:
-   - Use the highest-reasoning reviewer available in the environment.
+   - Use a fresh reviewer on the flagship model tier at `high` reasoning effort (the workhorse setting). Escalate to `xhigh` only when the change is genuinely hard — architectural, concurrent, or security-sensitive. `max`-style settings only if the user explicitly asks.
    - Review the deliverable against the goal contract, the evidence gathered, and user constraints.
    - If Critical or Major findings remain, fix them and re-review.
    - Stop after a clean review or 5 review cycles, whichever comes first.
@@ -96,6 +108,9 @@ Use <workstream-implementer skill> as the outer controller for this work.
 JIRA gate:
 <ticket-specific or no-ticket instructions>
 
+Autonomy and approvals:
+<one boundary, stated once: in-scope local work — reading, editing, running non-destructive verification — proceeds without asking; destructive actions, external writes, material scope expansion, or material trade-offs require confirmation>
+
 Execution:
 1. Refine the task contract and acceptance criteria before implementation. If the task turns out not to be dev work, pause and ask.
 2. Scope affected repos and check worktree state before branching.
@@ -112,8 +127,8 @@ Simplify and mega-review gate:
 Performance profile gate:
 <conditional instructions>
 
-Completion criteria:
-<stop conditions and final report requirements>
+Completion criteria / stop rules:
+<what must be true before the loop ends, when to retry vs. fall back vs. ask, and final report requirements including quoted verification evidence>
 ```
 
 General template:
@@ -125,14 +140,17 @@ You are working on: <goal summary>
 Goal contract:
 <deliverable, audience, destination, acceptance criteria, constraints, non-goals; confirm destination before publishing. If this turns out to be dev work, pause and ask.>
 
+Autonomy and approvals:
+<one boundary, stated once: research, drafting, and local validation proceed without asking; publishing, external writes, and material scope changes require confirmation>
+
 Execution:
 <goal-specific steps, including the evidence standard for this deliverable>
 
 Adversarial review loop:
 <review-loop instructions scoped to the deliverable and goal contract>
 
-Completion criteria:
-<stop conditions, concrete verification evidence to quote in the final report>
+Completion criteria / stop rules:
+<what must be true before the loop ends, when to retry vs. fall back vs. ask, concrete verification evidence to quote in the final report>
 ```
 
 Collapse empty sections when the user explicitly says they do not apply. In the Dev template, keep the JIRA gate unless the user already explicitly declined JIRA. Do not add workstream-implementer, JIRA, PR, or CI scaffolding to a General prompt.

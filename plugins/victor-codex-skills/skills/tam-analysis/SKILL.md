@@ -29,7 +29,7 @@ The discipline this enforces: a TAM build that could surface a multi-layer compo
 
 ## Execution Notes
 
-- **Effort**: Use `xhigh` reasoning for orchestration and pushback. Use `medium` for anchor-research subagents and math-checker (the work is Python + lookup, not deep reasoning). Use `xhigh` for domain-expert subagent when invoked.
+- **Effort**: Use `xhigh` reasoning for orchestration and pushback. Use `medium` for anchor-research subagents and math-checker — a mid-tier model (Terra-class) is fine there; the work is Python + lookup, not deep reasoning. Use the flagship tier at `xhigh` for the domain-expert subagent when invoked.
 - **Subagents are a budget tool**: Dispatch anchor-research and math-check work to subagents so the main thread stays clean across a long multi-layer session. The main thread holds the dialogue and the state.
 - **Parallel research only when independent**: If a layer needs three anchors (e.g., population, per-capita usage, online conversion %), dispatch them in parallel. Do not parallelize when one anchor's range determines the next anchor's scope.
 - **Slow by default**: This skill is intentionally per-anchor. Do not batch multiple anchors into one turn unless the user issued `faster` or `autopilot`.
@@ -232,7 +232,7 @@ Dispatch is always user-confirmed — never run silently.
 
 **Persona is picked by the main flow** to match the specific question, not the company overall. AMZN's ad-network layer → ad-tech expert. AMZN's logistics moat → supply-chain operator. The persona composition pattern: "veteran [primary domain] analyst + ex-[adjacent operator role]" — forces triangulation between markets view and operator view. Full persona examples in `agents/domain-expert.md`.
 
-Model tier: opus xhigh. This subagent is purchased for judgment.
+Reasoning effort: `xhigh` on the flagship-tier model (Sol-class). This subagent is purchased for judgment.
 
 Output is saved (appended) to `~/.investing/companies/<TICKER>/<DATE>/expert-opinions.md` for later reference. The opinion is presented to the user immediately and may shift the analysis — log how it shifted in `dialogue.md`.
 
@@ -327,6 +327,6 @@ These hold for every turn:
 | `references/state-schema.md` | `state.json` structure, `sources.md` / `dialogue.md` / `handoff.md` formats, resume contract |
 | `agents/anchor-researcher.md` | Subagent prompt for cited anchor lookup |
 | `agents/math-checker.md` | Subagent prompt for code-validated math discipline |
-| `agents/domain-expert.md` | On-demand opus-xhigh subagent for expert opinion / pressure-test (persona picked per question) |
+| `agents/domain-expert.md` | On-demand xhigh-effort subagent for expert opinion / pressure-test (persona picked per question) |
 
 Read references on demand — do not preload everything. Read `references/layer-protocols.md` at Step 0 (you need it to propose the layer structure). Read `references/per-layer-protocol.md` when you enter Layer 1. Read `references/multiplication-protocol.md` at the multiplication step. Read `references/handoff-format.md` at hand-off. Read `references/state-schema.md` once at session start (you need the schema to write `state.json` correctly).

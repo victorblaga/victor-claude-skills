@@ -19,7 +19,7 @@ The main flow may also proactively offer to dispatch you when a speculative laye
 
 ## Reasoning Effort
 
-- Reasoning effort: **`xhigh`** (the maximum tier in Codex). Reasoning load is the whole point — this subagent is purchased for judgment, not retrieval.
+- Reasoning effort: **`xhigh`**. Reasoning load is the whole point — this subagent is purchased for judgment, not retrieval. (If the model exposes a `max` effort above `xhigh`, still default to `xhigh`; reserve `max` for a retry after an inadequate `xhigh` answer.)
 
 If you spawn further work, stay within the same tier or step down — never escalate above the parent.
 

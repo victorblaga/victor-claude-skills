@@ -130,19 +130,21 @@ Always end with a catch-all: "Any other constraints or guarantees about this cha
 
 Compose `{RUNTIME_CONTEXT}` from both files (profile content + change-specific answers). If the user is unavailable or declines the interview, proceed with whatever was inferred and mark low-confidence items as "unconfirmed" in `{RUNTIME_CONTEXT}`.
 
-### Reasoning Tiers
+### Model & Reasoning Tiers
 
-Always use the latest available Codex model for every phase. Vary only `reasoning_effort` by the cognitive load of the step:
+Two levers per subagent: **model tier** and **reasoning_effort**. On GPT-5.6-era lineups the tiers are, e.g., Sol (flagship) / Terra (mid, roughly previous-flagship-competitive at lower cost) / Luna (smallest, nano-equivalent); map by relative capability when names change. Doctrine: the flagship tier at `high` is the workhorse for judgment; `xhigh` is reserved for the steps that gate everything downstream; mechanical steps drop tier, not just effort.
 
-| Role | Reasoning effort | Rationale |
-|------|------------------|-----------|
-| Dimension subagents (Step 2) | `high` | First-pass review sets the ceiling — a finding missed here cannot be recovered later |
-| Verification subagents (Step 3) | `low` | Factual cross-checking is mechanical |
-| Calibrator (Step 3) | `xhigh` | Severity judgment, weighing trade-offs |
-| Architectural Synthesis (Step 4) | `xhigh` | Meta-analysis, connecting dots across dimensions |
-| Consolidator (Step 4) | `low` | Mechanical aggregation; must follow the write-the-file instruction reliably without rethinking severity |
+| Role | Tier / effort | Rationale |
+|------|---------------|-----------|
+| Dimension subagents (Step 2) | flagship, `high` | First-pass review sets the ceiling — a finding missed here cannot be recovered later |
+| Verification subagents (Step 3) | mid tier, `medium` (or flagship `low` if tier selection is unavailable) | Factual cross-checking is mechanical |
+| Calibrator (Step 3) | flagship, `xhigh` | Severity judgment, weighing trade-offs — gates every downstream step |
+| Architectural Synthesis (Step 4) | flagship, `xhigh` | Meta-analysis, connecting dots across dimensions |
+| Consolidator (Step 4) | mid tier, `low` | Mechanical aggregation; must follow the write-the-file instruction reliably without rethinking severity |
 
-Nested explorer subagents default to `medium`; raise to `high` when tracing subtle control flow or cross-file architectural behavior.
+Nested explorer subagents default to the mid tier at `medium`; raise to the flagship at `high` when tracing subtle control flow or cross-file architectural behavior.
+
+`max` is never part of the default pipeline. Use it only on explicit user request, or as a single retry of a step that demonstrably failed at `xhigh` on a genuinely hard judgment.
 
 ### Execution Discipline
 

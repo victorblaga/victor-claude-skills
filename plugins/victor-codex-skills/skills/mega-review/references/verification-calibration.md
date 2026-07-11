@@ -2,7 +2,7 @@
 
 Two phases: **verification** (are the findings factually accurate?) then **calibration** (what's the right severity?). The goal is NOT to aggressively filter — it is to verify claims and assign honest severity. A factually correct finding always stays in the report.
 
-## Phase 1: Verification Subagents (parallel, `reasoning_effort: low`)
+## Phase 1: Verification Subagents (parallel; mid-tier model — Terra-class — at `medium`, or the flagship at `low` if tier selection is unavailable)
 
 Launch 2-3 Verification subagents in parallel, each with a batch of findings split roughly evenly. Their only job is fact-checking against the actual code — no severity or value judgments.
 
@@ -30,7 +30,7 @@ You are a Verification agent. Your ONLY job is to check whether each code-review
 **IMPORTANT:** Write your results to `{OUTPUT_DIR}/verification-{BATCH_NUMBER}.md`.
 ```
 
-## Phase 2: Calibrator (single agent, `reasoning_effort: xhigh`)
+## Phase 2: Calibrator (single agent; flagship-tier model, `reasoning_effort: xhigh`)
 
 After verification completes, launch the Calibrator. Substitute `{DIMENSION_OUTPUTS}` with the paths to all dimension findings files and `{VERIFICATION_RESULTS}` with the paths to the verification files.
 

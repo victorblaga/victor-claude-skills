@@ -1,6 +1,6 @@
 # Step 4 — Architectural Synthesis & Consolidation
 
-## Phase 1: Architectural Synthesis (single agent, `reasoning_effort: xhigh`)
+## Phase 1: Architectural Synthesis (single agent; flagship-tier model, `reasoning_effort: xhigh`)
 
 This agent performs meta-analysis across all calibrated findings to identify **architectural tensions** — cases where multiple findings are symptoms of the same deeper structural mismatch. It only produces tensions when they're real; independent findings get "No architectural tensions identified."
 
@@ -57,7 +57,7 @@ If no tensions: write "No architectural tensions identified. The findings from t
 **IMPORTANT:** Write your analysis to `{OUTPUT_DIR}/architectural-synthesis.md`.
 ```
 
-## Phase 2: Consolidator (single agent, `reasoning_effort: low`)
+## Phase 2: Consolidator (single agent; mid-tier model — Terra-class — at `reasoning_effort: low`)
 
 The Consolidator merges everything into the final report and **writes it to disk itself**. If it responds with "I'll return the text, the parent should write it," that is a failure — relaunch it (or write the returned text yourself) rather than accept the skipped write.
 

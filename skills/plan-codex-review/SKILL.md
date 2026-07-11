@@ -4,8 +4,8 @@ description: >
   Three-phase coding pipeline that pairs Claude's reasoning with Codex's implementation muscle:
   deep planning by Claude (Fable) in forced plan mode with a relentless grill-me-style requirements
   interview and cheap exploration subagents, implementation delegated to
-  Codex via the codex plugin (gpt-5.5, high effort), and a fresh-context max-thinking review
-  by Claude (Fable) that produces a Codex-ready remediation plan (gpt-5.5, xhigh effort).
+  Codex via the codex plugin (gpt-5.6, high effort), and a fresh-context max-thinking review
+  by Claude (Fable) that produces a Codex-ready remediation plan (gpt-5.6, xhigh effort).
   Claude Code only — requires the Agent tool and the openai-codex plugin.
   Trigger ONLY when the user explicitly says "plan-codex-review" or invokes via /plan-codex-review.
   Do not trigger on general implementation requests — this is a deliberate pipeline the user opts
@@ -17,8 +17,8 @@ description: >
 A three-phase pipeline for substantial coding tasks:
 
 1. **Plan** — Claude (Fable, deep thinking) switches into plan mode, explores the codebase via cheap subagents, interviews the user relentlessly until shared understanding, and presents an implementation plan following plan-mode conventions. User approves via the plan-mode gate before any code is written.
-2. **Implement** — Codex executes the approved plan (`gpt-5.5`, `high` effort, write-capable).
-3. **Review** — a fresh-context Claude (Fable, max thinking) subagent judges the diff against the plan and produces severity-ranked findings plus a Codex-ready remediation plan. The user then chooses: stop, remediate (`gpt-5.5`, `xhigh` effort), or remediate and re-review (loop).
+2. **Implement** — Codex executes the approved plan (`gpt-5.6`, `high` effort, write-capable).
+3. **Review** — a fresh-context Claude (Fable, max thinking) subagent judges the diff against the plan and produces severity-ranked findings plus a Codex-ready remediation plan. The user then chooses: stop, remediate (`gpt-5.6`, `xhigh` effort), or remediate and re-review (loop).
 
 The division of labor is deliberate: Claude does the judgment-heavy ends (planning, reviewing), Codex does the implementation middle, and exploration is pushed to cheap models so Fable tokens are spent only on reasoning.
 
@@ -63,10 +63,10 @@ Runs in the main conversation thread. Think hard throughout this phase — plann
    - **Out of scope** — explicit non-goals, so neither Codex nor the reviewer invents extra work
 5. **Gate: plan-mode approval.** Present the plan through the plan-mode approval flow (`ExitPlanMode`) — do not write it to a file. Iterate on feedback until the user approves. Do not start Phase 2 without explicit approval.
 
-## Phase 2 — Implement (Codex, gpt-5.5, high effort)
+## Phase 2 — Implement (Codex, gpt-5.6, high effort)
 
 1. Invoke the `codex:codex-rescue` subagent via the **Agent tool** (`subagent_type: "codex:codex-rescue"`). That subagent parses runtime flags out of the prompt text itself, so the flags below are written literally into the prompt, not passed as Agent tool parameters. The prompt must contain:
-   - The flags, as literal text: `--model gpt-5.5 --effort high --write --fresh` (`--fresh` means "start a new Codex thread, don't resume a prior one"; if the runtime rejects the model name, surface the error to the user rather than picking a substitute)
+   - The flags, as literal text: `--model gpt-5.6 --effort high --write --fresh` (`--fresh` means "start a new Codex thread, don't resume a prior one"; if the runtime rejects the model name, surface the error to the user rather than picking a substitute)
    - The full plan contents inlined — the plan lives in-conversation (plan-mode convention), so Codex must receive it verbatim and must not depend on any plan file existing
    - An instruction to implement exactly what the plan specifies, run the plan's verification commands, and report what was changed and what the verification output was
 2. **Foreground by default.** Run in the background (the Agent tool's `run_in_background: true`) only if the user asks for it or the plan is clearly long-running (many files, large refactor).
@@ -97,7 +97,7 @@ Present the findings summary (all severities, Critical/Major in full, Minor/Nit 
 - **Remediate** — run the remediation, then stop.
 - **Remediate + re-review** — run the remediation, then loop back to a fresh Phase 3 review of the updated diff, followed by this gate again.
 
-**Remediation** = `codex:codex-rescue` with `--model gpt-5.5 --effort xhigh --write --fresh`, fed the full remediation plan inlined, with the same sanity check as Phase 2 on return.
+**Remediation** = `codex:codex-rescue` with `--model gpt-5.6 --effort xhigh --write --fresh`, fed the full remediation plan inlined, with the same sanity check as Phase 2 on return.
 
 There is no hard iteration cap — every loop passes through this gate, so the user is the cap. If two consecutive reviews surface the same finding unresolved, say so explicitly and recommend stopping for manual intervention rather than looping again.
 
@@ -113,8 +113,8 @@ There is no hard iteration cap — every loop passes through this gate, so the u
 |------|-----|----------------|
 | Planning | Main thread (plan mode forced on) | Fable (session model), deep thinking |
 | Exploration (plan + review) | `Explore` subagents | sonnet (opus only for judgment calls) |
-| Implementation | `codex:codex-rescue` | `gpt-5.5`, `high`, `--write` |
+| Implementation | `codex:codex-rescue` | `gpt-5.6`, `high`, `--write` |
 | Review | `general-purpose` subagent | `fable`, ultrathink |
-| Remediation | `codex:codex-rescue` | `gpt-5.5`, `xhigh`, `--write` |
+| Remediation | `codex:codex-rescue` | `gpt-5.6`, `xhigh`, `--write` |
 
 Note: the planning phase's thinking depth rides on the session model — this skill cannot switch the main thread's model. The review phase is pinned to Fable regardless, via the subagent model override.

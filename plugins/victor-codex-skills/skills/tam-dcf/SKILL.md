@@ -26,7 +26,7 @@ The TAM/revenue path is mostly settled by the time this skill runs — don't rel
 
 ## Execution Notes
 
-- **Effort**: Use `xhigh` for orchestration + pushback. Use `medium` for the dcf-math subagent (the work is Python, not deep reasoning). Use `xhigh` for the domain-expert subagent when invoked.
+- **Effort**: Use `xhigh` for orchestration + pushback. Use `medium` for the dcf-math subagent — a mid-tier model (Terra-class) is fine there; the work is Python, not deep reasoning. Use the flagship tier at `xhigh` for the domain-expert subagent when invoked.
 - **Don't rebuild the TAM**: read it, summarize the user's interpretation, but do not relitigate layer-by-layer. If the TAM revenue path looks broken or inconsistent on inspection, FLAG it to the user — don't silently compensate.
 - **Subagents are the budget**: dispatch dcf-math via subagent so its Python compute doesn't pollute the orchestrator's context. Same for peer-margin / WACC anchor research via anchor-researcher.
 - **Slow by default**: per-anchor confirm for margin assumptions, WACC components, reinvestment intensity. The dcf-math runs in code, but the *assumptions feeding it* are per-anchor.
@@ -577,4 +577,4 @@ Within a session, survives context compaction the same way: re-read `dcf-state.j
 | `references/output-format.md` | `dcf.md` section spec + `dcf.html` schema (self-contained, inline assets) |
 | `references/state-schema.md` | `dcf-state.json` structure, resume contract |
 | `agents/dcf-math.md` | Python-driven FCFF + WACC + reverse-DCF + sensitivity subagent |
-| `agents/domain-expert.md` | On-demand opus-xhigh subagent for margin / ROIC / WACC / peer-benchmark opinions |
+| `agents/domain-expert.md` | On-demand xhigh-effort subagent for margin / ROIC / WACC / peer-benchmark opinions |

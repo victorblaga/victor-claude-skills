@@ -13,7 +13,7 @@ description: >
 
 # Sweep
 
-Proactive multi-dimensional codebase hygiene. Eight parallel review subagents analyze the repo, a Calibrator dedupes and assigns blast radius per finding, LOW-blast findings auto-apply via per-file Appliers, and HIGH-blast findings get walked through conversationally with the user. Polyglot, Python-leaning, with per-language tool detection. Always use the latest available Codex model for every subagent.
+Proactive multi-dimensional codebase hygiene. Eight parallel review subagents analyze the repo, a Calibrator dedupes and assigns blast radius per finding, LOW-blast findings auto-apply via per-file Appliers, and HIGH-blast findings get walked through conversationally with the user. Polyglot, Python-leaning, with per-language tool detection. Model and effort per role are set in Model & Reasoning Tiers below.
 
 **CRITICAL RULES:**
 - **Preflight is strict** — no dirty git, no auto-run on dev/main, baseline test check. See Phase 1.
@@ -76,23 +76,22 @@ Phase transitions: announce explicitly (*"Phase 1 complete, entering Phase 2."*)
 - `references/tool-registry.md` — per-language tool table, install commands, config bootstrap, degradation policy
 - `references/markers.md` — `cleanup-sweep-skip` syntax per language, placement rules, age-nudge format
 
-## Reasoning Tiers
+## Model & Reasoning Tiers
 
-Always use the latest available Codex model for every subagent. Vary only `reasoning_effort` based on the cognitive load of the role:
+Two levers per subagent: **model tier** and **reasoning_effort**. On GPT-5.6-era lineups the tiers are, e.g., Sol (flagship) / Terra (mid, roughly previous-flagship-competitive at lower cost) / Luna (smallest, nano-equivalent); map by relative capability when names change. The flagship tier at `high` is the workhorse for judgment; `xhigh` is reserved for the single step that gates everything downstream; mechanical steps drop model tier, not just effort.
 
-- `xhigh` — most intense thinking. Cross-agent dedup and blast-radius judgment that gates every downstream step.
-- `high` — significant judgment. "Cruft or intentional?" calls inside a single dimension.
-- `medium` — moderate reasoning. Reserved for explorers tracing cross-file behavior.
-- `low` — mechanical execution. Per-file applies of an explicit finding, structured aggregation and formatting.
+| Role | Tier / effort | Rationale |
+|------|---------------|-----------|
+| 8 dimension agents (Phase 2) | flagship, `high` | Each agent makes "is this cruft or intentional?" judgment calls across one dimension. |
+| Calibrator (Phase 3) | flagship, `xhigh` | Blast-radius judgment and cross-agent dedup are the highest-leverage reasoning step. |
+| Applier (Phase 4) | mid/small tier, `low` | Per-file application of an explicit finding is mechanical. |
+| Final report (Phase 7) | small tier, `low` | Formatting and statistics aggregation are structured tasks. |
 
-| Role | Reasoning effort | Rationale |
-|------|------------------|-----------|
-| 8 dimension agents (Phase 2) | `high` | Each agent makes "is this cruft or intentional?" judgment calls across one dimension. |
-| Calibrator (Phase 3) | `xhigh` | Blast-radius judgment and cross-agent dedup are the highest-leverage reasoning step. |
-| Applier (Phase 4) | `low` | Per-file application of an explicit finding is mechanical. |
-| Final report (Phase 7) | `low` | Formatting and statistics aggregation are structured tasks. |
+Explorers tracing cross-file behavior: mid tier at `medium`.
 
 Main-thread orchestration (triage walkthrough with user) inherits the session model.
+
+`max` is never part of the default pipeline. Use it only on explicit user request, or as a single retry of a step that demonstrably failed at `xhigh`.
 
 ## Artifact Layout
 

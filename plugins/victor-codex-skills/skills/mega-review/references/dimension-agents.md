@@ -1,6 +1,6 @@
 # Step 2 — Dimension Agents
 
-Launch all applicable dimension subagents in parallel with `reasoning_effort: high`. If the harness does not support subagents, run the dimensions sequentially yourself while preserving the same output structure. Each agent's prompt is the Common Preamble followed by its dimension-specific block, with `{TARGET}`, `{FILE_LIST}`, `{PROJECT_CONVENTIONS}`, `{USER_CONTEXT}`, `{RUNTIME_CONTEXT}`, and `{OUTPUT_DIR}` substituted.
+Launch all applicable dimension subagents in parallel on the flagship-tier model (Sol-class) with `reasoning_effort: high`. If the harness does not support subagents, run the dimensions sequentially yourself while preserving the same output structure. Each agent's prompt is the Common Preamble followed by its dimension-specific block, with `{TARGET}`, `{FILE_LIST}`, `{PROJECT_CONVENTIONS}`, `{USER_CONTEXT}`, `{RUNTIME_CONTEXT}`, and `{OUTPUT_DIR}` substituted.
 
 ## Common Preamble (all 8 agents)
 
@@ -23,6 +23,8 @@ You are the {DIMENSION} reviewer in a multi-dimensional code review. Your findin
 **Scope rule:** Findings must be about the changed files, but explore surrounding code freely for context. Check every file in the target scope, not just the obvious ones.
 
 **How to work:** Read files and run searches in parallel when independent. Spawn explorer subagents when you need to trace code across many files — you need their conclusions, not their tool output. For large diffs, first extract the relevant code quotes with file:line references, then analyze.
+
+**Stop condition:** You are done when every file in the target scope has been checked against every checklist item and each finding is grounded in a quoted snippet. Do not keep searching for extra evidence once a finding is already supported, and do not stop early because you have "enough" findings — coverage of the scope, not finding count, is the completion bar.
 
 **Output format — one entry per finding, exactly this structure:**
 

@@ -1,6 +1,6 @@
 # Phase 3 — Calibrate
 
-A single Calibrator agent on the latest available Codex model reads all 8 dimension findings files, dedupes cross-agent overlap, and assigns a **blast radius** per surviving finding. Its output drives the Phase 4 / Phase 5 bucket split.
+A single Calibrator agent on the flagship-tier model (Sol-class) reads all 8 dimension findings files, dedupes cross-agent overlap, and assigns a **blast radius** per surviving finding. Its output drives the Phase 4 / Phase 5 bucket split.
 
 ## Why blast radius, not confidence
 
@@ -10,7 +10,7 @@ The sweep's ergonomic win is auto-applying findings that are **both** obviously 
 
 ## Calibrator Agent Prompt
 
-Launch on the latest available Codex model with `reasoning_effort: "xhigh"`. Pass the 8 findings files and the scope as input.
+Launch on the flagship-tier model (Sol-class) with `reasoning_effort: "xhigh"`. Pass the 8 findings files and the scope as input.
 
 ```
 You are the sweep Calibrator. Your job has two parts:

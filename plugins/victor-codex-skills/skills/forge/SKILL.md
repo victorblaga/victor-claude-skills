@@ -85,7 +85,7 @@ A prototype that runs is worth a hundred diagrams.
 ## Execution Notes
 
 - **Parallel subagents**: Launch explorer and implementer subagents in parallel when tasks are independent. Spawn multiple subagents in the same turn when fanning out across files or components. Do not spawn a subagent for work you can complete directly in a single response.
-- **Parallel tool calls**: When reading multiple files or running independent searches, make all tool calls in parallel. Agents reason more and use tools less aggressively by default—explicitly parallelize independent reads.
+- **Parallel tool calls**: When reading multiple files or running independent searches, make all tool calls in parallel.
 - **Literal scope**: State explicitly when instructions apply broadly (e.g., "Apply this pattern to *every* component at this level, not just the first one").
 - **Minimalism guardrail**: During design and implementation, challenge unnecessary abstractions. Only add a layer/type/helper if it hides meaningful complexity or is used more than once.
 - **Context hygiene**: Use fresh-context subagents for exploration and implementation to prevent main-thread bloat. The orchestrator holds state and talks to the user; subagents handle heavy tool use.
@@ -166,14 +166,14 @@ The project will be un-compilable between horizontal slices. This is fine. Resis
 
 ## Agent Architecture
 
-Use the latest available Codex model for every role; vary only `reasoning_effort`.
+Two levers per role: **model tier** and **reasoning_effort**. On GPT-5.6-era lineups the tiers are, e.g., Sol (flagship) / Terra (mid) / Luna (smallest); map by relative capability when names change. Flagship at `high` is the workhorse; `xhigh` is reserved for the Challenger, whose skeptical review gates each iteration; `max` only on explicit user request or as a single retry after an inadequate `xhigh` pass.
 
-| Role | Reasoning effort | Fresh context? | When |
-|------|------------------|---------------|------|
+| Role | Tier / effort | Fresh context? | When |
+|------|---------------|---------------|------|
 | **Orchestrator** | (session) | No — persistent | Always. Holds state, talks to user, coordinates. |
-| **Explorer** | `medium` (Phase 0 constraint scans) / `high` (Phase 1 behavioral-model extraction) | Yes | Phase 0 + Phase 1: scan code, discover constraints |
-| **Challenger** | `xhigh` | Yes — always fresh | After each design or implementation: skeptical review |
-| **Implementer** | `high` | Yes — fresh | Each implementation pass: write code |
+| **Explorer** | mid tier, `medium` (Phase 0 constraint scans) / flagship, `high` (Phase 1 behavioral-model extraction) | Yes | Phase 0 + Phase 1: scan code, discover constraints |
+| **Challenger** | flagship, `xhigh` | Yes — always fresh | After each design or implementation: skeptical review |
+| **Implementer** | flagship, `high` | Yes — fresh | Each implementation pass: write code |
 
 The challenger being **always fresh** is critical. The agent doing the work cannot judge its own work — a fresh agent with no investment in the output is more honest. This is the key lesson from Anthropic's harness design research: separating generation from evaluation, and tuning the evaluator to be skeptical rather than lenient.
 
