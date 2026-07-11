@@ -13,18 +13,15 @@ Codex-native variants live under `plugins/victor-codex-skills/skills/` and are d
 - **deep-implement** — End-to-end workflow for turning a problem statement into a validated proposal and implemented solution
 - **mega-review** — Comprehensive multi-dimensional code review producing a structured markdown report
 - **review-triage** — Interactive triage of mega-review findings into an implementation plan
-- **grill-me** — Interview the user relentlessly about a plan or design until reaching shared understanding
 - **cross-examine** — Become the codebase expert and answer the user's questions with evidence
-- **teach-me** — Teach a topic, codebase, change, bug, or design incrementally until the user demonstrates understanding
 - **forge** — Iterative top-down code construction (build, refactor, refine) with horizontal-slice design and challenger validation
 - **long-form-article** — Collaborative workflow for substantial article drafting and revision
 - **argument-structure** — Diagnose a draft or idea against the Minto Pyramid Principle and deliver a restructuring plan as a visual HTML artifact
-- **llm-council** — Run decisions through 5 AI advisors who analyze, peer-review, and synthesize a final verdict
 - **sweep** — Whole-codebase hygiene sweep across duplication, dead code, weak types, defensive code, and comment slop
 - **workstream-implementer** — Project-aware implementation workflow from JIRA ticket or idea through multi-repo planning, PRs, CI, and review handoff
 - **goal-prompt** — Generate copy-paste-ready `/goal` prompts for Claude Code or Codex goal loops, classifying each goal first: dev-workstream goals get workstream-implementer, JIRA, review and performance gates; general (non-dev) goals get a goal contract, evidence standard, and review loop
 - **frontend-review** — Design-quality review of implemented FE surfaces against composition / craft / content / structure rubrics, with one-by-one fix triage
-- **plan-codex-review** — Three-phase pipeline: Claude plans (grill-me-style interview + cheap explorers), Codex implements, fresh-context Claude reviews and produces a Codex-ready remediation plan. Claude Code only — requires the openai-codex plugin; deliberately has no Codex-native variant
+- **plan-codex-review** — Three-phase pipeline: Claude plans (relentless requirements interview + cheap explorers), Codex implements, fresh-context Claude reviews and produces a Codex-ready remediation plan. Claude Code only — requires the openai-codex plugin; deliberately has no Codex-native variant
 
 ## Claude Installation
 

@@ -1,11 +1,11 @@
 ---
 name: cross-examine
-description: "Become the codebase expert and answer the user's questions with evidence. The reverse of grill-me: the user interrogates you about the code. Use when the user says 'cross-examine', 'cross examine', 'explain the code', or wants to understand how a codebase works through Q&A."
+description: "Become the codebase expert and answer the user's questions with evidence. The user interrogates you about the code. Use when the user says 'cross-examine', 'cross examine', 'explain the code', or wants to understand how a codebase works through Q&A."
 ---
 
 # Cross-Examine
 
-Become the codebase expert and answer the user's questions with evidence — the reverse of grill-me: the user interrogates you about the code.
+Become the codebase expert and answer the user's questions with evidence — the user interrogates you about the code.
 
 ## Execution Notes
 

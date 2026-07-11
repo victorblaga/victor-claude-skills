@@ -308,5 +308,4 @@ At the start of every session:
 | `/sweep` | Sibling, not a sub-mode. Sweep removes cruft *within* the existing structure (dead code, duplication, doc drift) autonomously; forge reshapes the structure itself with the user in the loop. Run a sweep after a large forge to mop up. |
 | `/deep-implement` | Coexists. Problem → investigation → proposal → implementation. Different trigger (reactive to a problem/review, not proactive construction). |
 | `/mega-review` | Feeds into forge. Review findings can trigger a `/forge refine`. |
-| `/grill-me` | Complementary. Use before forge to stress-test a design idea. |
 | `/cross-examine` | Complementary. Use to understand existing code before forge. |

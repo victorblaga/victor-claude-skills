@@ -2,7 +2,7 @@
 name: plan-codex-review
 description: >
   Three-phase coding pipeline that pairs Claude's reasoning with Codex's implementation muscle:
-  deep planning by Claude (Fable) in forced plan mode with a relentless grill-me-style requirements
+  deep planning by Claude (Fable) in forced plan mode with a relentless requirements
   interview and cheap exploration subagents, implementation delegated to
   Codex via the codex plugin (gpt-5.6, high effort), and a fresh-context max-thinking review
   by Claude (Fable) that produces a Codex-ready remediation plan (gpt-5.6, xhigh effort).
@@ -50,7 +50,7 @@ Runs in the main conversation thread. Think hard throughout this phase — plann
 
 1. **Force plan mode ON.** If not already in plan mode, switch it on yourself via the `EnterPlanMode` tool (load its schema via ToolSearch first if it is deferred). If the tool is unavailable or the call fails, **stop** and tell the user to enable plan mode manually (Shift+Tab) — wait for confirmation; do not plan outside plan mode.
 2. **Explore via cheap subagents.** Fan out `Explore` subagents with `model: sonnet` to map the relevant parts of the codebase (architecture, conventions, the files the task will touch, existing tests, CI checks). Spawn them in parallel when the questions are independent. Escalate an individual exploration to `model: opus` only when it requires real judgment (e.g., "which of these three abstractions should the change hook into"), not for search and retrieval. Never use Fable for exploration subagents.
-3. **Interview relentlessly** (grill-me style). Before writing the plan, interrogate the user about every aspect of the task until you reach shared understanding — walk down each branch of the decision tree, resolving dependencies between decisions one by one. Rules:
+3. **Interview relentlessly.** Before writing the plan, interrogate the user about every aspect of the task until you reach shared understanding — walk down each branch of the decision tree, resolving dependencies between decisions one by one. Rules:
    - For every question, provide your recommended answer.
    - Batch related questions in one turn rather than dribbling them out; keep unrelated decision branches in separate turns.
    - If a question can be answered by exploring the codebase, dispatch a sonnet explorer instead of asking the user.

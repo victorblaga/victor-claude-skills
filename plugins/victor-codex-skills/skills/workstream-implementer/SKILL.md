@@ -90,7 +90,7 @@ Skip or shorten this phase only when:
 - the request is truly tiny and mechanical, such as a typo, one-line config fix, or obvious dependency bump
 - the user explicitly says to skip refinement
 
-Use a `grill-me` style posture adapted to implementation work:
+Use a relentless interview posture adapted to implementation work:
 
 - Ask batched, high-signal questions instead of one question at a time.
 - Provide your recommended answer for each question.
