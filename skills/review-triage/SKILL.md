@@ -31,15 +31,20 @@ Interactive, finding-by-finding triage of a `/mega-review` report. The user and 
 3. Confirm with the user: "I found a review at `.docs/reviews/{folder}/`. Is this the one to triage?"
 
 The review folder contains:
-- `report.md` — the consolidated report (source of truth for findings and severities)
-- `review-context.md` — change-specific runtime assumptions gathered by the mega-review interview (absent in older reviews)
-- Dimension-specific files (`code-quality.md`, `architecture.md`, `correctness.md`, `test-quality.md`, `security-error-handling.md`, `pattern-conformity.md`, `refactoring-opportunities.md`, `performance.md`, `architectural-synthesis.md`, `calibration.md` — older reviews may name this last file `skeptic.md`)
+- `report.md` — the consolidated report (source of truth for findings, severities, and verdict)
+- `review-plan.md`, `intent.md` — planner output (v2+; absent in older reviews)
+- `review-context.md` — change-specific runtime assumptions from the batched interview (absent in older reviews)
+- Dimension-specific files: `code-quality.md`, `architecture.md`, `correctness.md`, `test-quality.md`, `security-error-handling.md`, `pattern-conformity.md`, `refactoring-opportunities.md`, `performance.md`, `intent-conformance.md`, `data-migration.md`, `api-contract.md` (last three v2+; absent if not activated)
+- `evidence/findings.md` — ground-truth failures from test/lint/type-check (v2+; absent if no evidence pass)
+- `architectural-synthesis.md`, `calibration.md` (older reviews may name calibration `skeptic.md`)
+
+**Finding ID prefixes:** CQ, AR, CR, TQ, SE, PC, RO, PF, IC (intent), DM (migration), BC (API contract), EV (evidence pass), T- (architectural tension), P- (recurring pattern rollup).
 
 ## Setup
 
 ### 1. Read the review
 
-Read `report.md` in full. Then read each dimension-specific file in the review folder — these contain the detailed analysis behind each finding. Build a mental model of all findings, their severities, and any architectural tensions.
+Read `report.md` in full — including **Delivered vs. Asked**, **Architectural Tensions**, and **Recurring Patterns** if present. Then read each dimension-specific file in the review folder for detail behind individual findings. Build a mental model of all findings, severities, tensions, patterns, and the overall verdict.
 
 ### 2. Identify the project
 
@@ -99,11 +104,13 @@ Each entry is self-contained — no references to files that may be deleted.
 ### Ordering
 
 Present findings in this order:
-1. **Architectural tensions** (T-1, T-2, ...) first — these are meta-findings that subsume individual findings. Triaging a tension decides the fate of all its subsumed findings at once.
-2. **Critical** severity findings
-3. **High** severity findings
-4. **Medium** severity findings
-5. **Low** severity findings
+1. **Delivered vs. Asked** (IC summary) — if the report has intent gaps (Missing/Partial requirements), discuss whether to accept fixing them before individual findings.
+2. **Architectural tensions** (T-1, T-2, ...) — meta-findings subsuming individual findings. Triaging a tension decides all subsumed findings at once.
+3. **Recurring patterns** (P-1, P-2, ...) — rolled-up repeated defects. Triaging a pattern decides all listed occurrences at once (same as tensions).
+4. **Critical** severity findings (skip IDs marked `Part of T-{N}` or `Part of P-{N}` unless the parent was rejected)
+5. **High** severity findings
+6. **Medium** severity findings
+7. **Low** severity findings
 
 Within each severity level, group by dimension to maintain context continuity.
 
@@ -114,24 +121,27 @@ Display the finding to the user with this structure:
 ```
 ### {ID}: {title}
 **Severity:** {severity} | **Dimension:** {dimension}
-**Location:** {file:line}
+**Location:** {file:line} (or location list for P-{N} patterns)
+**Fix complexity:** {Trivial / Small / Medium / Large — from the finding; omit if absent in older reviews}
 
 **What the review found:**
-{Brief summary of the issue — 2-3 sentences max. Pull from the dimension-specific file for detail.}
+{Brief summary — 2-3 sentences max. Pull from the dimension-specific file for detail.}
 
-**Assumes:** {The runtime conditions the finding depends on, and whether the runtime profile / change context confirms or contradicts them. Omit if the finding holds unconditionally.}
+**Assumes:** {Runtime conditions and whether the runtime profile / change context confirms or contradicts them. Omit if unconditional.}
 
 **Risk if we fix it:**
-{What could go wrong with the change — regressions, added complexity, abstraction cost, maintenance burden. Be honest.}
+{Regressions, complexity, abstraction cost, maintenance burden. Be honest.}
 
 **Risk if we leave it:**
-{What could go wrong if we don't fix it — bugs, performance issues, confusion for future developers.}
+{Bugs, performance, confusion for future developers.}
 
 **Recommendation:** {ACCEPT / REJECT / DEFER}
-**Rationale:** {1-3 sentences explaining the recommendation. Apply the guardrails below.}
+**Rationale:** {1-3 sentences. Apply guardrails below.}
 ```
 
-For **architectural tensions**, present the tension itself plus a summary of all subsumed findings. If the user accepts the tension, all subsumed findings are accepted. If rejected, each subsumed finding must be triaged individually.
+For **architectural tensions**, present the tension plus subsumed finding summaries. Accept → all subsumed findings accepted. Reject → triage subsumed findings individually.
+
+For **recurring patterns**, present the pattern, all locations, and the systemic fix. Same accept/reject logic as tensions.
 
 ### Recommendation guardrails
 
@@ -142,6 +152,8 @@ Apply these principles when making recommendations:
 - Security vulnerabilities with real attack surface
 - Missing error handling that could cause silent data loss
 - Race conditions or concurrency bugs
+- Intent conformance gaps (Missing/Partial requirements from IC or Delivered vs. Asked)
+- Evidence-pass failures (EV-* findings from test/lint/type-check output)
 
 **Accept with scrutiny:**
 - Performance issues — is there evidence of real impact, or is it theoretical? "This is O(n^2)" matters only if n is large enough to matter in practice. Check the claimed scale against the runtime profile, not the reviewer's guess.
@@ -181,7 +193,7 @@ Add the finding to the **Accepted Findings** section of `implementation-plan.md`
 - **Severity:** {severity}
 - **Location:** {file:line}
 - **What to do:** {Concrete action — not just "fix this" but what the fix looks like}
-- **Complexity:** Trivial / Small / Medium
+- **Complexity:** {Trivial / Small / Medium / Large — prefer Fix complexity from the finding; fall back to your judgment}
 ```
 
 The number `{N}` is the sequential order (1, 2, 3, ...) — this becomes the implementation order.

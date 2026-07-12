@@ -11,8 +11,8 @@ Codex-native variants live under `plugins/victor-codex-skills/skills/` and are d
 ## Skills
 
 - **deep-implement** — End-to-end workflow for turning a problem statement into a validated proposal and implemented solution
-- **mega-review** — Comprehensive multi-dimensional code review producing a structured markdown report
-- **review-triage** — Interactive triage of mega-review findings into an implementation plan
+- **mega-review** — Adaptive multi-dimensional code review for agent-written branches: planner subagent steers 9 dimensions (+ migration/API specialists), evidence pass, intent conformance, LLM-slop checklists, falsification verification, recurring-pattern rollup, and a verdict report — with token-lean orchestration
+- **review-triage** — Interactive triage of mega-review findings (tensions, patterns, IC/EV prefixes) into an implementation plan
 - **cross-examine** — Become the codebase expert and answer the user's questions with evidence
 - **forge** — Iterative top-down code construction (build, refactor, refine) with horizontal-slice design and challenger validation
 - **long-form-article** — Collaborative workflow for substantial article drafting and revision

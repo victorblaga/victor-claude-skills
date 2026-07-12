@@ -5,19 +5,39 @@ description: >
   Use when the user asks for "mega-review", "mega review", "deep review", "comprehensive review",
   "full review", "review everything", "review all dimensions", or any variation requesting a
   thorough multi-dimensional code review that produces a document.
-  Do NOT trigger for ordinary lightweight review requests, bug fixing, code cleanup, or when the
-  user wants code changes. This skill is strictly read-only analysis that outputs a report.
+  Do NOT trigger for one-off code cleanup, or when the user wants code changes —
+  this skill is strictly read-only analysis that outputs a report.
 ---
 
 # Mega Review
 
-Comprehensive, parallel code review across 8 dimensions. Parallel dimension subagents produce findings; a verification pass fact-checks them; a Calibrator assigns final severity; an Architectural Synthesis agent connects findings into deeper tensions; a Consolidator merges everything into one report.
+Comprehensive, parallel code review across 9 core dimensions (plus conditional specialists). A planner subagent steers the review; parallel dimension subagents produce findings; an evidence pass runs ground-truth checks; verification fact-checks findings; a Calibrator assigns final severity; Synthesis connects tensions and recurring patterns; a Consolidator assembles the report.
+
+## Codex dispatch
+
+This is the Codex-native variant. Behavior matches the Claude canonical skill; dispatch differs:
+
+- **Subagents:** use `spawn_agent` (or run dimensions sequentially if subagents are unavailable — preserve the same output files and structure).
+- **Capability mapping:** flagship → **Sol**; mid → **Terra**; small → **Luna**. Map by relative capability when model names change.
+- **Intelligence level:** pass `reasoning_effort` per the review plan — `xhigh` for planner/Calibrator/Synthesis; `high` for dimension agents; `medium` for verifiers/explorers; `low` for Consolidator/evidence pass. **`max` is never part of the default pipeline.**
+- **Conventions file:** read `AGENTS.md` first; fall back to `CLAUDE.md` if absent.
+- **Parallel fan-out:** launch all applicable dimension subagents + evidence pass in one turn when the harness supports it.
 
 **CRITICAL RULES:**
-- **READ-ONLY** — never modify any code. The only output is the review report.
-- **Fan out** — launch all applicable dimension subagents simultaneously. If the harness does not support subagents, run the dimensions sequentially yourself while preserving the same output structure.
+- **READ-ONLY** — never modify any project code. The only output is the review report and its artifact files.
+- **Fan out** — launch all applicable dimension subagents (and the evidence subagent when planned) simultaneously in a single turn.
 - **All artifacts go in one dedicated review directory** — see Output Directory below.
 - **Coverage over filtering** — dimension agents report everything they find; the calibration step handles severity. A finding downgraded later is cheap; a finding silently dropped is unrecoverable.
+
+## Token economics
+
+Spend where it buys recall and judgment; cut pure overhead:
+
+- **Files are the data channel; replies are receipts.** Every subagent returns ≤3 lines — confirmation + counts. The written file is the deliverable.
+- **The orchestrator never ingests bulk content.** No diff reading, no findings inlining, no evidence output in the parent. It reads only small artifacts (`review-plan.md`, `intent.md`, interview answers, subagent confirmations).
+- **Cache-first prompt layout.** Dimension prompts share an identical prefix (static rules + conventions + runtime + intent + inline hunks); per-agent material goes last.
+- **Centralize curation, distribute reading.** Small digests (conventions, intent, hot spots, hunk index) are built once and passed down; bulk code reading stays in each agent's disposable context.
+- **Explorer floor is mid-tier, never small.** Cap ~4 explorer spawns per dimension agent; read directly when ≤2 files are involved.
 
 ## Parse the Request
 
@@ -26,24 +46,42 @@ Extract from the user's message:
 1. **Target scope** — resolved using this priority:
    a. **User-specified** — files, a directory, a module, or a PR number → use that
    b. **Open PR** — an open PR on the current branch → review the PR diff
-   c. **Diff to base** — otherwise → review the diff from the repo's base branch (`dev`, `main`, or `master` — whichever exists) to current state, committed + uncommitted
+   c. **Diff to base** — otherwise → review the diff from the merge-base with the repo's default branch to current state, committed + uncommitted
    d. **Fallback** — if none of the above yields changed files → ask the user what to review
-2. **Focus areas** (optional) — a subset of the dimensions below. If unspecified, run ALL dimensions.
+2. **Focus areas** (optional) — a subset of dimensions. If unspecified, run all active dimensions per the review plan.
 3. **Output directory** — see below. The user may override.
 4. **Background context** — migration context, architecture notes, or design docs the user provides inline. Pass this to every subagent as `{USER_CONTEXT}`.
+5. **Re-review** — if the user asks to re-review after fixes, or a prior review folder exists for this branch/PR, use delta mode (see Re-review mode).
 
 ### Scope Resolution
 
-Run these checks before launching subagents:
+Resolve the base branch, then compute the diff. Do **not** read file contents in the orchestrator — only metadata and paths.
 
+**Base branch detection** (in order):
 ```bash
-gh pr view --json number,title,baseRefName 2>/dev/null  # open PR?
-gh pr diff --name-only                                  # if PR exists
-git diff <base>...HEAD --name-only                      # if no PR
-git diff --name-only; git diff --cached --name-only     # uncommitted work
+git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##'
+gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name' 2>/dev/null
+# fallback: first existing among dev, main, master
 ```
 
-Combine and deduplicate the file lists. Pass the result to each subagent as `{FILE_LIST}`. Subagents may explore surrounding code for context, but findings must be scoped to the changed files.
+**Diff and file list:**
+```bash
+BASE=$(git merge-base HEAD origin/<base> 2>/dev/null || git merge-base HEAD <base>)
+git diff --stat $BASE                          # line count for planner skip trigger
+git diff --name-only $BASE                     # committed changes
+git diff --name-only                           # unstaged
+git diff --cached --name-only                  # staged
+git ls-files --others --exclude-standard       # untracked new files — include in scope
+gh pr view --json number,title,baseRefName,body 2>/dev/null  # if PR exists
+```
+
+Combine and deduplicate file lists → `{FILE_LIST}`. Record `{BASE}` and current `HEAD` SHA.
+
+**Hunks delivery** (orchestrator prepares paths only; subagents read content):
+- If total diff ≲15-20K tokens: write `{OUTPUT_DIR}/hunks-inline.md` with the full diff from merge-base.
+- Otherwise: write `{OUTPUT_DIR}/hunks/` (one file per changed source file) and `{OUTPUT_DIR}/hunks/index.md` listing paths.
+
+Pass `{HUNKS_MODE}` (`inline` or `index`) and the path to subagents. Findings must distinguish **changed vs pre-existing** code using hunk context.
 
 ### Output Directory
 
@@ -54,7 +92,12 @@ Combine and deduplicate the file lists. Pass the result to each subagent as `{FI
 - `pr-NNN` — the PR number (e.g. `pr-97`); if there's no PR, use `diff` (e.g. `2026-03-11-diff-a3b2c`)
 - `XXXXX` — 5 random alphanumeric characters to avoid collisions
 
-Create this directory before launching subagents and pass it to every subagent as `{OUTPUT_DIR}`. Subagents must never write outside it. The consolidated report lands at `{OUTPUT_DIR}/report.md`.
+Create this directory before Step 0. Pass it to every subagent as `{OUTPUT_DIR}`. Subagents must never write outside it. The consolidated report lands at `{OUTPUT_DIR}/report.md`.
+
+Also write `{OUTPUT_DIR}/reviewed-at.json`:
+```json
+{"head_sha": "<current HEAD>", "base": "<merge-base>", "branch": "<branch name>", "timestamp": "<ISO date>"}
+```
 
 **Gitignore preflight**: check that `.docs/` is gitignored (review reports are local artifacts, not PR content):
 
@@ -66,7 +109,7 @@ If missing, ask: "Append `.docs/` to `.gitignore`? (recommended)". On yes: appen
 
 ## Dimensions
 
-Each dimension runs as a separate parallel subagent. If the user specifies focus areas, map them to dimensions and run only those; otherwise run all 8.
+Nine core dimensions plus two conditional specialists. Full catalog and activation rules: `references/review-planner.md`.
 
 | # | Dimension | Prefix | Output file | Keyword triggers |
 |---|-----------|--------|-------------|------------------|
@@ -78,6 +121,11 @@ Each dimension runs as a separate parallel subagent. If the user specifies focus
 | 6 | Pattern Conformity | PC | `pattern-conformity.md` | "patterns", "consistency", "conventions", "fit in", "out of place" |
 | 7 | Refactoring Opportunities | RO | `refactoring-opportunities.md` | "refactor", "consolidate", "simplify", "technical debt" |
 | 8 | Performance | PF | `performance.md` | "performance", "N+1", "Big O", "slow", "queries", "memory" |
+| 9 | Intent Conformance | IC | `intent-conformance.md` | "intent", "requirements", "scope", "delivered vs asked" |
+| — | Data Migration (conditional) | DM | `data-migration.md` | migrations, schema dumps, backfills |
+| — | API/Contract (conditional) | BC | `api-contract.md` | routes, serializers, public API, breaking changes |
+
+If the user specifies focus areas, map them to dimensions and run only those (unless the review plan overrides).
 
 ## Execution
 
@@ -85,97 +133,96 @@ Read only the reference file for the step you're entering. Do not preload all re
 
 | Step | Purpose | Reference |
 |------|---------|-----------|
-| **1 — Gather context** | Read project conventions, resolve scope, establish runtime context | (below) |
-| **2 — Dimension review** | 8 parallel subagents produce findings | `references/dimension-agents.md` |
+| **0 — Plan review** | Digest intent, assign tiers, activate dimensions, hot spots | `references/review-planner.md` |
+| **1 — Gather context** | Conventions summary, batched interview, runtime + intent | (below) |
+| **2 — Dimension review** | Parallel subagents produce findings + evidence pass | `references/dimension-agents.md` |
 | **3 — Verify & calibrate** | Fact-check findings, then assign final severity | `references/verification-calibration.md` |
-| **4 — Synthesize & consolidate** | Find architectural tensions, merge into `report.md` | `references/synthesis-consolidation.md` |
-| **5 — Report to user** | Verify report exists, print summary | (below) |
+| **4 — Synthesize & consolidate** | Tensions, patterns, merge into `report.md` | `references/synthesis-consolidation.md` |
+| **5 — Report to user** | Verify report exists, print summary + verdict | (below) |
+
+### Step 0: Plan Review
+
+Read `references/review-planner.md`. Resolve scope metadata (file list, line count) without reading source files. Summarize project conventions briefly from `AGENTS.md` / `CLAUDE.md` (headings only — full digest is the planner's job) as `{PROJECT_CONVENTIONS_BRIEF}`.
+
+Launch the planner subagent unless the skip trigger applies (~10 files AND ~500 lines). The orchestrator reads the resulting `review-plan.md` and `intent.md` only.
 
 ### Step 1: Gather Context
 
-Read the repository's instruction file if one exists — `AGENTS.md`, `CLAUDE.md`, or similar — and any guideline documents it references. Summarize the conventions relevant to each dimension and pass them to every subagent as `{PROJECT_CONVENTIONS}`. Subagents evaluate code against these conventions, not generic preferences.
+Read the project's `AGENTS.md` (or `CLAUDE.md` if absent) and guideline documents it references. Summarize conventions relevant to each dimension → `{PROJECT_CONVENTIONS}`. Pass to all subagents.
 
-Then establish the **runtime context** — the deployment and scale facts that decide whether assumption-dependent findings (race conditions, N+1 at scale, attacker-controlled input) are real or theoretical. It has two parts, combined into `{RUNTIME_CONTEXT}` and passed to every dimension subagent and the Calibrator.
+**Prior decisions:** read `.docs/reviews/{project}/notes.md` if it exists → `{PRIOR_DECISIONS}`. Pass to the Calibrator in Step 3 (not to dimension agents — avoid anchoring).
+
+**Runtime context** — deployment and scale facts that decide whether assumption-dependent findings are real or theoretical. Combined into `{RUNTIME_CONTEXT}`.
 
 #### Runtime profile (persistent, per project)
 
-Derive a short project identifier (git remote name, or the working directory name) and check for:
+Path: `.docs/reviews/{project}/runtime-profile.md`
 
-```
-.docs/reviews/{project}/runtime-profile.md
-```
+**If it exists:** read it, note a one-line summary for the interview preview, proceed.
 
-**If it exists:** read it, show the user a one-line summary ("Using runtime profile: single instance, ~50K rows/day, internal-only — say if outdated"), and proceed without blocking.
+**If missing:** infer candidates from deployment manifests, README, migrations — then collect answers in the **batched interview** below (do not run a separate interview turn).
 
-**If it does not exist: interview the user.** First infer candidate answers from the repo — deployment manifests (k8s replicas, HPA, docker-compose scale), worker/queue configs, README, migrations, existing table sizes — then ask all questions in ONE batched turn, presenting inferred answers as suggested defaults the user can confirm or correct:
+#### Batched interview (one user turn)
 
-1. **Concurrency** — how many instances/workers/threads run concurrently? Are there hard single-instance or single-writer guarantees?
-2. **Data scale** — rough current size and growth of the hot entities/tables/collections
-3. **Load profile** — request volume, batch vs. interactive, latency sensitivity
-4. **Exposure** — internet-facing or internal-only? Which inputs are attacker-controlled?
-5. **Durability & consistency** — tolerance for data loss, eventual consistency, delivery semantics (at-least-once vs. exactly-once)
+Merge into a **single** batched question turn:
 
-Write the answers to the profile file (dated, one section per topic). The user may answer "skip" to any question — record "unknown" rather than guessing.
+1. **Runtime profile** (if missing) — concurrency, data scale, load, exposure, durability/consistency. Present inferred defaults; user confirms or corrects. "Skip" → record "unknown."
+2. **Change assumptions** — up to 5 targeted questions from what the **planner** flagged as assumption-sensitive (loops, migrations, new endpoints, feature flags, etc.). End with: "Any other constraints a reviewer couldn't see in the code?"
+3. **Missing intent** — if `{OUTPUT_DIR}/intent.md` says MISSING, ask for the goal contract: what was asked, acceptance criteria, non-goals.
+4. **Plan preview** — show the review plan summary (active dimensions, hot spots, evidence pass) and proceed unless the user objects.
 
-#### Change assumptions interview (per review)
+Record Q&A in `{OUTPUT_DIR}/review-context.md`. Compose `{RUNTIME_CONTEXT}` from the profile + change-specific answers. If the user declines, proceed with inferred values marked "unconfirmed."
 
-The persistent profile can't know assumptions specific to *this* change. After resolving scope, skim the changed files and identify assumption-sensitive spots: new loops over collections, queries, migrations, concurrency primitives (locks, threads, async), caches, retries, new endpoints or consumers, feature flags. Then ask the user up to 5 **targeted** questions derived from what you actually saw in the diff, e.g.:
+### Capability classes & model assignment
 
-- "Who calls the new `/export` endpoint, and how often?"
-- "How large is the collection processed in `sync_orders()`?"
-- "Is this behind a feature flag or rolled out immediately?"
-- "Any guarantees not visible in the code — ordering, single writer, idempotent callers?"
+Do **not** hardcode model names. Use capability classes (`flagship`, `mid`, `small`) and intelligence levels from `{OUTPUT_DIR}/review-plan.md`. When the plan is skipped, use the **Default matrix** in `references/review-planner.md`.
 
-Always end with a catch-all: "Any other constraints or guarantees about this change that a reviewer couldn't see in the code?" Ask everything in one batched turn; "none" is a perfectly good answer. Record the Q&A in `{OUTPUT_DIR}/review-context.md`.
+Map to the harness at dispatch time:
+- **Codex:** flagship → Sol + `reasoning_effort` from plan; mid → Terra; small → Luna
+- Claude Code (if cross-running): flagship → highest reasoning model; mid → Sonnet-class; small → Haiku-class
 
-Compose `{RUNTIME_CONTEXT}` from both files (profile content + change-specific answers). If the user is unavailable or declines the interview, proceed with whatever was inferred and mark low-confidence items as "unconfirmed" in `{RUNTIME_CONTEXT}`.
+### Re-review mode
 
-### Model & Reasoning Tiers
+When a prior review folder exists for the same branch/PR (match on branch name or PR number in the folder name):
 
-Two levers per subagent: **model tier** and **reasoning_effort**. On GPT-5.6-era lineups the tiers are, e.g., Sol (flagship) / Terra (mid, roughly previous-flagship-competitive at lower cost) / Luna (smallest, nano-equivalent); map by relative capability when names change. Doctrine: the flagship tier at `high` is the workhorse for judgment; `xhigh` is reserved for the steps that gate everything downstream; mechanical steps drop tier, not just effort.
+1. Read the prior `{OUTPUT_DIR}/reviewed-at.json` for `head_sha`.
+2. Offer **delta review**: scope = hunks since that SHA; exclude unchanged files from dimension `{FILE_LIST}`.
+3. If the prior review has an `implementation-plan.md` with accepted findings, spawn **fix-verification** at flagship/high: confirm each accepted finding was actually fixed (not merely edited near the original location).
+4. Record the new `reviewed-at.json` after completion.
 
-| Role | Tier / effort | Rationale |
-|------|---------------|-----------|
-| Dimension subagents (Step 2) | flagship, `high` | First-pass review sets the ceiling — a finding missed here cannot be recovered later |
-| Verification subagents (Step 3) | mid tier, `medium` (or flagship `low` if tier selection is unavailable) | Factual cross-checking is mechanical |
-| Calibrator (Step 3) | flagship, `xhigh` | Severity judgment, weighing trade-offs — gates every downstream step |
-| Architectural Synthesis (Step 4) | flagship, `xhigh` | Meta-analysis, connecting dots across dimensions |
-| Consolidator (Step 4) | mid tier, `low` | Mechanical aggregation; must follow the write-the-file instruction reliably without rethinking severity |
-
-Nested explorer subagents default to the mid tier at `medium`; raise to the flagship at `high` when tracing subtle control flow or cross-file architectural behavior.
-
-`max` is never part of the default pipeline. Use it only on explicit user request, or as a single retry of a step that demonstrably failed at `xhigh` on a genuinely hard judgment.
+Delta re-review is the largest cost saver in the review→fix→re-review loop.
 
 ### Execution Discipline
 
-Strong recent models self-filter: they may find an issue and choose not to report it. The pipeline is designed so that dimension agents maximize coverage and later stages handle judgment. Maintain the discipline:
-
-- **Parallel everything** — launch all dimension subagents together; tell subagents to read files and run searches in parallel when independent.
-- **Literal scope** — state explicitly when a checklist applies to all files ("check *every* file in the target scope").
-- **Fresh-context explorers** — dimension agents should spawn explorer subagents for cross-file tracing; they only need the conclusion, not the tool output.
-- **Quote-grounding** — for large diffs, subagents extract relevant code quotes with `file:line` references before analyzing, keeping reasoning anchored to evidence.
+- **Parallel everything** — dimension agents + evidence pass in one message; subagents read/search in parallel when independent.
+- **Literal scope** — "check *every* file in the target scope."
+- **Fresh-context explorers** — mid-tier; cap ~4 per dimension agent; conclusions only, not tool dumps.
+- **Quote-grounding** — findings grounded in quoted snippets with `file:line`.
 
 ### Step 5: Report to User
 
-1. Verify `{OUTPUT_DIR}/report.md` exists and is non-empty. If the Consolidator failed to write, relaunch it once with a stronger "YOU MUST WRITE THE FILE" reminder; if it fails again, write the returned text yourself — never leave the review without a report.
+1. Verify `{OUTPUT_DIR}/report.md` exists and is non-empty. If the Consolidator failed to write, relaunch once with a stronger "YOU MUST WRITE THE FILE" reminder; if it fails again, write the returned text yourself — never leave the review without a report.
 2. Print a brief summary:
 
 ```
 Review complete.
 
-- Scope: {target}
+- Scope: {target} {delta | full}
+- Verdict: {Ready | Ready with fixes | Not ready}
 - Dimensions: {list}
 - Findings (after calibration): {N critical, M high, P medium, Q low}
 - Rejected (factually incorrect): {count}
 - Architectural tensions: {count} (subsuming {M} findings)
+- Recurring patterns: {count}
 
 Review directory: {OUTPUT_DIR}/
 Main report: {OUTPUT_DIR}/report.md
-Calibration analysis: {OUTPUT_DIR}/calibration.md
-Architectural synthesis: {OUTPUT_DIR}/architectural-synthesis.md
+Review plan: {OUTPUT_DIR}/review-plan.md
+Calibration: {OUTPUT_DIR}/calibration.md
+Synthesis: {OUTPUT_DIR}/architectural-synthesis.md
 ```
 
-If a dimension produced no findings, say so — it's useful signal. If no tensions were identified, note: "No architectural tensions — findings are independent."
+If a dimension produced no findings, say so. If no tensions: "No architectural tensions — findings are independent."
 
 ## Cross-Skill Boundaries
 

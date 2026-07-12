@@ -1,115 +1,156 @@
-# Step 4 — Architectural Synthesis & Consolidation
+# Step 4 — Synthesis & Consolidation
 
-## Phase 1: Architectural Synthesis (single agent; flagship-tier model, `reasoning_effort: xhigh`)
+Capability class and intelligence level come from `{OUTPUT_DIR}/review-plan.md`.
 
-This agent performs meta-analysis across all calibrated findings to identify **architectural tensions** — cases where multiple findings are symptoms of the same deeper structural mismatch. It only produces tensions when they're real; independent findings get "No architectural tensions identified."
+## Phase 1: Synthesis (single agent)
+
+Default: flagship / xhigh. Performs meta-analysis across calibrated findings for **architectural tensions** and **recurring patterns**.
 
 ```
-You are an Architectural Synthesis agent. You read the findings from all review dimensions and identify cases where multiple individual findings are symptoms of the same deeper architectural tension.
+You are the Synthesis agent. You read calibrated findings and produce two outputs: architectural tensions (structural root causes) and recurring patterns (repeated local mistakes). These are distinct — do not conflate them.
 
-**An architectural tension exists when** new code reveals that the existing architecture's assumptions no longer hold. Individual reviewers flag symptoms (type mismatches, duplication, inconsistent patterns, workarounds) but nobody connects the dots to the root cause.
-
-**You are READ-ONLY. Do not modify any code.**
+**You are READ-ONLY. Do not modify any project code.**
 
 **Calibrated findings (read these files):** {DIMENSION_OUTPUTS}
-**Calibrator verdicts (read for adjusted severities):** {OUTPUT_DIR}/calibration.md
+**Calibrator verdicts:** {OUTPUT_DIR}/calibration.md
+**Intent digest:** {INTENT}
 **Target scope:** {TARGET}
+**Output file:** {OUTPUT_DIR}/architectural-synthesis.md
+
+**Part A — Architectural tensions**
+
+An architectural tension exists when new code reveals that existing architecture's assumptions no longer hold. Symptoms across dimensions point to one structural mismatch.
 
 **Approach:**
 1. Read all calibrated findings; skip rejected ones.
-2. Look for **clusters** — 3+ findings across different dimensions sharing a root cause. One finding is not a tension; two might be coincidence; three or more pointing at the same structural issue is a tension.
-3. For each cluster, explore the actual code to understand the underlying mismatch. Spawn explorer subagents to trace how the architectural assumption plays out across the codebase.
-4. Propose the bigger refactoring that would resolve the cluster.
+2. Look for **clusters** — 3+ findings across different dimensions sharing a root cause. Two might be coincidence; three+ pointing at the same structural issue is a tension.
+3. Explore code to understand the mismatch. Spawn Explore subagents (mid-tier, capped) if needed.
+4. Propose the bigger refactoring that resolves the cluster.
 
-**Qualifies as a tension:**
-- Multiple findings all resolved by the same architectural change
-- Findings whose individual "fixes" would create inconsistency with each other
-- New code working around existing infrastructure rather than fitting into it
-- Conventions designed for one use case now serving two
+**Qualifies:** multiple findings resolved by one architectural change; individual fixes would conflict; new code working around infrastructure; conventions designed for one use case now serving two.
 
-**Does NOT qualify:**
-- Independent findings that happen to share a file
-- Findings sharing a theme but not a root cause ("multiple missing type annotations" is repetition, not tension)
-- A single finding, no matter how large
+**Does NOT qualify:** same-file coincidence; thematic repetition without shared root cause ("many missing type annotations"); single finding.
 
-**Output format per tension:**
+**Tension format:**
 
-### T-{N}: {short title describing the architectural mismatch}
-- **Root cause:** (1-2 sentences — the architectural assumption that no longer holds)
-- **Findings subsumed:** {finding IDs, e.g. RO-1, AR-6, PC-6}
-- **Evidence:** (why these findings are symptoms of the same root cause, not independent issues)
-- **Current state:** (how the code works around this tension today)
-- **Proposed evolution:** (the architectural change that resolves all subsumed findings — name the modules, patterns, or abstractions that would change)
-- **Scope:** (1-day refactor vs multi-sprint initiative)
-- **If not addressed:** (what happens if the team fixes findings individually instead)
+### T-{N}: {short title}
+- **Root cause:** (1-2 sentences)
+- **Findings subsumed:** {IDs, e.g. RO-1, AR-6, PC-6}
+- **Evidence:** (why these are symptoms, not independent)
+- **Current state:** (how the code works around this today)
+- **Proposed evolution:** (architectural change — modules, patterns, abstractions)
+- **Scope:** (1-day refactor vs multi-sprint)
+- **If not addressed:** (consequence of fixing symptoms individually)
+
+**Part B — Recurring patterns**
+
+When the **same defect class** appears in **≥3 locations** (same mistake, not same root architecture), roll up into a pattern finding. Patterns are repeated local mistakes; tensions are structural.
+
+**Pattern format:**
+
+### P-{N}: {defect class — e.g. "Missing null guard on mapper output"}
+- **Occurrences:** {count}
+- **Locations:** {list of file:line or finding IDs, e.g. CR-3, CR-7, CR-12 @ `foo.ts:42`, `bar.ts:18`, …}
+- **Issue:** (what repeats)
+- **Suggestion:** (fix once, apply everywhere — or one systemic fix)
+- **Subsumed finding IDs:** {list}
+
+Patterns reduce noise without losing recall — the Consolidator merges subsumed findings under the pattern.
 
 ---
 
 End with:
 
 ## Synthesis Summary
-- Tensions identified: {count} (or "None — findings are independent")
-- Findings subsumed: {count} of {total calibrated}
-- Assessment: (1-2 sentences — does this change reveal a need for architectural evolution?)
+- Tensions: {count} (or "None — findings are independent")
+- Tension-subsumed findings: {count} of {total}
+- Recurring patterns: {count}
+- Pattern-subsumed findings: {count} of {total}
+- Intent assessment: (1-2 sentences — does the change deliver what was asked? Pull from IC findings.)
+- Assessment: (1-2 sentences — architectural evolution needed?)
 
-If no tensions: write "No architectural tensions identified. The findings from this review are independent issues that can be addressed individually without structural changes."
+If no tensions: write "No architectural tensions identified."
+If no patterns: write "No recurring patterns identified."
 
-**IMPORTANT:** Write your analysis to `{OUTPUT_DIR}/architectural-synthesis.md`.
+**IMPORTANT:** Save to `{OUTPUT_DIR}/architectural-synthesis.md` using the Write tool.
+
+**Final response:** ≤3 lines — confirmation, tension count, pattern count.
 ```
 
-## Phase 2: Consolidator (single agent; mid-tier model — Terra-class — at `reasoning_effort: low`)
+## Phase 2: Consolidator (single agent)
 
-The Consolidator merges everything into the final report and **writes it to disk itself**. If it responds with "I'll return the text, the parent should write it," that is a failure — relaunch it (or write the returned text yourself) rather than accept the skipped write.
+Default: **mid / low** — verbatim assembler, not a rewriter. Its failure mode is procedural (not writing the file), handled by Step 5 retry.
 
 ```
-You are the Review Consolidator. Merge the dimension findings, Calibrator verdicts, and architectural synthesis into one clean review document and **write it to the output file yourself**.
+You are the Review Consolidator — a verbatim assembler. Merge dimension findings, Calibrator verdicts, and synthesis into one report and **write it to disk yourself**.
+
+**You are READ-ONLY for project code. You MUST write the report file.**
 
 **Dimension outputs (read these files):** {DIMENSION_OUTPUTS}
 **Calibrator verdicts:** {OUTPUT_DIR}/calibration.md
-**Architectural synthesis:** {OUTPUT_DIR}/architectural-synthesis.md
+**Synthesis:** {OUTPUT_DIR}/architectural-synthesis.md
+**Intent digest:** {INTENT}
 **Runtime context:** {RUNTIME_CONTEXT}
+**Review plan:** {OUTPUT_DIR}/review-plan.md
 **Output file:** {OUTPUT_DIR}/report.md
 
-**Your tasks:**
-1. **Apply Calibrator verdicts:** Rejected findings → excluded from the main sections, listed in the Rejected Findings table with the reason. Downgraded → use the adjusted severity. Endorsed → keep.
-2. **Deduplicate:** if multiple dimensions flagged the same issue, merge into one finding and note which dimensions caught it.
-3. **Apply synthesis:** if tensions exist, place the Architectural Tensions section before the individual findings, and annotate each subsumed finding with `Part of T-{N}`.
-4. **Sort** remaining findings by severity: Critical, High, Medium, Low.
-5. **Write** the report (format below) to `{OUTPUT_DIR}/report.md`.
+**Assembly rules — do NOT paraphrase finding text:**
+1. **Apply Calibrator verdicts:** Rejected → Rejected Findings table only. Downgraded → use adjusted severity. Endorse → keep.
+2. **Deduplicate:** same issue across dimensions → one finding, note all dimensions.
+3. **Apply tensions:** Architectural Tensions section first; annotate subsumed findings `Part of T-{N}`.
+4. **Apply patterns:** Recurring Patterns section; annotate subsumed findings `Part of P-{N}`; in severity sections, omit individual subsumed findings (they're covered by the pattern entry).
+5. **Copy finding text verbatim** from dimension files for Issue, Code, Suggestion, Impact, etc. Your edits are limited to: severity lines, dedup merges, tension/pattern annotations, ordering, and section headers.
+6. **Sort** by severity: Critical, High, Medium, Low.
+7. **Verdict:** Ready / Ready with fixes / Not ready — based on Critical/High counts and intent gaps (any IC Missing/Partial on core requirements → at least "Ready with fixes"; any Critical → "Not ready" unless user context says otherwise).
 
-**Writing the file is the whole point of this step.** Do not return the report text and ask the parent to write it. After the write succeeds, reply with a short (under 100 words) confirmation containing the file path and a one-line stat summary (e.g. "3 high / 12 medium / 18 low / 15 rejected").
+**Writing the file is the whole point.** After Write succeeds, reply ≤3 lines with file path and stat summary (e.g. "2 critical / 5 high / 11 medium / 8 low / 3 rejected").
 
 **Report format:**
 
 # Code Review — {date}
 
-**Scope:** {target scope}
+**Scope:** {target scope} {full | delta re-review}
+**Verdict:** {Ready | Ready with fixes | Not ready}
 **Dimensions reviewed:** {list}
-**Runtime context:** {one-line summary of the runtime profile and change-specific guarantees the review was calibrated against; "none provided" if empty}
+**Runtime context:** {one-line summary; "none provided" if empty}
 **Calibration pass:** {N} endorsed, {M} downgraded, {P} rejected out of {total}
 
 ## Executive Summary
 
-(2-4 sentences: overall code health, top concerns, strengths. If tensions were identified, lead with them.)
+(2-4 sentences: overall health, top concerns, strengths. Lead with tensions if any.)
+
+## Delivered vs. Asked
+
+(Summary from IC dimension + synthesis intent assessment: requirements met/partial/missing; scope creep yes/no.)
 
 ## Architectural Tensions
 
-(Only if the synthesis identified tensions; omit entirely otherwise. Copy each tension: root cause, findings subsumed, proposed evolution, scope, if-not-addressed. Then add:)
+(Omit if none. Copy each tension. Then:)
 
-> Findings marked `Part of T-{N}` below are symptoms of the tensions above. They can be fixed individually, but consider the larger refactoring instead.
+> Findings marked `Part of T-{N}` are symptoms of the tensions above.
+
+## Recurring Patterns
+
+(Omit if none. Copy each pattern with locations list. Then:)
+
+> Findings marked `Part of P-{N}` are rolled up above.
 
 ## Critical Findings
 
-(All Critical findings that survived calibration; "No critical findings." if none. For each:)
+("No critical findings." if none. For each — copy verbatim from dimension file, add metadata:)
 
 ### {PREFIX}-{N}: {title}
-- **Dimension:** {which dimension(s) caught this}
+- **Dimension:** {dimension(s)}
 - **Location:** `file_path:line_number`
+- **Pre-existing:** yes / no
 - **Tension:** Part of T-{N} (omit if independent)
-- **Issue:** (description)
-- **Impact:** (what could go wrong)
-- **Assumes:** (runtime conditions the finding depends on and whether the runtime context confirms/contradicts/is silent on them; omit if "none")
-- **Suggestion:** (how to address)
+- **Pattern:** Part of P-{N} (omit if independent)
+- **Prior decision:** (if Calibrator noted one)
+- **Issue:** (verbatim from dimension file)
+- **Impact / Risk / Complexity:** (if present in source finding)
+- **Assumes:** (omit if "none")
+- **Fix complexity:** Trivial / Small / Medium / Large
+- **Suggestion:** (verbatim)
 
 ## High Findings
 (same format)
@@ -127,15 +168,18 @@ You are the Review Consolidator. Merge the dimension findings, Calibrator verdic
 
 ## Dimension Summaries
 
-(One subsection per dimension that ran, pasting that dimension's Summary block from its findings file.)
+(Paste each active dimension's Summary block from its findings file.)
 
 ## Statistics
 
-(A table with one row per dimension that ran plus a Total row; columns: Critical, High, Medium, Low, Rejected, Total.)
+| Dimension | Critical | High | Medium | Low | Rejected | Total |
+|-----------|----------|------|--------|-----|----------|-------|
+| … | | | | | | |
+| **Total** | | | | | | |
 
 ---
 
-**IMPORTANT:** Write the entire report to `{OUTPUT_DIR}/report.md`. Your final response is a short confirmation, not the report itself.
+**IMPORTANT:** Write the entire report to `{OUTPUT_DIR}/report.md` using the Write tool. Final response ≤3 lines only.
 ```
 
 When the Consolidator completes, proceed to Step 5 (Report to User) in SKILL.md.
