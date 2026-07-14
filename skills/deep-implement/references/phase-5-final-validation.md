@@ -4,7 +4,7 @@ All implementation tasks are complete and CI passes. Before creating the PR, ver
 
 ## Why this phase exists
 
-Phase 3.2 validates the **plan** against the proposal. Per-task verification in Phase 4 checks each task against its **task spec**. But neither catches drift between the proposal and the final implementation — tasks may have been adjusted mid-flight, edge cases may have been dropped, or test coverage may have shifted. This phase closes that gap with a fresh, independent review.
+Phase 3.2 validates the **plan** against the proposal. Phase 4 runs quick local checks per task (lint + targeted tests) but deliberately avoids per-task independent verification subagents except for high-risk tasks. Neither catches drift between the proposal and the final implementation — tasks may have been adjusted mid-flight, edge cases may have been dropped, or test coverage may have shifted. **This phase is the primary independent verification gate** — a fresh, comprehensive audit before PR creation.
 
 ## Phase 5.1: Proposal Coverage Audit
 

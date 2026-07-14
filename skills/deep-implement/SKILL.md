@@ -60,7 +60,7 @@ Every request starts here. Assess the scope before committing to a workflow dept
 - Create a branch (same naming convention as full workflow)
 - Phase 1 abbreviated: 1-2 rounds of clarifying questions, then write a short `proposal.md` (problem + solution + scope, skip the full template)
 - Skip Phase 2 entirely
-- Phase 3 streamlined: write a brief implementation plan inline in the conversation (no separate doc), then execute Phase 4 sequentially in the main thread (no subagents needed), run CI checks, and create the PR in Phase 7
+- Phase 3 streamlined: write a brief implementation plan inline in the conversation (no separate doc), then execute Phase 4 entirely inline (all tasks `inline` mode — skip Phase 4.0 formalities if obvious), run CI checks, and create the PR in Phase 7
 - Still commit working docs and clean up before PR
 
 **Medium/Large** (multiple files, architectural implications, unclear scope, cross-cutting concerns):
@@ -91,12 +91,12 @@ All artifacts go in `.docs/plans/<feature-name>/`. The feature name is auto-gene
 ## Execution Notes
 
 - **Model/effort selection**: Every subagent spawn is a cost decision. Pick the cheapest capability tier that is plausibly adequate (see Capability Tiers in the Subagent Protocol) and escalate only on evidence. Do not default to the strongest model or maximum effort out of caution.
-- **Parallel subagents**: Spawn multiple subagents in the same turn when tasks are independent (e.g., parallel task implementation, parallel file exploration, parallel verification batches). Do not spawn a subagent for work you can complete directly in a single response.
+- **Parallel subagents**: Spawn multiple subagents in the same turn when the orchestration plan assigns independent tasks to subagents (e.g., parallel implementation, parallel file exploration). Do not spawn a subagent for work you can complete directly in a single response.
 - **Parallel tool calls**: When reading multiple files or running independent searches, make all tool calls in parallel.
 - **Literal scope**: Be explicit about where instructions apply (e.g., "Apply this pattern to *every* new module, not just the first one").
 - **Minimalism guardrail**: Keep solutions simple and focused — see the Software Design Principles section; the minimalism rules there bind the orchestrator too, not just implementation subagents.
 - **Task packaging**: In the first turn, provide the full problem statement, intent, constraints, acceptance criteria, and relevant file locations. Avoid dribbling requirements across turns—each user turn adds reasoning overhead.
-- **Context hygiene**: Use subagents for codebase exploration and implementation tasks to keep the main conversation lean. The main thread should orchestrate; heavy tool output should live in subagent contexts.
+- **Context hygiene**: Use subagents for codebase exploration and for implementation tasks that genuinely need fresh context or parallelization (per the Phase 4.0 orchestration plan). Default to inline implementation. The main thread orchestrates; heavy tool output should live in subagent contexts when offloaded.
 - **Subagent mental test**: Before spawning a subagent, ask "Will I need this tool output again, or just the conclusion?" If only the conclusion matters, have the subagent return a concise summary and keep the raw tool noise in its own context. If you'll need to reference detailed output repeatedly, write it to disk and pass the file path forward.
 - **Subagent prompt structure**: When feeding large documents (proposals, plans, design guides) to subagents, put the longform documents near the top of the prompt and the specific task/query at the end.
 - **Subagent prompt hygiene**: state the outcome, success criteria, constraints, and stop conditions once. Strong reasoning models follow prompt contracts closely — do not repeat rules for emphasis; duplicated or contradictory rules destabilize behavior more than missing detail.
@@ -194,8 +194,8 @@ Illustrative mappings (**snapshots only — likely outdated; always map to the c
 | **Phase 2.3**: Amending the proposal | STANDARD | Applying already-agreed decisions to a document |
 | **Phase 3.1**: Implementation planning | DEEP | Architectural decisions and task decomposition benefit from maximum reasoning depth |
 | **Phase 3.2**: Plan validation | DEEP | Catching plan gaps early is high leverage |
-| **Phase 4**: Task implementation | STANDARD | The plan is explicit by design; execution translates task specs into code. Well-specified, low-risk tasks can drop to LIGHT; use DEEP only for tasks the plan flags as tricky (architectural, concurrency, performance-critical) |
-| **Phase 4**: Task verification | LIGHT | Checking implementation against an explicit spec is mechanical; STANDARD for complex multi-file tasks |
+| **Phase 4**: Task implementation (subagent mode only) | STANDARD | Inline is the default — no subagent tier applies. When a task is assigned to a subagent: plan is explicit, so execution rarely needs more. Well-specified, low-risk tasks can drop to LIGHT; use DEEP only for tasks the plan flags as tricky (architectural, concurrency, performance-critical) |
+| **Phase 4**: Per-task verification | — (inline) | Local lint + targeted tests run inline by whoever implemented the task. Independent verification subagent (STANDARD) only for plan-flagged high-risk tasks |
 | **Phase 5.1**: Final validation (coverage audit) | DEEP | Proposal-to-implementation coverage review is a high-stakes audit |
 | **Phase 6**: Doc discovery | LIGHT | Search and grep for docs referencing what changed |
 | **Phase 6**: Doc reconciliation | STANDARD | Framed judgment: the proposal and diff define what changed; the task is mapping that onto existing docs |
@@ -208,9 +208,11 @@ Illustrative mappings (**snapshots only — likely outdated; always map to the c
 - Phase 2.1: proposal review
 - Phase 3.1: implementation planning
 - Phase 3.2: plan validation
-- Phase 4: task implementation and task verification
-- Phase 5.1: final validation (proposal coverage audit)
+- Phase 4: only per the Phase 4.0 orchestration plan — subagent mode for tasks that need fresh context, parallelization, or DEEP-tier reasoning; independent verification subagent only for plan-flagged high-risk tasks
+- Phase 5.1: final validation (proposal coverage audit — primary independent verification gate)
 - Any time you need codebase exploration without bloating the main conversation
+
+**Default for Phase 4 is inline.** Do not spawn an implementation subagent unless the orchestration plan assigns one with a stated reason.
 
 ### How to spawn
 Use the **Agent tool** with a clear, self-contained prompt. The subagent has no access to your conversation history — everything it needs must be in the prompt. Include:
@@ -233,8 +235,11 @@ Use the **Agent tool** with a clear, self-contained prompt. The subagent has no 
 - If a subagent returns partial work or a broken patch, discard that result before retrying or escalating
 - Always tell the user when a subagent has failed: "The review subagent didn't produce useful results — I'll do the review myself."
 
-### Verification subagents
-Per-task verification with a fresh agent is valuable for complex tasks (multi-file changes, architectural modifications, tricky logic). For simple tasks (single-file, small diff, straightforward logic), skip the verification subagent — the CI checks are sufficient.
+### Verification
+- **Per task (Phase 4)**: run local checks inline — linter + tests from the task's Verification section. No verification subagent by default.
+- **High-risk tasks only**: spawn an independent verification subagent when the plan flags a task as high-risk (auth, migrations, concurrency, public API contracts).
+- **End of Phase 4**: full CI-equivalent suite.
+- **Phase 5**: fresh DEEP subagent performs the proposal coverage audit — the comprehensive independent check before PR creation.
 
 ## Cancellation
 
@@ -261,7 +266,7 @@ Read only the phase you're entering — avoid loading all references upfront.
 ## Cross-Phase Principles
 
 ### Fresh Context Pattern
-Validation, verification, and implementation tasks use **subagents with fresh context** (see Subagent Protocol above). The main conversation thread acts as the orchestrator — it tracks state, waits patiently, manages transitions, and holds the discussion with the user. Subagents do the heavy lifting and report back.
+Planning, validation, and audit steps use **subagents with fresh context** (see Subagent Protocol above). Phase 4 implementation defaults to **inline** in the main thread; subagents are assigned only via the Phase 4.0 orchestration plan when fresh context or parallelization genuinely helps. The main conversation thread acts as the orchestrator — it plans execution, implements inline tasks directly, delegates only what earns a spawn, tracks state, waits patiently, manages transitions, and holds the discussion with the user.
 
 ### Software Design Principles
 

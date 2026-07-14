@@ -34,8 +34,10 @@ List of CI checks that must pass (derived from reading CI config files):
 These checks will be run during implementation to catch issues early.
 
 ## Execution Strategy
-Whether tasks run sequentially (single agent) or in waves (parallel where possible).
+Whether tasks run sequentially or in waves (parallel where possible).
 Explain why this strategy was chosen based on task dependencies and complexity.
+Note: this is a dependency/ordering strategy. The orchestrator assigns inline vs subagent
+execution per task in Phase 4.0 — see suggested execution modes on each task below.
 
 ## Tasks
 
@@ -46,6 +48,8 @@ Explain why this strategy was chosen based on task dependencies and complexity.
 this task description and the codebase can implement it without ambiguity.
 **Files affected**: List of files to create/modify/delete
 **Approach**: How to implement this — key decisions, patterns to follow, gotchas to watch for
+**Suggested execution**: inline / subagent — brief rationale (e.g., "inline — single file, straightforward")
+**High-risk**: yes / no — if yes, note why (auth, migration, concurrency, public API, etc.)
 **Verification**: How to confirm this task is done correctly
   - Tests to run
   - Behavior to check
@@ -68,12 +72,16 @@ non-obvious constraints, things that might look wrong but are intentional.
 
 ### Execution Strategy Decision
 
-The planning agent decides the strategy based on:
+The planning agent decides the dependency/ordering strategy based on:
 
-- **Sequential (single agent)**: When tasks are small, tightly coupled, or there are only 2-3 of them. One agent works through them in order. Good for small/medium changes.
-- **Waves (parallel + sequential)**: When there are independent tasks that can run simultaneously, followed by tasks that depend on them. Good for larger changes. Each parallel task gets its own agent with fresh context.
+- **Sequential**: When tasks are small, tightly coupled, or there are only 2-3 of them. Good for small/medium changes.
+- **Waves (parallel + sequential)**: When there are independent tasks that can run simultaneously, followed by tasks that depend on them. Good for larger changes.
 
-The guiding principle is **context bloat**: an agent should only carry the context it needs. If one agent can handle 5 minor related tasks without context issues, let it. For bigger tasks, dedicate a fresh agent that reads only what it needs.
+For each task, the planner also suggests an execution mode (`inline` or `subagent`) and whether it is **high-risk** (needs independent verification — see Phase 4). These are recommendations only. The orchestrator makes the final assignment in Phase 4.0 based on live context — e.g., a task suggested as `subagent` may run inline if context is clean and the diff is small; conversely, inline may become subagent if the main thread is already heavy.
+
+Default planner bias: suggest **`inline`** unless there is a concrete reason for `subagent` (large exploration surface, parallelizable independence, or DEEP-tier reasoning need).
+
+The guiding principle is **efficiency over ceremony**: prefer batching related small tasks and inline execution; reserve subagents for work that genuinely benefits from fresh context or parallelization.
 
 ### Plan Quality Criteria
 
@@ -85,6 +93,7 @@ A good plan should:
 - Include concrete verification criteria (not just "check it works")
 - Be self-contained enough that an agent with no conversation history can execute it
 - Follow the project's software design principles — new abstractions should be deep (not shallow wrappers), module boundaries should hide complexity, and internal steps should be plain classes/functions rather than framework services
+- Tag each task with a suggested execution mode and high-risk flag to inform Phase 4.0 orchestration
 
 Commit the implementation plan.
 Update `status.md` to `Current phase: 3`, `Current step: 3.1-plan-complete`, and `Next action: Validate the implementation plan`.
@@ -103,6 +112,7 @@ The validator checks:
 4. **Granularity**: Should any small tasks be merged into one? Should any large task be split?
 5. **Verification**: Are the verification criteria actually testable and sufficient?
 6. **Feasibility**: Are there technical issues the plan doesn't account for?
+7. **Orchestration hints**: Are suggested execution modes reasonable? Are high-risk flags accurate (not over-flagged)?
 
 If issues are found:
 - **Straightforward fixes** (wrong dependency order, missing test, unclear description): Auto-fix by updating the plan directly
