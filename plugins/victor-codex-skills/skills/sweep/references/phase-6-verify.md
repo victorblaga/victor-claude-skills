@@ -15,21 +15,20 @@ In Phase 1, the baseline test command was recorded. CI-equivalent extends that w
 | TypeScript: `package.json` scripts `test`, `lint`, `typecheck`, `build` | Run all present |
 | Rust: `cargo test` + `cargo clippy` + `cargo fmt --check` | Run all present |
 
-Present the detected CI-equivalent command list to the user before running and let them adjust:
+Announce the detected command list and run it — do not wait for confirmation. Ask only if detection is ambiguous (e.g., conflicting CI configs) or a command looks destructive/expensive (e.g., a deploy step in the workflow — skip those and say so).
 
 ```
-Detected CI-equivalent commands:
+Running CI-equivalent checks:
   1. pytest
   2. ruff check .
   3. mypy --strict .
   4. pre-commit run --all-files
-
-Run all? Skip any? Add any?
+(adjust with "skip N" / "add <cmd>" if needed)
 ```
 
 ## Run CI-equivalent
 
-Execute the confirmed command list in order. Collect pass/fail per command, full output on failure.
+Execute the command list in order. Collect pass/fail per command, full output on failure.
 
 ### All pass
 
@@ -46,9 +45,20 @@ Read `references/phase-7-report.md`, proceed.
 
 ### Any command fails
 
-Enter the CI Fix Cycle.
+Enter the CI Fix Cycle (interactive) or the Auto-Mode Fix Cycle (auto).
 
-## CI Fix Cycle
+## Auto-Mode Fix Cycle
+
+In auto mode, red CI resolves autonomously — the sweep must never end waiting on a human:
+
+1. Identify the suspect finding-commit (Phase 5 accepts are one commit per finding, so `git bisect` or test-output-to-file mapping localizes quickly).
+2. Revert it, mark the finding `⏸ deferred (reverted in Phase 6: <failing check>)` in `triage.md`, re-run the failing command.
+3. Repeat up to 3 reverts. If still red, revert all remaining Phase 5 accept-commits (auto-apply commits from Phase 4 stay — they passed their own post-apply run) and re-run.
+4. If red even then, the failure predates or is unrelated to Phase 5: record `Phase: verify-failed` with full diagnostics in `status.md` and the report, and stop. The branch retains whatever verified state was reached.
+
+Every revert-and-defer is recorded in `triage.md` and surfaces in the report's "for human review" section.
+
+## CI Fix Cycle (interactive)
 
 Bounded at 3 attempts. Each attempt is a diagnose → fix → re-run loop.
 
@@ -125,7 +135,7 @@ Update `status.md` with `CI-equivalent: SKIPPED (no verification available)`. Pr
 
 ## Phase 6 Exit Criteria
 
-- [ ] CI-equivalent commands confirmed with user
-- [ ] All commands pass OR user accepted a partial-pass state OR skip-without-verification accepted
+- [ ] CI-equivalent commands detected and announced
+- [ ] All commands pass OR user accepted a partial-pass state OR skip-without-verification accepted OR (auto mode) revert-and-defer restored green / recorded verify-failed
 - [ ] `status.md` reflects outcome
-- [ ] If CI Fix Cycle engaged: either all 3 attempts succeeded (green) or escalated to user
+- [ ] If CI Fix Cycle engaged: either resolved green or escalated (interactive) / recorded with diagnostics (auto)

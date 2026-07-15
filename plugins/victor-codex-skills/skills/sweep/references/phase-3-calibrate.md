@@ -1,6 +1,6 @@
 # Phase 3 — Calibrate
 
-A single Calibrator agent on the flagship-tier model (Sol-class) reads all 8 dimension findings files, dedupes cross-agent overlap, and assigns a **blast radius** per surviving finding. Its output drives the Phase 4 / Phase 5 bucket split.
+A single Calibrator agent on the flagship-tier model (Sol-class) with `reasoning_effort: "xhigh"` reads all dimension findings files, dedupes cross-agent overlap, and assigns a **blast radius** per surviving finding. Its output drives the Phase 4 / Phase 5 bucket split. This is the highest-leverage reasoning step in the sweep — it gates what gets applied without review — so it gets the strongest model, regardless of what tier the dimension agents ran at.
 
 ## Why blast radius, not confidence
 
@@ -10,26 +10,23 @@ The sweep's ergonomic win is auto-applying findings that are **both** obviously 
 
 ## Calibrator Agent Prompt
 
-Launch on the flagship-tier model (Sol-class) with `reasoning_effort: "xhigh"`. Pass the 8 findings files and the scope as input.
+Launch on the flagship-tier model (Sol-class) with `reasoning_effort: "xhigh"`. Pass the findings files and the scope as input.
 
 ```
 You are the sweep Calibrator. Your job has two parts:
 
-1. **Dedupe cross-agent findings** — 8 dimension agents ran in parallel and were told to flag cross-dimension findings. Merge duplicates where multiple agents flagged the same underlying issue. Record which dimensions caught it.
+1. **Dedupe cross-agent findings** — parallel dimension agents were told to flag cross-dimension findings. Merge duplicates where multiple agents flagged the same underlying issue. Record which dimensions caught it. (In area-sharded runs, additionally merge findings that span area boundaries — you have whole-scope visibility; the area agents did not.)
 
 2. **Assign blast radius** to every surviving finding — LOW or HIGH (binary). LOW means auto-apply is safe in Phase 4. HIGH means the finding must be triaged one-by-one with the user in Phase 5.
 
 **Inputs:**
 - Target scope: {TARGET}
-- Findings files (read all):
-  - {OUTPUT_DIR}/findings/duplication.md
-  - {OUTPUT_DIR}/findings/type-consolidation.md
-  - {OUTPUT_DIR}/findings/dead-code.md
-  - {OUTPUT_DIR}/findings/circular-deps.md
-  - {OUTPUT_DIR}/findings/weak-types.md
-  - {OUTPUT_DIR}/findings/defensive-code.md
-  - {OUTPUT_DIR}/findings/legacy-fallback.md
-  - {OUTPUT_DIR}/findings/comments-slop.md
+- Findings files (read all present):
+  - {OUTPUT_DIR}/findings/duplication-types.md   (DU + TC)
+  - {OUTPUT_DIR}/findings/dead-legacy.md         (DC + LF)
+  - {OUTPUT_DIR}/findings/types-structure.md     (WT + CD)
+  - {OUTPUT_DIR}/findings/guards-comments.md     (DF + CS)
+  - {OUTPUT_DIR}/findings/area-*.md              (area-sharded runs only — all prefixes)
 - Output file: {OUTPUT_DIR}/calibration.md
 
 **You are READ-ONLY. You do not modify any source code.**
@@ -83,7 +80,7 @@ Write to `{OUTPUT_DIR}/calibration.md`:
 # Calibration
 
 Target scope: <target>
-Raw findings: <total from all 8 dimensions>
+Raw findings: <total across all dimensions>
 After dedup: <count>
 LOW blast (auto-apply): <count>
 HIGH blast (triage): <count>

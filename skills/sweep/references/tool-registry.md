@@ -1,6 +1,6 @@
 # Tool Registry
 
-Per-language tool inventory for sweep's preflight probe. Each agent dimension uses the tools listed below as seed evidence; missing tools fall back to LLM-only analysis with an explicit caveat in findings.
+Per-language tool inventory for sweep's preflight probe. The probe is silent — availability is recorded in `scope.md`, no install prompts. Each agent dimension uses the tools listed below as seed evidence; missing tools fall back to LLM-only analysis with an explicit caveat in findings. Install commands below are used only when the user explicitly asks for a tool.
 
 ## Python
 
@@ -71,7 +71,7 @@ For tools that need configuration:
 
 ## Degradation Policy
 
-If a tool is missing and the user skipped install, the relevant dimension agent proceeds with LLM-only analysis. The agent's findings file must include at the top:
+If a tool is missing, the relevant dimension agent proceeds with LLM-only analysis. The agent's findings file must include at the top:
 
 ```markdown
 > **Tool unavailable:** `<tool-name>` was not available for this run. Findings below are LLM-identified only. Recommend manual verification or install `<tool-name>` for deeper coverage.

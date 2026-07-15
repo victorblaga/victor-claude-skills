@@ -5,7 +5,7 @@ description: >
   "do a cleanup pass", "purge cruft", "clean up the whole codebase", or invokes $sweep —
   a whole-codebase hygiene workflow across duplication, dead code, circular deps, weak types,
   defensive boilerplate, legacy shims, and comment slop, with blast-radius calibration and
-  one-by-one triage for high-impact findings.
+  triage of high-impact findings (conversational by default, subagent-adjudicated in auto mode).
   Do NOT trigger for single-file cleanup, PR-specific review (use $mega-review),
   feature implementation (use $deep-implement), or casual "clean this up" requests without
   whole-codebase scope. Trigger ONLY when the user explicitly opts into the heavyweight sweep.
@@ -13,13 +13,13 @@ description: >
 
 # Sweep
 
-Proactive multi-dimensional codebase hygiene. Eight parallel review subagents analyze the repo, a Calibrator dedupes and assigns blast radius per finding, LOW-blast findings auto-apply via per-file Appliers, and HIGH-blast findings get walked through conversationally with the user. Polyglot, Python-leaning, with per-language tool detection. Model and effort per role are set in Model & Reasoning Tiers below.
+Proactive multi-dimensional codebase hygiene. Four parallel dimension agents (each owning two related cruft dimensions) analyze the repo, a Calibrator dedupes and assigns blast radius per finding, LOW-blast findings auto-apply via per-file Appliers, HIGH-blast findings get triaged — conversationally with the user by default, or by a top-tier Adjudicator subagent in auto mode. Polyglot, Python-leaning, with per-language tool detection.
 
 **CRITICAL RULES:**
-- **Preflight is strict** — no dirty git, no auto-run on dev/main, baseline test check. See Phase 1.
+- **Preflight is scope-aware, not paranoid** — only uncommitted changes to tracked files *inside the sweep scope* block; unrelated artifacts don't. One consolidated confirmation, not five prompts. See Phase 1.
 - **Breadth over precision in analysis** — agents are encouraged to flag cross-dimension findings. The Calibrator dedupes.
 - **Blast radius, not confidence, gates auto-apply** — obvious-correct + low-impact auto-applies; obvious-correct + high-impact still goes to triage.
-- **Rejects become inline markers, not external ledgers** — `cleanup-sweep-skip: <reason>` lives with the code.
+- **Rejects become inline markers, not external ledgers** — `cleanup-sweep-skip: <reason>` lives with the code. Markers encode *human* rationale; auto mode never places them.
 - **Session artifacts are ephemeral** — live in `.docs/cleanup/<session>/`, gitignored.
 
 ## Parse the Request
@@ -30,14 +30,29 @@ Proactive multi-dimensional codebase hygiene. Eight parallel review subagents an
    c. User says "tests" → restrict to test directories
    d. Default → whole repo minus tests/generated/vendored/migrations/lockfiles
 2. **Exclusions** user may override: `include:tests`, `include:migrations`, etc.
-3. **Resume check** — see Resumption below.
+3. **Adjudication mode** — see below.
+4. **Resume check** — see Resumption below.
+
+## Adjudication Modes
+
+Two modes for HIGH-blast triage (Phase 5):
+
+- **Interactive (default)** — conversational one-by-one walkthrough with the user.
+- **Auto** — a top-tier Adjudicator subagent renders verdicts. Activate when: the user says `auto` (e.g. `$sweep auto`), the sweep runs inside a goal loop or non-interactive exec run, or the harness signals non-interactive execution. Announce the mode at Phase 1.
+
+Auto-mode invariants (details in `references/phase-5-triage.md`):
+- Adjudicator verdicts are **accept / defer only** — never reject. Rejection places a skip marker, and markers encode human rationale that suppresses findings from all future sweeps.
+- Conservative accept rubric; critical-path findings (auth, security, money, data integrity) always defer.
+- Phase 6 red CI in auto mode → autonomously revert the suspect finding-commit and re-defer it (see `references/phase-6-verify.md`). Auto mode never ends in a red state waiting on a human.
+
+Record the mode in `scope.md` and `status.md`.
 
 ## Resumption
 
 Before starting, check for existing work:
 
 1. Look for `.docs/cleanup/*/status.md` in the project
-2. If found, read the most-recent session's `status.md` and present: *"Found in-progress sweep from YYYY-MM-DD at phase `X`, step `Y`. Resume?"*
+2. If found, read the most-recent session's `status.md` and present: *"Found in-progress sweep from YYYY-MM-DD at phase `X`, step `Y`. Resume?"* (In auto mode: resume without asking.)
 3. On resume, pick up at the phase indicated; use per-phase resume rules in the referenced phase file
 
 Per-phase resume rules:
@@ -49,7 +64,8 @@ If no session is found, proceed to Phase 1.
 
 ## Execution Notes
 
-- **Parallel subagents**: Launch all 8 dimension agents simultaneously in a single turn. Spawn fewer subagents by default; the orchestrator must fan out deliberately.
+- **Effort**: If the harness exposes an effort control, run dimension agents at high effort and the Calibrator/Adjudicator at the highest available. Cruft detection requires semantic judgment, not checklist matching.
+- **Parallel subagents**: Launch all 4 dimension agents simultaneously in a single turn. The orchestrator must fan out deliberately.
 - **Parallel tool calls**: Instruct dimension agents to read files and run searches in parallel when independent.
 - **Literal scope**: Be explicit about exclusions and boundaries (e.g., "Skip *all* files in `generated/` and `vendored/`, not just the first ones you see").
 - **Minimalism in auto-apply**: Applier subagents should make the minimum change that removes the cruft. Do not refactor adjacent code "while you're there."
@@ -61,13 +77,13 @@ Read only the phase you're entering. Do not preload all references.
 
 | Phase | Purpose | Reference |
 |-------|---------|-----------|
-| **1 — Preflight** | git clean, branch choice, `.gitignore` for `.docs`, language detection, tool probe + install offers, baseline tests | `references/phase-1-preflight.md` |
-| **2 — Analyze** | 8 parallel dimension subagents produce findings | `references/phase-2-analyze.md` |
-| **3 — Calibrate** | Single calibrator: cross-agent dedup + blast radius per finding | `references/phase-3-calibrate.md` |
-| **4 — Auto-apply** | Per-file Applier subagents for LOW-blast; dimension-grouped commit reword | `references/phase-4-auto-apply.md` |
-| **5 — Triage** | Conversational walkthrough of HIGH-blast findings with accept / reject / defer / modify verdicts | `references/phase-5-triage.md` |
-| **6 — Verify** | Post-apply test run; final CI-equivalent; 3-attempt fix cycle | `references/phase-6-verify.md` |
-| **7 — Report** | Final summary + marker-age nudge + optional test-sweep nudge | `references/phase-7-report.md` |
+| **1 — Preflight** | scope-aware git check, PR-aware branch logic, one consolidated confirmation, language detection, silent tool probe, baseline tests, sharding decision | `references/phase-1-preflight.md` |
+| **2 — Analyze** | 4 parallel dimension agents (2 dimensions each) produce findings; area-sharded variant for large repos | `references/phase-2-analyze.md` |
+| **3 — Calibrate** | Single top-tier agent: cross-agent dedup + blast radius per finding | `references/phase-3-calibrate.md` |
+| **4 — Auto-apply** | Per-file Applier subagents for LOW-blast; orchestrator commits per dimension | `references/phase-4-auto-apply.md` |
+| **5 — Triage** | HIGH-blast findings: conversational walkthrough (interactive) or Adjudicator subagent (auto) | `references/phase-5-triage.md` |
+| **6 — Verify** | Post-apply test run; final CI-equivalent; 3-attempt fix cycle (autonomous revert-and-defer in auto mode) | `references/phase-6-verify.md` |
+| **7 — Report** | Inline final summary + marker-age nudge + optional test-sweep nudge | `references/phase-7-report.md` |
 
 Phase transitions: announce explicitly (*"Phase 1 complete, entering Phase 2."*), read the next phase reference, update `.docs/cleanup/<session>/status.md`.
 
@@ -78,14 +94,15 @@ Phase transitions: announce explicitly (*"Phase 1 complete, entering Phase 2."*)
 
 ## Model & Reasoning Tiers
 
-Two levers per subagent: **model tier** and **reasoning_effort**. On GPT-5.6-era lineups the tiers are, e.g., Sol (flagship) / Terra (mid, roughly previous-flagship-competitive at lower cost) / Luna (smallest, nano-equivalent); map by relative capability when names change. The flagship tier at `high` is the workhorse for judgment; `xhigh` is reserved for the single step that gates everything downstream; mechanical steps drop model tier, not just effort.
+Two levers per subagent: **model tier** and **reasoning_effort**. On GPT-5.6-era lineups the tiers are, e.g., Sol (flagship) / Terra (mid, roughly previous-flagship-competitive at lower cost) / Luna (smallest, nano-equivalent); map by relative capability when names change. Mid tier at `high` is the workhorse for scoped research; the flagship tier at `xhigh` is reserved for the steps that gate everything downstream.
 
 | Role | Tier / effort | Rationale |
 |------|---------------|-----------|
-| 8 dimension agents (Phase 2) | flagship, `high` | Each agent makes "is this cruft or intentional?" judgment calls across one dimension. |
-| Calibrator (Phase 3) | flagship, `xhigh` | Blast-radius judgment and cross-agent dedup are the highest-leverage reasoning step. |
-| Applier (Phase 4) | mid/small tier, `low` | Per-file application of an explicit finding is mechanical. |
-| Final report (Phase 7) | small tier, `low` | Formatting and statistics aggregation are structured tasks. |
+| 4 dimension agents (Phase 2) | mid tier (Terra-class), `high` | Scoped research with judgment calls — "is this cruft or intentional?" Modern mid-tier models handle a two-dimension brief in one context. |
+| Calibrator (Phase 3) | flagship (Sol-class), `xhigh` | Blast-radius judgment gates auto-apply; the single highest-leverage reasoning step. |
+| Adjudicator (Phase 5, auto mode only) | flagship (Sol-class), `xhigh` | Renders accept/defer verdicts unsupervised; needs fresh, maximally capable context. |
+| Applier (Phase 4) | mid/small tier (Terra/Luna-class), `low` | Mechanical per-file application of pre-analyzed findings, with explicit veto rule (kick back to triage if subtler than judged). |
+| Final report (Phase 7) | none — orchestrator writes it inline | Small aggregation of session files; spawn overhead exceeds the work. |
 
 Explorers tracing cross-file behavior: mid tier at `medium`.
 
@@ -98,19 +115,16 @@ Main-thread orchestration (triage walkthrough with user) inherits the session mo
 ```
 .docs/cleanup/YYYY-MM-DD-<slug>/
   status.md            # phase / step / next-action — drives resume
-  scope.md             # target + exclusions + detected languages + tool availability
+  scope.md             # target + exclusions + detected languages + tool availability + mode + sharding
   findings/
-    duplication.md            # DU-*
-    type-consolidation.md     # TC-*
-    dead-code.md              # DC-*
-    circular-deps.md          # CD-*
-    weak-types.md             # WT-*
-    defensive-code.md         # DF-*
-    legacy-fallback.md        # LF-*
-    comments-slop.md          # CS-*
+    duplication-types.md      # DU-* + TC-*  (Agent A)
+    dead-legacy.md            # DC-* + LF-*  (Agent B)
+    types-structure.md        # WT-* + CD-*  (Agent C)
+    guards-comments.md        # DF-* + CS-*  (Agent D)
+    area-<slug>.md            # (area-sharded mode only — all prefixes, one file per area)
   calibration.md       # dedup + blast radius per finding
   auto-apply.md        # per-file apply ledger
-  triage.md            # HIGH-blast walkthrough with verdicts
+  triage.md            # HIGH-blast walkthrough (or adjudication log) with verdicts
   report.md            # final summary
 ```
 
@@ -142,11 +156,11 @@ In Phase 2, dimension agents are told: *"If you notice findings in adjacent dime
 
 ### Blast Radius, Not Confidence
 
-A finding can be obviously correct (high confidence) *and* high blast radius — e.g., removing a try/catch that wraps a critical retry point. These go to triage, not auto-apply. The Calibrator's job is to judge blast radius with a fresh high-reasoning context, not to trust the dimension agent's self-assessment.
+A finding can be obviously correct (high confidence) *and* high blast radius — e.g., removing a try/catch that wraps a critical retry point. These go to triage, not auto-apply. The Calibrator's job is to judge blast radius with a fresh top-tier context, not to trust the dimension agent's self-assessment.
 
 ### Inline Markers, Not External Ledgers
 
-When the user rejects a HIGH-blast finding, the rationale lives on the code line as `cleanup-sweep-skip: <reason>`. No `rejected.md` file to go stale. Future runs see the marker and skip that region.
+When the user rejects a HIGH-blast finding, the rationale lives on the code line as `cleanup-sweep-skip: <reason>`. No `rejected.md` file to go stale. Future runs see the marker and skip that region. Markers are human-only: auto mode defers instead of rejecting, so no marker is ever placed without a human behind it.
 
 ### Test-Aware
 
@@ -162,4 +176,4 @@ When in doubt → mark HIGH-blast and route to triage, not auto-apply.
 
 ### Tool-Aware, Tool-Optional
 
-Preflight detects languages and probes for tools. Missing tools → agent falls back to LLM-only analysis with a noted caveat. Never aborts on missing tools.
+Preflight detects languages and silently probes for tools. Missing tools → agent falls back to LLM-only analysis with a noted caveat. Never aborts on missing tools; never blocks preflight on install prompts.

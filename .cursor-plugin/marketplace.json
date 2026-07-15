@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Custom workflow skills for coding agents: implementation, review, architecture, writing, and finance analysis.",
-    "version": "1.28.2"
+    "version": "1.29.0"
   },
   "plugins": [
     {

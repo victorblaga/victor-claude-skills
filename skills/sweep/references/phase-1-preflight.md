@@ -1,63 +1,49 @@
 # Phase 1 — Preflight
 
-Preflight is strict by design. Cleanup mutates code; the safety envelope protects against losing work, running on a production branch, or producing a sweep report that can't be verified.
+Preflight protects against losing work, sweeping the wrong branch, and producing an unverifiable sweep — without blocking on irrelevancies. Compute everything first, then present **one consolidated confirmation** (interactive mode) or announce decisions and proceed (auto mode).
 
-All preflight steps run in order. Do not proceed to Phase 2 until every step has a definitive outcome (completed, user-skipped, or soft-warned).
+The only hard block is uncommitted changes to tracked files inside the sweep scope. Everything else is a default the user can override in the single confirmation.
 
 ## Steps
 
-### 1. Clean git state (strict)
+### 1. Scope-aware git check
 
 ```bash
 git status --porcelain
 ```
 
-If there is **any** output (untracked, unstaged, staged):
+Classify each entry:
 
-1. Show the user the current dirty state
-2. Offer: (a) stash, (b) commit to current branch, (c) abort
-3. Wait for choice
-4. Do not proceed with a dirty working tree
+| Entry | Classification | Effect |
+|-------|---------------|--------|
+| Modified/staged **tracked file inside sweep scope** | Blocking | Must be resolved before Phase 2 |
+| Modified/staged tracked file **outside scope** | Non-blocking | Note it; sweep won't touch it |
+| Untracked file (any location — images, notes, scratch artifacts) | Non-blocking | Note it; sweep only edits tracked source files |
 
-### 2. Branch decision (interactive)
+If blocking entries exist: show them and offer (a) stash, (b) commit to current branch, (c) abort. Do not proceed with blocking entries unresolved. In auto mode with blocking entries: stash with a named stash (`sweep-preflight-YYYY-MM-DD`) and announce it in `status.md` and the report.
 
-Ask the user, with default slug `cleanup/YYYY-MM-DD-<slug>` where `<slug>` is 5 random alphanumerics:
+Non-blocking entries: list them in the confirmation card ("N unrelated dirty files — untouched by sweep") and proceed.
 
-```
-How should the sweep branch be set up?
+### 2. PR-aware branch decision
 
-1. Work on the CURRENT branch ({{current-branch}})
-2. New branch from CURRENT ({{current-branch}}) — recommended
-3. New branch from LATEST DEV — safest, isolates from local state
-```
+Never default to the project's integration branch (`main`, `master`, `dev`, `staging`).
 
-Behavior per choice:
+1. **Detect PR context** (in order):
+   - `gh pr view --json number,state,baseRefName 2>/dev/null` — if it returns an OPEN PR for the current branch, this is a PR branch.
+   - If `gh` is unavailable or not a GitHub remote, use the heuristic: current branch is not an integration branch, has upstream tracking, and is ahead of the merge-base with the integration branch → treat as a likely PR branch (announce it as inferred).
+2. **On a PR branch** → continue on it. No prompt. Announce: *"Continuing on PR branch `<name>` (PR #123)."* Mention the PR in the scope summary so the user can narrow scope to the PR diff with one word.
+3. **Not on a PR branch** (integration branch, detached HEAD, or no PR signal) → default to a **new branch from the current branch**: `cleanup/YYYY-MM-DD-<slug>` (`<slug>` = 5 random alphanumerics). Present this as the pre-selected default in the confirmation card; the user can rename it or choose to stay on the current branch. Branching from the integration base is available only if the user explicitly asks.
+4. In auto mode: apply the same logic without prompting (PR branch → stay; otherwise → new `cleanup/...` branch from current).
 
-| Choice | Actions |
-|--------|---------|
-| 1 (current) | Stay. If current is `dev` or `main`/`master`, warn strongly and reconfirm. |
-| 2 (new from current) | Ask for name (default `cleanup/YYYY-MM-DD-<slug>`). `git checkout -b <name>`. |
-| 3 (new from dev) | `git fetch origin`, `git checkout dev`, `git pull --ff-only`, then ask for name. `git checkout -b <name>`. Abort if `dev` doesn't exist locally or on origin. |
+If staying on an integration branch is the user's explicit choice, warn once and honor it.
 
-Never default without asking. The user opted into sweep for a reason; the branch choice signals *intent*.
-
-### 3. `.docs` gitignore check
+### 3. `.docs` gitignore check (silent)
 
 ```bash
 grep -qE '^\.docs/?$' .gitignore 2>/dev/null
 ```
 
-If not present, present the user with:
-
-```
-Session artifacts go to .docs/cleanup/<session>/. This pattern is not in .gitignore.
-
-Add `.docs` to .gitignore now? (recommended — session artifacts are ephemeral, not PR content)
-
-[y / n / .docs is already handled elsewhere]
-```
-
-On yes: append `.docs/` to `.gitignore`, commit with message `chore: ignore .docs sweep session dir`.
+If absent, append `.docs/` to `.gitignore` and commit with `chore: ignore .docs sweep session dir`. Note the action in the confirmation card — do not ask a standalone question.
 
 ### 4. Language detection
 
@@ -68,56 +54,15 @@ Detect languages present in the target scope:
 find . -maxdepth 3 \( -name "pyproject.toml" -o -name "setup.py" -o -name "requirements.txt" -o -name "package.json" -o -name "Cargo.toml" -o -name "go.mod" -o -name "build.sbt" -o -name "build.sc" \) -not -path "*/node_modules/*" -not -path "*/.venv/*" 2>/dev/null
 ```
 
-Combine with file-extension counts via `find`/`wc` to rank languages by LoC. Record in `scope.md`:
+Combine with file-extension counts via `find`/`wc` to rank languages by LoC. Record in `scope.md`.
 
-```markdown
-# Scope
+### 5. Silent tool probe (no install prompts)
 
-Target: <path>
-Exclusions: tests/, migrations/, generated/, vendored, lockfiles, build artifacts
-Included languages (primary → secondary):
-  - Python (68% of LoC, pyproject.toml detected)
-  - TypeScript (32% of LoC, package.json detected)
-```
+For each detected language, probe the tools in `references/tool-registry.md` with `command -v` / version checks. **Do not offer installs** — modern LLM-only analysis is an adequate fallback. Record availability in `scope.md`; each dimension agent notes gaps per the degradation policy. If the user explicitly asks for a tool install, honor it per the registry's install-scope rules.
 
-### 5. Tool probe + install offers
+Run available tools now and save output to `.docs/cleanup/<session>/tool-output/` per the registry's ingestion section (after session init in step 8; order the steps accordingly).
 
-For each detected language, probe the tools listed in `references/tool-registry.md` for each agent dimension. Classify each:
-
-| Status | Meaning |
-|--------|---------|
-| `installed` | `command -v <tool>` succeeded, version reasonable |
-| `missing` | Not installed; present install command; offer to install |
-| `nightly-only` | E.g., `cargo-udeps` requires nightly Rust; flag explicitly |
-| `needs-config` | E.g., `knip` works without config but is much better with one; offer to bootstrap |
-
-Present the user with a summary:
-
-```
-Tool probe (Python + TypeScript):
-
-Installed:
-  ✓ vulture (dead code)
-  ✓ ruff (dead code, linting)
-  ✓ mypy (weak types)
-  ✓ tsc (weak types)
-
-Missing (offer install):
-  ✗ pycycle (circular deps)         → pip install pycycle
-  ✗ knip (dead code / deps)         → npm install -D knip  (needs config; can bootstrap)
-  ✗ madge (circular deps)           → npm install -D madge
-
-For each missing tool: [install / skip / skip-all]
-```
-
-Rules:
-- **Project-scoped installs by default** — `npm install -D`, `uv add --dev` (or `pip install` inside project venv), `cargo install` is global but accept since there's no alternative
-- **Never install without asking** — enumerate each, let user accept/skip
-- Respect `skip-all` and stop prompting for the rest in this session
-
-After installs, run any needed config bootstrap (e.g., `npx knip --init` or generate a minimal `knip.json`). Ask before writing config files.
-
-### 6. Baseline test run (soft)
+### 6. Baseline test run
 
 Detect test command from project conventions:
 
@@ -129,40 +74,71 @@ Detect test command from project conventions:
 | `build.sbt` | `sbt test` |
 | `go.mod` | `go test ./...` |
 
-Ask the user to confirm the detected command (or provide one). Run it. Record result:
+If detection is unambiguous, run it without asking; include the command in the confirmation card. Ask only when detection is ambiguous or fails. Record result:
 
 - **Passing** → record baseline as green, proceed
-- **Failing** → show failures, ask: *"Tests are red at baseline. Is this known? Proceed (we'll compare post-apply against this baseline) or abort?"*
-- **No tests found** → warn loudly, ask: *"No test command detected. Proceed without post-apply verification? This reduces safety of auto-apply."*
+- **Failing** → show failures. Interactive: ask *"Tests are red at baseline. Is this known? Proceed (we'll compare post-apply against this baseline) or abort?"* Auto mode: record the failing set to `baseline-test-failures.txt`, proceed with baseline-red comparison semantics.
+- **No tests found** → warn loudly. Interactive: ask whether to proceed without post-apply verification. Auto mode: proceed, but Phase 5's Adjudicator must then defer **all** HIGH-blast findings (no verification safety net = nothing unsupervised gets accepted).
 
 Record the baseline command and result in `scope.md`.
 
-### 7. Initialize session
+### 7. Sharding decision
+
+Estimate scope size (`find <scope> -name '*.<ext>' | xargs wc -l` style, rough is fine).
+
+- **≤ ~50k LoC in scope** → **dimension-sharded** (default): 4 agents, each owning 2 dimensions, whole-scope visibility (needed for cross-file duplication).
+- **> ~50k LoC** → **area-sharded**: N agents by directory subtree, each running *all* dimension checklists on its area, so the codebase is read once in total instead of 4×. See Phase 2 for the variant.
+
+Record the decision in `scope.md`. The user can override in the confirmation card.
+
+### 8. Consolidated confirmation
+
+Interactive mode — present ONE card and wait for go/adjust:
+
+```
+Sweep preflight summary:
+
+  Branch:     continuing on PR branch `feature/x` (PR #123)          [or: new branch cleanup/2026-07-15-a3f9x from `feature/x`]
+  Scope:      whole repo minus tests/generated/vendored/migrations   [PR detected — say "diff" to narrow to the PR diff]
+  Mode:       interactive triage                                     [or: AUTO — subagent adjudication, accept/defer only]
+  Sharding:   dimension-sharded, 4 agents                            [or: area-sharded, N agents (repo > 50k LoC)]
+  Git state:  2 unrelated dirty files (untouched by sweep): photo.png, notes.md
+  Languages:  Python (68%), TypeScript (32%)
+  Tools:      vulture ✓ ruff ✓ mypy ✓ knip ✗ madge ✗ (missing → LLM-only fallback)
+  Tests:      pytest — baseline GREEN
+  .gitignore: added `.docs/` (committed)
+
+Proceed? (or adjust any line)
+```
+
+Auto mode — print the same card as an announcement and proceed.
+
+### 9. Initialize session
 
 1. Generate session slug: `YYYY-MM-DD-<5-random-alphanumerics>`
 2. Create `.docs/cleanup/<slug>/` and subdirs
-3. Write `status.md`:
+3. Write `scope.md` (target, exclusions, languages, tools, mode, sharding, baseline) and `status.md`:
 
 ```markdown
 # Sweep Session <slug>
 
 - Phase: preflight-complete
 - Step: ready-to-analyze
-- Next action: launch 8 dimension agents
+- Next action: launch 4 dimension agents (or N area agents)
+- Mode: interactive | auto
 - Base branch: <branch-name>
 - Target scope: <path>
+- Sharding: dimension | area (N shards)
 - Languages: <detected>
 - Tools available: <list>
 - Baseline tests: <green | red | none>
 - Last updated: YYYY-MM-DD HH:MM TZ
 ```
 
-4. Commit preflight artifacts (scope.md, status.md) if on a sweep-dedicated branch. If on current branch, leave uncommitted until Phase 2 starts.
-
-### 8. Scan existing `cleanup-sweep-skip` markers
+### 10. Scan existing `cleanup-sweep-skip` markers
 
 ```bash
-grep -rn "cleanup-sweep-skip" <scope> --include="*.{py,ts,tsx,js,jsx,rs,go,scala,java}" 2>/dev/null
+rg -n "cleanup-sweep-skip" <scope> -g '!.docs/**' -g '!node_modules/**' -g '!.venv/**'
 ```
 
 Record all markers + line numbers + ages (use `git blame` for age) in `scope.md` under "Known skip markers". Pass this list to all dimension agents in Phase 2 so they exclude marked regions from findings.
@@ -171,13 +147,14 @@ Record all markers + line numbers + ages (use `git blame` for age) in `scope.md`
 
 All of the following must be true before entering Phase 2:
 
-- [ ] git is clean
-- [ ] branch decision executed
+- [ ] No unresolved blocking git entries (in-scope tracked changes)
+- [ ] Branch decision executed (PR-continue or cleanup branch)
 - [ ] `.docs` gitignore resolved
-- [ ] languages detected
-- [ ] tool probe complete (missing tools installed or user-skipped)
-- [ ] baseline test state recorded
-- [ ] session directory + status.md + scope.md written
-- [ ] existing skip markers catalogued
+- [ ] Languages detected; sharding decided
+- [ ] Tool probe complete (silent; gaps noted)
+- [ ] Baseline test state recorded
+- [ ] Consolidated confirmation accepted (interactive) or announced (auto)
+- [ ] Session directory + status.md + scope.md written
+- [ ] Existing skip markers catalogued
 
-Announce: *"Phase 1 complete. Entering Phase 2: launching 8 dimension agents."* Update `status.md`. Read `references/phase-2-analyze.md` before proceeding.
+Announce: *"Phase 1 complete. Entering Phase 2: launching dimension agents."* Update `status.md`. Read `references/phase-2-analyze.md` before proceeding.

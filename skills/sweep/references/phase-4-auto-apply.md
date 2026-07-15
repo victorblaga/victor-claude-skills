@@ -1,6 +1,6 @@
 # Phase 4 — Auto-apply
 
-Apply all LOW-blast findings in parallel via per-file Applier subagents. Each Applier has veto authority — it can kick a finding back to the triage queue if it sees subtlety the Calibrator missed.
+Apply all LOW-blast findings in parallel via per-file Applier subagents. Each Applier has veto authority — it can kick a finding back to the triage queue if it sees subtlety the Calibrator missed. **Appliers edit but do not commit**; the orchestrator creates one commit per dimension after all Appliers finish. This yields a clean dimension-grouped history without any reset-and-reword machinery.
 
 ## Orchestrator Steps
 
@@ -15,23 +15,33 @@ src/utils/retry.py: [DU-M-2, CS-4, WT-3]
 ...
 ```
 
-### 2. Ensure baseline tests are still green (safety check)
+### 2. Sanity-check the working tree
 
-Re-run the baseline test command from Phase 1. If red, abort auto-apply — something changed between Phase 1 and Phase 4 (rare, but possible if the user edited files during analysis). Report and ask user how to proceed.
+Run `git status --porcelain` scoped to the target. If in-scope tracked files changed since Phase 1 (user edited during analysis), stop and ask how to proceed. Do not re-run the test suite here — Phase 1's baseline still stands; the post-apply run in step 4 is the verification gate.
+
+Record the current HEAD sha in `status.md` as `auto-apply-start: <sha>` (revert anchor).
 
 ### 3. Launch Applier subagents in parallel
 
-For each file with ≥1 LOW-blast finding, launch an `Agent(model="sonnet")` in parallel. Bound concurrency at 8 parallel Appliers; if there are more files, batch them.
+For each file with ≥1 LOW-blast finding, launch an Applier agent (mid or small tier, low effort) in parallel. Bound concurrency at 8 parallel Appliers; if there are more files, batch them.
 
-### 4. Reword commits after all Appliers finish
+### 4. Commit per dimension, then re-run tests
 
-After all per-file commits exist, rebase-reword to dimension-grouped commits (see "Commit Reword" below).
+After all Appliers finish:
 
-### 5. Re-run tests after auto-apply
+1. For each dimension with ≥1 applied finding, stage only the files whose applied findings belong to that dimension (per `auto-apply.md` ledger) and commit. Order (safest first):
+   1. `cleanup: remove AI slop and unhelpful comments (N files, M findings)`
+   2. `cleanup: remove dead code (N files, M findings)`
+   3. `cleanup: tighten weak types (N files, M findings)`
+   4. `cleanup: consolidate duplicated logic (N files, M findings)` (if any reached LOW)
+   5. `cleanup: consolidate type definitions (N files, M findings)` (if any reached LOW)
+   6. `cleanup: remove legacy / fallback code (N files, M findings)` (if any reached LOW)
+   7. `cleanup: break circular imports (N files, M findings)` (if any reached LOW)
+   8. `cleanup: remove unnecessary defensive code (N files, M findings)` (rare; most DF are HIGH)
+2. Files with findings from multiple dimensions appear in only ONE commit: choose the dimension with the most findings in that file; tie-break to the earlier (safer) dimension in the list.
+3. Run the baseline test command. If newly red, see "Post-apply verification" below.
 
-Run baseline test command again. If newly red, halt — see "Post-apply verification" below.
-
-### 6. Update status and move to triage
+### 5. Update status and move to triage
 
 Update `status.md`, announce, read `references/phase-5-triage.md`, proceed.
 
@@ -39,7 +49,7 @@ Update `status.md`, announce, read `references/phase-5-triage.md`, proceed.
 
 ## Applier Agent Prompt
 
-Launch with `model: "sonnet"` per file. Substitute `{FILE}`, `{FINDING_IDS}`, `{FINDING_DETAILS}` (pull the full finding text for each ID from `calibration.md`), `{OUTPUT_DIR}`.
+Launch at mid or small tier, low effort, per file. Substitute `{FILE}`, `{FINDING_IDS}`, `{FINDING_DETAILS}` (pull the full finding text for each ID from `calibration.md`), `{OUTPUT_DIR}`.
 
 ```
 You are a sweep Applier. You apply pre-analyzed, pre-calibrated LOW-blast findings to a single file. You have veto authority to reject individual findings back to triage if you see subtlety the Calibrator missed.
@@ -70,15 +80,12 @@ You are a sweep Applier. You apply pre-analyzed, pre-calibrated LOW-blast findin
 
 5. **Verify the file still parses / type-checks locally** (if a cheap check is available — `python -c "import ast; ast.parse(open('{FILE}').read())"` for Python, `tsc --noEmit {FILE}` for TS). If broken, revert your file edits and veto the problem finding.
 
-6. **Commit** with message: `cleanup/{FILE}: N findings applied ({comma-separated IDs})`
-
-7. **Update ledger.** Append to `{OUTPUT_DIR}/auto-apply.md`:
+6. **Update ledger.** Append to `{OUTPUT_DIR}/auto-apply.md`:
 
 ```markdown
 ## {FILE}
-- Applied: {list of IDs}
+- Applied: {list of IDs with their dimension prefixes}
 - Vetoed: {list of IDs with reasons}
-- Commit: {commit sha}
 - Timestamp: ISO-8601
 ```
 
@@ -86,68 +93,17 @@ You are a sweep Applier. You apply pre-analyzed, pre-calibrated LOW-blast findin
 
 - **Do not modify any file other than {FILE}.**
 - **Do not create new files** (extractions/consolidations are HIGH-blast by definition; they never reach you).
+- **Do NOT commit** — the orchestrator commits per dimension after all Appliers finish.
 - **Never force-add files or alter .gitignore.**
-- **If git is dirty with unrelated changes at the start of your run, abort and report.**
-- **Commit only your own changes.**
 
-Report back: number applied, number vetoed, commit sha, any anomalies.
+Report back: number applied, number vetoed, any anomalies.
 ```
-
----
-
-## Commit Reword (after all Appliers finish)
-
-Per-file commits are a noisy git history. Squash into one commit per dimension for a clean PR review surface.
-
-### Steps
-
-1. Count commits to reword:
-   ```bash
-   git log --oneline <start-commit>..HEAD
-   ```
-   where `<start-commit>` is the HEAD at the start of Phase 4 (record this in `status.md` before launching Appliers).
-
-2. For each finding dimension, compute:
-   - Total findings applied from that dimension
-   - List of files touched
-   
-   Use `auto-apply.md` as the source of truth.
-
-3. Perform a soft reset + split-commit:
-   ```bash
-   git reset --soft <start-commit>
-   ```
-   All changes are now staged.
-
-4. Create dimension-grouped commits. For each dimension with ≥1 applied finding, stage only files touched by that dimension, then commit:
-   ```bash
-   # For Dead Code dimension — files from auto-apply.md where DC findings were applied
-   git reset HEAD  # unstage all
-   git add <files-touched-by-DC>
-   git commit -m "cleanup: remove dead code (N files, M findings)"
-   ```
-   
-5. Repeat for each dimension. Commit order suggestion (low-risk → high-risk within LOW-blast pool):
-   1. `cleanup: remove AI slop and unhelpful comments (N files, M findings)` — safest first
-   2. `cleanup: remove dead code (N files, M findings)`
-   3. `cleanup: tighten weak types (N files, M findings)`
-   4. `cleanup: consolidate duplicated logic (N files, M findings)` (if any reached LOW)
-   5. `cleanup: consolidate type definitions (N files, M findings)` (if any reached LOW)
-   6. `cleanup: remove legacy / fallback code (N files, M findings)` (if any reached LOW)
-   7. `cleanup: break circular imports (N files, M findings)` (if any reached LOW)
-   8. `cleanup: remove unnecessary defensive code (N files, M findings)` (if any reached LOW — rare; most DF are HIGH)
-
-6. Handle files with findings from multiple dimensions: the file appears in only ONE commit. Choose the dimension with the most findings in that file, or the earliest dimension in the list above (tie-break to safer).
-
-### Caveat
-
-Reset-and-recommit is a power move. If anything goes wrong (merge conflicts from mid-sweep user edits, hook failures), abort the reword, keep the per-file commits, document in `status.md`. A clean per-file history is still acceptable.
 
 ---
 
 ## Post-apply Verification
 
-Re-run the baseline test command from Phase 1.
+Re-run the baseline test command from Phase 1 (step 4.3 above).
 
 ### Green
 
@@ -158,7 +114,7 @@ All good. Update `status.md`:
 - Step: ready-for-triage
 - Applied: N findings across F files
 - Vetoed (kicked to triage): V findings
-- Commits: (list of reworded commit SHAs)
+- Commits: (list of dimension commit SHAs)
 - Post-apply tests: GREEN
 - Next action: Phase 5 triage
 ```
@@ -167,10 +123,10 @@ Announce, proceed to Phase 5.
 
 ### Newly red (was green at baseline)
 
-Halt. Do NOT auto-revert — the user may want to investigate.
+Halt. Do NOT auto-revert in interactive mode — the user may want to investigate.
 
-1. Identify the failing test(s) and the offending commit via `git bisect` across the reworded commits (or just by test output linking back to changed files)
-2. Present diagnostic to user:
+1. Identify the failing test(s) and the offending commit (dimension commits are small; test output usually links to changed files directly, else `git bisect` across them)
+2. Interactive mode — present diagnostic to user:
    ```
    Post-apply tests went red. This is unexpected.
    
@@ -185,8 +141,8 @@ Halt. Do NOT auto-revert — the user may want to investigate.
    3. Revert the entire auto-apply batch and proceed to triage only
    4. Abort the sweep here
    ```
-
-3. Do not proceed to Phase 5 until the user chooses.
+   Do not proceed to Phase 5 until the user chooses.
+3. Auto mode — apply option 2 autonomously: revert the offending commit, move its findings to `kicked-to-triage.md` with reason "auto-apply broke tests: <failing tests>", re-run tests. If still red after reverting all suspect commits, revert to `auto-apply-start` sha and proceed to Phase 5 with everything re-queued. Record all actions in `status.md`.
 
 ### Already red at baseline (Phase 1 recorded red)
 
@@ -194,7 +150,7 @@ Compare failing tests before vs. after: the set of failing tests must be the sam
 
 ### No tests
 
-If Phase 1 recorded no test command and user accepted proceeding without verification, skip this check, update `status.md` with `Post-apply tests: SKIPPED (no test command)`, proceed to Phase 5.
+If Phase 1 recorded no test command and the user accepted proceeding without verification, skip this check, update `status.md` with `Post-apply tests: SKIPPED (no test command)`, proceed to Phase 5.
 
 ---
 
@@ -221,8 +177,8 @@ In Phase 5, prepend these kicked findings to the triage queue (they're HIGH-blas
 ## Phase 4 Exit Criteria
 
 - [ ] All LOW-blast findings processed (applied or vetoed)
-- [ ] Commit reword complete (or per-file commits accepted as fallback)
-- [ ] Baseline tests re-run: GREEN or user-accepted state
+- [ ] One commit per dimension with applied findings
+- [ ] Baseline tests re-run: GREEN or user-accepted state (auto mode: reverted-and-requeued as needed)
 - [ ] `auto-apply.md` ledger complete
 - [ ] `kicked-to-triage.md` written if any vetoes
 - [ ] `status.md` updated

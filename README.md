@@ -17,7 +17,7 @@ Codex-native variants live under `plugins/victor-codex-skills/skills/` and are d
 - **forge** — Iterative top-down code construction (build, refactor, refine) with horizontal-slice design and challenger validation
 - **long-form-article** — Collaborative workflow for substantial article drafting and revision
 - **argument-structure** — Diagnose a draft or idea against the Minto Pyramid Principle and deliver a restructuring plan as a visual HTML artifact
-- **sweep** — Whole-codebase hygiene sweep across duplication, dead code, weak types, defensive code, and comment slop
+- **sweep** — Whole-codebase hygiene sweep across duplication, dead code, weak types, defensive code, and comment slop; PR-branch-aware preflight, 4 paired dimension agents (area-sharded for large repos), and an optional auto mode with subagent adjudication of high-blast findings
 - **workstream-implementer** — Project-aware implementation workflow from JIRA ticket or idea through multi-repo planning, PRs, CI, and review handoff
 - **goal-prompt** — Generate copy-paste-ready `/goal` prompts for Claude Code or Codex goal loops, classifying each goal first: dev-workstream goals get workstream-implementer, JIRA, review and performance gates; general (non-dev) goals get a goal contract, evidence standard, and review loop
 - **frontend-review** — Design-quality review of implemented FE surfaces against composition / craft / content / structure rubrics, with one-by-one fix triage

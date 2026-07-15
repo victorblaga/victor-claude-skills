@@ -4,23 +4,7 @@ Final summary. Three components: report file, marker-age nudge, optional test-sw
 
 ## Generate `report.md`
 
-Launch a subagent on the smallest-tier model (Luna-class) with `reasoning_effort: low` to produce the final report. It's mechanical aggregation.
-
-### Report Agent Prompt
-
-```
-You are the sweep Final Report generator. Read the session state and produce a summary report.
-
-**Session directory:** {OUTPUT_DIR}
-**Inputs to read:**
-- {OUTPUT_DIR}/status.md
-- {OUTPUT_DIR}/scope.md
-- {OUTPUT_DIR}/calibration.md
-- {OUTPUT_DIR}/auto-apply.md (may be empty)
-- {OUTPUT_DIR}/triage.md
-- {OUTPUT_DIR}/kicked-to-triage.md (may be absent)
-
-**Output file:** {OUTPUT_DIR}/report.md
+The orchestrator writes the report inline — it's a small aggregation of session files already at hand (`status.md`, `scope.md`, `calibration.md`, `auto-apply.md`, `triage.md`, `kicked-to-triage.md`); spawning a subagent costs more than the work. Write to `{OUTPUT_DIR}/report.md`:
 
 **Format:**
 
@@ -28,6 +12,7 @@ You are the sweep Final Report generator. Read the session state and produce a s
 
 Branch: <branch>
 Scope: <target>
+Mode: interactive | auto
 Languages: <detected>
 Tools used: <list>
 Duration: <start — end> (from status.md timestamps)
@@ -62,6 +47,12 @@ Duration: <start — end> (from status.md timestamps)
 
 (list of deferred findings for follow-up attention — these will re-surface on next sweep)
 
+## Auto-adjudication (auto mode only)
+
+- Accepted: N findings, each with the Adjudicator's rationale and the tests covering the path
+- Deferred for human review: M findings with rationale — **this is the section a human should read first after an unattended run**
+- Reverted in Phase 6 (if any): findings whose commits were reverted-and-deferred, with the failing check
+
 ## CI status
 
 <result from Phase 6>
@@ -70,14 +61,9 @@ Duration: <start — end> (from status.md timestamps)
 
 (anything outstanding: Applier vetoes that weren't triaged, CI failures not fixed, rejected findings without markers placed)
 
----
-
-Save to {OUTPUT_DIR}/report.md by writing the file.
-```
-
 ## Marker-age Nudge
 
-After the report subagent finishes, run the marker scan and append / print an age-nudge block:
+After writing the report, run the marker scan and append / print an age-nudge block:
 
 ```bash
 rg -n "cleanup-sweep-skip" <repo-root> -g '!.docs/**' -g '!node_modules/**' -g '!.venv/**'
@@ -110,7 +96,7 @@ If there are no markers, skip this block.
 
 ## Test-sweep Nudge
 
-If the main sweep excluded tests (default behavior), ask:
+In auto mode, skip the nudge — note in the report: *"Test-tree sweep not run. Re-run with `$sweep tests/` when ready."* Interactive mode: if the main sweep excluded tests (default behavior), ask:
 
 ```
 Main sweep complete.
@@ -137,8 +123,9 @@ Print a terse summary to the conversation:
 Sweep complete.
 
 Branch: <branch>
-Findings applied: X (LOW auto-apply) + Y (HIGH triaged)
-Rejected with markers: R
+Mode: <interactive | auto>
+Findings applied: X (LOW auto-apply) + Y (HIGH triaged/adjudicated)
+Rejected with markers: R (interactive only)
 Deferred (will re-surface next run): D
 Commits: <sha-start>..<sha-end>
 CI status: <result>
