@@ -11,7 +11,7 @@ description: >
 
 Create a single prompt the user can paste into a `/goal` loop. Do not implement the work yourself.
 
-Default target is **Claude Code** unless the user asks for Codex. For Claude prompts, refer to `/workstream-implementer`, `/simplify`, and `/mega-review`. For Codex prompts, refer to `$victor-codex-skills:workstream-implementer`, `$simplify`, and `$victor-codex-skills:mega-review`.
+Default target is **Claude Code** unless the user asks for Codex. For Claude prompts, refer to `/workstream-implementer` and `/simplify`. For Codex prompts, refer to `$victor-codex-skills:workstream-implementer` and `$simplify`.
 
 ## Inputs
 
@@ -20,8 +20,8 @@ Extract:
 - target runtime: Claude Code, Codex, or unspecified
 - goal text, task description, or JIRA key
 - repo, project, branch, PR, or deliverable-destination hints
-- explicit quality gates: simplify, mega-review (explicit request or force skip), performance-critical, browser verification, CI, commit/PR preferences
-- provenance signals: whether the work implements prior review findings (mega-review, adversarial review, PR/Bugbot feedback) — these imply mega-review skip
+- explicit quality gates: simplify, performance-critical, browser verification, CI, commit/PR preferences
+- provenance signals: whether the work implements prior review findings (adversarial review, PR/Bugbot feedback)
 - non-goals, constraints, and acceptance criteria
 
 Ask for the missing goal only if there is no usable task, ticket, PR, or file context.
@@ -67,19 +67,14 @@ The generated prompt must require the goal-loop agent to:
    - Stop after a clean review or 5 review cycles, whichever comes first.
    - Ignore nits unless they reveal correctness, maintainability, security, or performance risk.
 5. Run `simplify` when explicitly requested or when the change adds or substantially modifies non-trivial logic, spans multiple modules, or follows an adversarial review fix pass. Skip for trivial one-file changes.
-6. Run `mega-review` only when explicitly requested or when both decision tests below pass. Default is skip — do not run automatically "just in case."
-   - **Provenance test (skip):** never run when the work's trigger is remediation of an earlier review — implementing mega-review findings, adversarial-review fixes, PR/Bugbot review feedback, or other review-driven follow-ups. The adversarial review loop is the quality gate for that work.
-   - **Scope test (run):** the change must be genuinely large AND structurally risky — e.g. architecture changes, migrations, auth/security surfaces, cross-repo work, data model changes, concurrency, or performance-sensitive paths. Medium-sized feature work, localized bug fixes, config/docs, and single-area refactors do not qualify on scope alone.
-   - If in doubt, skip and note in the final summary that mega-review was considered and why it was not run.
-   - When it does run: run `simplify` first, then `mega-review`. Implement findings by criticality and leverage: Critical, High, and high-impact or easy Medium/Low findings. Ignore pure nits.
-7. Make performance-profile changes explicit when performance matters or the touched path is performance-sensitive.
+6. Make performance-profile changes explicit when performance matters or the touched path is performance-sensitive.
    - Establish the relevant baseline before changing code when feasible; if not feasible, document why and use the best available comparison.
    - Capture a before/after profile appropriate to the change: latency, throughput, query count, query plan, Big O, memory use, storage footprint, batching/indexing, pipeline runtime, or operational cost.
    - Check for N+1 calls, missing indexes, unbounded reads, unnecessary materialization, poor batching, repeated scans, and algorithm/data-structure mismatches.
    - Surface trade-offs, not just regressions. Examples: "storage increases about 2x to reduce lookup latency", "memory rises for batching", "writes get slower so reads get faster".
    - Pause for explicit user acceptance when a material performance, storage, memory, cost, or complexity trade-off appears. Do not hide trade-offs in the final summary after the decision has already been made.
    - If no measurable performance surface exists, state why.
-8. Verify before declaring completion. Quote the relevant command output or browser evidence in the final summary.
+7. Verify before declaring completion. Quote the relevant command output or browser evidence in the final summary.
 
 ## General Prompt Requirements
 
@@ -93,7 +88,7 @@ The generated prompt must require the goal-loop agent to:
    - If Critical or Major findings remain, fix them and re-review.
    - Stop after a clean review or 5 review cycles, whichever comes first.
    - Ignore nits unless they affect accuracy, completeness, or usability of the deliverable.
-4. Skip code-only gates (simplify, mega-review, performance profiling, PR/CI). If the work grows a code surface (a script, a pipeline, site config), apply the relevant Dev requirements to that code only.
+4. Skip code-only gates (simplify, performance profiling, PR/CI). If the work grows a code surface (a script, a pipeline, site config), apply the relevant Dev requirements to that code only.
 5. Verify before declaring completion. Quote the concrete evidence — published URL, produced file path, command output — in the final summary.
 
 ## Output Format
@@ -126,9 +121,6 @@ Adversarial review loop:
 
 Simplify gate:
 <conditional instructions; omit only if user explicitly opts out>
-
-Mega-review gate:
-<default skip; run only on explicit request or when both provenance and scope tests pass; if provenance is review-remediation, state explicitly do not run; if in doubt skip and report why>
 
 Performance profile gate:
 <conditional instructions>
