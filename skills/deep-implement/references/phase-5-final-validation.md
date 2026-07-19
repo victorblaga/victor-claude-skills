@@ -45,6 +45,7 @@ One of:
 - **GAPS FOUND** — concrete gaps exist. List them with severity (critical vs. nice-to-have).
 
 Write findings to `.docs/plans/<feature-name>/final-validation.md`. Commit.
+Alongside the verdict, the orchestrator reviews `decisions.md` (next to `status.md`, if present) and surfaces entries worth user attention with the validation results.
 Update `status.md` to `Current phase: 5`, `Current step: 5.1-validation-complete`, and `Next action` based on the verdict.
 
 ## Phase 5.2: Address Gaps (if any)
