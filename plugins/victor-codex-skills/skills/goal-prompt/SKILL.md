@@ -74,7 +74,8 @@ The generated prompt must require the goal-loop agent to:
    - Surface trade-offs, not just regressions. Examples: "storage increases about 2x to reduce lookup latency", "memory rises for batching", "writes get slower so reads get faster".
    - Pause for explicit user acceptance when a material performance, storage, memory, cost, or complexity trade-off appears. Do not hide trade-offs in the final summary after the decision has already been made.
    - If no measurable performance surface exists, state why.
-7. Verify before declaring completion. Quote the relevant command output or browser evidence in the final summary.
+7. Maintain a decision log at `.docs/decision-logs/<branch-slug>.md`, appending each decision at the moment it is made: underspecification choices, deviations from the task contract, symptom-vs-root-cause calls, and trade-offs below the pause threshold in requirement 6. The final summary must include a Decisions section drawn from this log; a bare success claim is not acceptable completion.
+8. Verify before declaring completion. Quote the relevant command output or browser evidence in the final summary.
 
 ## General Prompt Requirements
 
@@ -89,7 +90,8 @@ The generated prompt must require the goal-loop agent to:
    - Stop after a clean review or 5 review cycles, whichever comes first.
    - Ignore nits unless they affect accuracy, completeness, or usability of the deliverable.
 4. Skip code-only gates (simplify, performance profiling, PR/CI). If the work grows a code surface (a script, a pipeline, site config), apply the relevant Dev requirements to that code only.
-5. Verify before declaring completion. Quote the concrete evidence — published URL, produced file path, command output — in the final summary.
+5. Maintain a decision log at `.docs/decision-logs/<goal-slug>.md`, appending each decision at the moment it is made: underspecification choices, deviations from the goal contract, and trade-offs taken without asking. The final summary must include a Decisions section drawn from this log; a bare success claim is not acceptable completion.
+6. Verify before declaring completion. Quote the concrete evidence — published URL, produced file path, command output — in the final summary.
 
 ## Output Format
 
@@ -126,7 +128,7 @@ Performance profile gate:
 <conditional instructions>
 
 Completion criteria / stop rules:
-<what must be true before the loop ends, when to retry vs. fall back vs. ask, and final report requirements including quoted verification evidence>
+<what must be true before the loop ends, when to retry vs. fall back vs. ask, and final report requirements including quoted verification evidence and the Decisions section from the decision log>
 ```
 
 General template:
@@ -148,7 +150,7 @@ Adversarial review loop:
 <review-loop instructions scoped to the deliverable and goal contract>
 
 Completion criteria / stop rules:
-<what must be true before the loop ends, when to retry vs. fall back vs. ask, concrete verification evidence to quote in the final report>
+<what must be true before the loop ends, when to retry vs. fall back vs. ask, concrete verification evidence to quote in the final report, and the Decisions section from the decision log>
 ```
 
 Collapse empty sections when the user explicitly says they do not apply. In the Dev template, keep the JIRA gate unless the user already explicitly declined JIRA. Do not add workstream-implementer, JIRA, PR, or CI scaffolding to a General prompt.

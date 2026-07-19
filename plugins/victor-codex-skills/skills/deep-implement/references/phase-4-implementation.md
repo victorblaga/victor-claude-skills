@@ -59,7 +59,7 @@ Spawn a subagent with fresh context. Provide it with:
   - assess whether the task is performance-sensitive
   - if it is, sketch the algorithm first and identify obvious I/O and complexity risks before implementing
   - justify any intentional exceptions to the protocol's batching or data-structure defaults
-  - report any performance-sensitive decisions back in the task summary
+  - report any performance-sensitive decisions, and any decisions made under underspecification, back in the task summary
 
 **The implementing subagent** (tier: STANDARD — see Capability Tiers in SKILL.md; well-specified, low-risk tasks can drop to LIGHT; use DEEP only for tasks the plan flags as tricky — architectural, concurrency, performance-critical):
 
@@ -69,7 +69,7 @@ Spawn a subagent with fresh context. Provide it with:
 - If not performance-sensitive: implements directly
 - Verifies against the performance checklist (no queries in loops, correct data structures, batched I/O, pre-built indices)
 - Runs the task's local verification (see **Per-task verification** below)
-- Reports back: what was done, what files were changed, any performance decisions made, any concerns
+- Reports back: what was done, what files were changed, any performance decisions made, any decisions made under underspecification, any concerns
 
 The orchestrator reviews the result, commits with a clear message, and updates `status.md`. Do not spawn a separate verification subagent unless the task is flagged high-risk (below).
 
@@ -88,7 +88,8 @@ Fix failures before committing. This is quick, mechanical confirmation that the 
 ### After each task
 
 1. **Commit** the task's changes with a clear commit message describing what was done
-2. Update `status.md` with the current task or next task
+2. Append any reported decisions (underspecification or performance-sensitive) — whether the task ran inline or in a subagent — to `decisions.md` next to `status.md`; skip if there are none
+3. Update `status.md` with the current task or next task
 
 ### If something goes wrong
 
