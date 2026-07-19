@@ -22,6 +22,7 @@ Codex-native variants live under `plugins/victor-codex-skills/skills/` and are d
 - **goal-prompt** — Generate copy-paste-ready `/goal` prompts for Claude Code or Codex goal loops, classifying each goal first: dev-workstream goals get workstream-implementer, JIRA, review and performance gates; general (non-dev) goals get a goal contract, evidence standard, and review loop
 - **frontend-review** — Design-quality review of implemented FE surfaces against composition / craft / content / structure rubrics, with one-by-one fix triage
 - **plan-codex-review** — Three-phase pipeline: Claude plans (relentless requirements interview + cheap explorers), Codex implements, fresh-context Claude reviews and produces a Codex-ready remediation plan. Claude Code only — requires the openai-codex plugin; deliberately has no Codex-native variant
+- **decision-audit** — Post-implementation audit of the decisions a session made, not the diff: structured self-report by category, fresh-context cross-check against the diff, blindspot ranking, and one-by-one keep/revise/revert triage
 
 ## Claude Installation
 

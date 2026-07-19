@@ -1,6 +1,6 @@
 {
   "name": "victor-codex-skills",
-  "version": "1.29.1",
+  "version": "1.30.0",
   "description": "Codex-native variants of Victor Blaga's Claude workflow skills. The Claude skills remain canonical.",
   "author": {
     "name": "Victor Blaga",
@@ -24,6 +24,8 @@
     "tam-dcf",
     "goal-prompt",
     "goal-loop",
+    "decision-audit",
+    "decision-log",
     "workstream-implementer",
     "frontend-review",
     "ui-review",
@@ -46,7 +48,7 @@
   "interface": {
     "displayName": "Victor Codex Skills",
     "shortDescription": "Codex-native workflow skills derived from canonical Claude prompts",
-    "longDescription": "Install Victor Blaga's workflow skills for Codex, including project-aware workstream implementation from JIRA to PR, copy-paste-ready goal prompt generation, deep implementation, multi-dimensional review, review triage, architecture planning, structural refactoring, whole-codebase cleanup sweeps, codebase cross-examination, long-form writing support, design-quality frontend review of implemented UI surfaces, conversational bottom-up Fermi TAM analysis for growth stocks, and long-horizon FCFF DCF anchored to those TAM outputs.",
+    "longDescription": "Install Victor Blaga's workflow skills for Codex, including project-aware workstream implementation from JIRA to PR, copy-paste-ready goal prompt generation, deep implementation, multi-dimensional review, review triage, architecture planning, structural refactoring, whole-codebase cleanup sweeps, codebase cross-examination, long-form writing support, design-quality frontend review of implemented UI surfaces, post-implementation decision audits with fresh-context cross-checks, conversational bottom-up Fermi TAM analysis for growth stocks, and long-horizon FCFF DCF anchored to those TAM outputs.",
     "developerName": "Victor Blaga",
     "category": "Coding",
     "capabilities": [
