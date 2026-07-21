@@ -1,11 +1,10 @@
 ---
 name: long-form-article
 description: >
-  Use when writing or rewriting long-form articles for newsletters, essays, or educational content.
-  Trigger on "write an article", "rewrite this piece", "let's work on issue X", or when the user
-  has an idea for a substantial piece of writing that needs outlining, drafting, and iterative editing.
-  Do not trigger for quick edits, copy-editing, or proofreading — only for ground-up writing or
-  major rewrites.
+  Collaborative workflow for writing or rewriting long-form articles for newsletters, essays,
+  or educational content. Trigger ONLY when the user explicitly says "long-form-article",
+  "long form article", or invokes $long-form-article. Do NOT trigger on general requests to
+  write an article, rewrite a piece, draft content, edit, copy-edit, or proofread.
 ---
 
 # Long-Form Article

@@ -1,6 +1,11 @@
 ---
 name: cross-examine
-description: Become the codebase expert and answer the user's questions with evidence. The user interrogates you about the code. Use when user says "cross-examine", "cross examine", "explain the code", or wants to understand how a codebase works through Q&A.
+description: >
+  Become the codebase expert and answer the user's questions with evidence. The user
+  interrogates you about the code. Trigger ONLY when the user explicitly says
+  "cross-examine", "cross examine", or invokes /cross-examine. Do NOT trigger on general
+  requests to explain code, understand a codebase, or answer questions about how something
+  works.
 ---
 
 # Cross-Examine

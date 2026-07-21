@@ -6,10 +6,10 @@ description: >
   the user, deciding accept / reject / defer for each. Produces an ordered
   implementation-plan.md and maintains a persistent notes.md for rejected and
   deferred findings that survives review folder deletion.
-  Trigger when the user says "review-triage", "triage the review", "triage findings",
-  or invokes /review-triage.
-  Do NOT trigger for running a review (/mega-review) or for implementing findings
-  (/deep-implement) — this skill is strictly the triage step between those two.
+  Trigger ONLY when the user explicitly says "review-triage" or invokes /review-triage.
+  Do NOT trigger on generic "triage the review" / "triage findings" phrasing, running a
+  review (/mega-review), or implementing findings (/deep-implement) — this skill is
+  strictly the triage step between those two.
 ---
 
 # Review Triage

@@ -2,10 +2,10 @@
 name: forge
 description: >
   Iterative, top-down code construction skill. Builds clean, well-structured code through
-  horizontal-first layered design with progressive autonomy. Trigger when user says "forge",
-  invokes /forge, or asks to build, refactor, restructure, or refine code with architectural
-  intent. Do not trigger for trivial changes, one-line fixes, or quick cleanup — those don't
-  need a formal construction workflow.
+  horizontal-first layered design with progressive autonomy. Trigger ONLY when the user
+  explicitly says "forge" or invokes /forge. Do NOT trigger on general requests to build,
+  refactor, restructure, or refine code — those are ordinary implementation work, not this
+  heavyweight construction workflow.
 ---
 
 # Forge

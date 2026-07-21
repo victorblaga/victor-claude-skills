@@ -5,13 +5,10 @@ description: >
   route, page, or whole app) against composition / craft / content / structure rubrics, surfaces
   every place a default was reached for instead of a decision, and walks fixes with you one at a
   time before applying. Built for dashboards, admin panels, tools, and SaaS interfaces — not
-  landing pages or marketing sites. MANDATORY TRIGGERS — "frontend-review", "frontend review",
-  "/frontend-review", "review this FE", "review this UI", "audit this interface", "audit the
-  design", "design-review this", "critique this UI", "check this UI for craft". STRONG TRIGGERS
-  (use when paired with implemented FE code) — "this UI feels generic", "this looks AI-y", "the
-  design feels off", "make this feel less templated", "tighten the design". Do NOT trigger for
-  building new UI (use frontend-design), general code review (use mega-review), or copy/content
-  editing (use long-form-article).
+  landing pages or marketing sites. Trigger ONLY when the user explicitly says
+  "frontend-review", "frontend review", or invokes /frontend-review. Do NOT trigger on
+  generic UI feedback ("review this UI", "this looks AI-y", "tighten the design"), building
+  new UI, general code review, or copy/content editing.
 ---
 
 # Frontend Review

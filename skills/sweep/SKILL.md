@@ -1,14 +1,14 @@
 ---
 name: sweep
 description: >
-  Use when the user asks for "sweep", "cleanup sweep", "run a sweep", "sweep the codebase",
-  "do a cleanup pass", "purge cruft", "clean up the whole codebase", or invokes /sweep —
-  a whole-codebase hygiene workflow across duplication, dead code, circular deps, weak types,
+  Whole-codebase hygiene workflow across duplication, dead code, circular deps, weak types,
   defensive boilerplate, legacy shims, and comment slop, with blast-radius calibration and
   triage of high-impact findings (conversational by default, subagent-adjudicated in auto mode).
-  Do NOT trigger for single-file cleanup, PR-specific review (use mega-review),
-  feature implementation (use deep-implement), or casual "clean this up" requests without
-  whole-codebase scope. Trigger ONLY when the user explicitly opts into the heavyweight sweep.
+  Trigger ONLY when the user explicitly says "sweep", "cleanup sweep", "run a sweep",
+  "sweep the codebase", or invokes /sweep. Do NOT trigger on "do a cleanup pass",
+  "purge cruft", "clean up the whole codebase", single-file cleanup, PR-specific review
+  (use mega-review), feature implementation (use deep-implement), or casual "clean this up"
+  requests.
 ---
 
 # Sweep

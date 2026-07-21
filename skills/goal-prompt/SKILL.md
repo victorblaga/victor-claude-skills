@@ -1,10 +1,11 @@
 ---
 name: goal-prompt
 description: >
-  Generate a copy-paste-ready /goal prompt for Claude Code or Codex goal loops. Use when the
-  user asks for a goal prompt, goal-loop prompt, Claude /goal prompt, or Codex goal prompt —
-  whether the goal is a software task or JIRA ticket, or non-development work such as research,
-  writing, analysis, planning, data work, or operations in hosted tools.
+  Generate a copy-paste-ready /goal prompt for Claude Code or Codex goal loops — whether the
+  goal is a software task or JIRA ticket, or non-development work such as research, writing,
+  analysis, planning, data work, or operations in hosted tools. Trigger ONLY when the user
+  explicitly says "goal-prompt", "generate a goal prompt", "goal-loop prompt", or invokes
+  /goal-prompt. Do NOT trigger on general prompt-writing or "write me a prompt" requests.
 ---
 
 # Goal Prompt

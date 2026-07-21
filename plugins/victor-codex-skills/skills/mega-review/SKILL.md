@@ -2,11 +2,10 @@
 name: mega-review
 description: >
   Comprehensive multi-dimensional code review producing a structured markdown report.
-  Use when the user asks for "mega-review", "mega review", "deep review", "comprehensive review",
-  "full review", "review everything", "review all dimensions", or any variation requesting a
-  thorough multi-dimensional code review that produces a document.
-  Do NOT trigger for one-off code cleanup, or when the user wants code changes —
-  this skill is strictly read-only analysis that outputs a report.
+  Trigger ONLY when the user explicitly says "mega-review", "mega review", or invokes
+  $mega-review. Do NOT trigger on generic review requests ("deep review", "comprehensive
+  review", "full review", "review everything", "review this"), one-off cleanup, or when
+  the user wants code changes — this skill is strictly read-only analysis that outputs a report.
 ---
 
 # Mega Review
