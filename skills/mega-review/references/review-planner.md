@@ -110,6 +110,8 @@ When model names change, map by capability — do not update the skill for every
 
 **Intelligence level** is a separate lever: reasoning effort / extended-thinking budget where the harness exposes it (`high`, `xhigh`, `low`, etc.). `max` is never part of the default pipeline.
 
+Treat the Default matrix below as a starting point, not a floor. Lower effort tiers are stronger than prior-model defaults suggest — where a role's output holds up a level down, step it down and note the rationale in the plan. The roles worth keeping high are the singletons whose judgment touches every finding (Calibrator, Synthesis) and the planner that steers downstream recall.
+
 ## Default matrix
 
 Fallback when the planner is skipped or when the plan file omits a role:

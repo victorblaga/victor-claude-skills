@@ -47,8 +47,11 @@ Generated prompts run under strong reasoning models (GPT-5.6-class Codex, Claude
 - **Each rule once**: never repeat an instruction for emphasis. These models follow prompt contracts closely — duplicated or contradictory rules destabilize behavior more than missing detail, and repeated "ask first" reminders cause needless approval pauses.
 - **Absolutes only for invariants**: reserve ALWAYS/NEVER/must for true invariants (safety, destructive actions, required evidence). For judgment calls — when to search, ask, or keep iterating — give decision criteria instead.
 - **One autonomy boundary**: state once that in-scope local work (reading, editing, running non-destructive verification) proceeds without asking, and that confirmation is required for destructive actions, external writes/publishing, material scope expansion, or material trade-offs.
+- **Scope and completion**: deliver what was asked at the scope intended. Make routine judgment calls; check in only when different readings lead to materially different work. Finish the whole task — report completion only when it is fully done. If part is genuinely blocked, complete everything else and state plainly what is missing and why.
 - **Stop rules**: completion criteria double as stop rules — say when to retry, when to fall back, when to ask, and when the loop is done. Keep loops bounded (e.g. the 5-cycle review cap).
 - **Progress cadence**: for long loops, require a one-to-two-sentence update at each phase change stating one concrete outcome and the next step — no narration of routine tool calls.
+- **Right-sized output**: require concise responses, and deliverables sized to the task — cover the substance without filler sections, redundant summaries, or boilerplate. State this in the prompt; reasoning-effort settings do not reliably shorten user-facing output.
+- **Delegation budget**: subagents multiply cost and latency — each re-establishes context, re-explores, and reports back. Instruct the loop to delegate only when the payoff clearly exceeds that overhead; not for work completable in a handful of tool calls, and not for re-checking what a defined review step already covers (the adversarial review loop below is the sanctioned delegated review). Tell it to commit to a delegation rather than redoing the work, and to keep concurrent agents in single digits.
 - **Verification before done**: name the most relevant validation available and require quoting its output; if validation cannot run, the prompt must require explaining why and naming the next best check.
 
 ## Dev Prompt Requirements
@@ -62,7 +65,7 @@ The generated prompt must require the goal-loop agent to:
    - Treat JIRA as optional unless the user chooses ticket-backed work, but make the decision explicit before implementation.
 3. Work the task through implementation, verification, PR creation/update, CI, and JIRA review handoff according to `workstream-implementer`. If during contract refinement the task turns out not to be dev work, pause and ask the user instead of forcing the workflow.
 4. Run an adversarial review loop after implementation:
-   - Use a fresh reviewer on the flagship model tier at `high` reasoning effort (the workhorse setting). Escalate to `xhigh` only when the change is genuinely hard — architectural, concurrent, or security-sensitive. `max`-style settings only if the user explicitly asks.
+   - Use a fresh reviewer on the flagship model tier. Reviewing a code diff is agentic work, so start at the top reasoning tier the target runtime exposes, then step down where recall holds — lower tiers are stronger than prior-model defaults suggest. `max`-style settings only if the user explicitly asks.
    - Review the diff against the ticket/task contract, repo conventions, tests, verification evidence, and user constraints.
    - If Critical or Major findings remain, fix them and re-review.
    - Stop after a clean review or 5 review cycles, whichever comes first.
@@ -85,7 +88,7 @@ The generated prompt must require the goal-loop agent to:
 1. Refine the goal contract before producing anything: deliverable, audience, destination, format, acceptance criteria, constraints, non-goals. Confirm the destination (file, doc platform, message) before publishing. If during refinement the goal turns out to be dev work after all, pause and ask the user whether to switch to the dev workstream shape.
 2. Do the work with evidence appropriate to the deliverable: cite and date sources for factual claims, exercise flows end-to-end for how-to content, validate numbers with actual computation.
 3. Run an adversarial review loop after a draft or result exists:
-   - Use a fresh reviewer on the flagship model tier at `high` reasoning effort (the workhorse setting). Escalate to `xhigh` only when the change is genuinely hard — architectural, concurrent, or security-sensitive. `max`-style settings only if the user explicitly asks.
+   - Use a fresh reviewer on the flagship model tier at the workhorse reasoning tier, stepping down where quality holds — lower tiers are stronger than prior-model defaults suggest. `max`-style settings only if the user explicitly asks.
    - Review the deliverable against the goal contract, the evidence gathered, and user constraints.
    - If Critical or Major findings remain, fix them and re-review.
    - Stop after a clean review or 5 review cycles, whichever comes first.
@@ -111,6 +114,9 @@ JIRA gate:
 
 Autonomy and approvals:
 <one boundary, stated once: in-scope local work — reading, editing, running non-destructive verification — proceeds without asking; destructive actions, external writes, material scope expansion, or material trade-offs require confirmation>
+
+Scope, output, and delegation:
+<deliver the approved scope and finish the whole task before reporting completion; keep responses and written artifacts sized to the task, no filler; delegate only where the payoff beats the overhead, and keep concurrent agents in single digits>
 
 Execution:
 1. Refine the task contract and acceptance criteria before implementation. If the task turns out not to be dev work, pause and ask.
@@ -143,6 +149,9 @@ Goal contract:
 
 Autonomy and approvals:
 <one boundary, stated once: research, drafting, and local validation proceed without asking; publishing, external writes, and material scope changes require confirmation>
+
+Scope, output, and delegation:
+<deliver the agreed scope and finish the whole goal before reporting completion; keep responses and the deliverable sized to the task, no filler; delegate only where the payoff beats the overhead, and keep concurrent agents in single digits>
 
 Execution:
 <goal-specific steps, including the evidence standard for this deliverable>

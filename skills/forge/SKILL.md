@@ -84,11 +84,14 @@ A prototype that runs is worth a hundred diagrams.
 
 ## Execution Notes
 
-- **Effort**: If the harness exposes an effort control, run design, exploration, and challenger subagents at the highest tier. Reduced effort is only for narrow, mechanical tasks.
-- **Parallel subagents**: Launch explorer and implementer subagents in parallel when tasks are independent. Spawn multiple subagents in the same turn when fanning out across files or components. Do not spawn a subagent for work you can complete directly in a single response.
+- **Effort**: If the harness exposes an effort control, start design, exploration, and challenger subagents at the workhorse tier and step up only for genuinely hard structural calls. Lower tiers are stronger than prior-model defaults suggest — sweep downward rather than pinning the ceiling. Narrow, mechanical tasks start lower still.
+- **Parallel subagents**: Launch explorer and implementer subagents in parallel when tasks are genuinely independent. Do not spawn a subagent for work you can complete directly in a single response, and do not improvise a review agent — the Challenger is the review mechanism, and `references/challenger-protocol.md` defines when it runs. Commit to a delegation: do not redo a subagent's work or re-derive its findings once it reports back. Keep concurrent spawns in single digits.
 - **Parallel tool calls**: When reading multiple files or running independent searches, make all tool calls in parallel.
 - **Literal scope**: State explicitly when instructions apply broadly (e.g., "Apply this pattern to *every* component at this level, not just the first one").
+- **Scope and completion**: Build what the level's approved design specifies, at the scope approved. Make routine judgment calls; check in only when different readings produce materially different structure. Finish the whole level before descending — report a level complete only when every component at it is done, and if one is genuinely blocked, finish the rest and say plainly which is outstanding and why.
 - **Minimalism guardrail**: During design and implementation, challenge unnecessary abstractions. Only add a layer/type/helper if it hides meaningful complexity or is used more than once.
+- **Response length**: Conversation turns run longer than this workflow needs, and lowering effort does not reliably shorten them. The plan document carries the detail; chat carries a short summary and the decision the user has to make. Do not restate plan.md content in conversation.
+- **Corrections**: Only flag an earlier statement when the error changes the design, the code, or a decision the user already made. State it plainly and continue — no apologies, no recap of the superseded approach. A challenger finding against your own earlier design is normal and needs no commentary beyond the fix.
 - **Context hygiene**: Use fresh-context subagents for exploration and implementation to prevent main-thread bloat. The orchestrator holds state and talks to the user; subagents handle heavy tool use.
 - **Subagent mental test**: Before spawning a subagent, ask "Will I need this tool output again, or just the conclusion?" If only the conclusion matters, the subagent should return a tight summary and leave the raw exploration in its own context. If you'll need to reference detailed output repeatedly, write it to disk (e.g., `plan.md` or `progress.md`) and reference the file path.
 - **Proactive checkpointing**: If exploration or a horizontal slice involves extensive tool use, write `progress.md` mid-flight rather than waiting for the slice to finish. This preserves state if context compacts or the session is interrupted.
@@ -171,13 +174,15 @@ The project will be un-compilable between horizontal slices. This is fine. Resis
 | Role | Who | Fresh context? | When |
 |------|-----|---------------|------|
 | **Orchestrator** | Main conversation | No — persistent | Always. Holds state, talks to user, coordinates. |
-| **Explorer** | Subagent (sonnet for Phase 0 constraint scans; opus for Phase 1 behavioral-model extraction) | Yes | Phase 0 + Phase 1: scan code, discover constraints |
-| **Challenger** | Subagent (opus) | Yes — always fresh | After each design or implementation: skeptical review |
-| **Implementer** | Subagent (opus) | Yes — fresh | Each implementation pass: write code |
+| **Explorer** | Subagent (mid tier for Phase 0 constraint scans; top tier for Phase 1 behavioral-model extraction) | Yes | Phase 0 + Phase 1: scan code, discover constraints |
+| **Challenger** | Subagent (top tier) | Yes — always fresh | After each design or implementation, and at major milestones: skeptical review |
+| **Implementer** | Subagent (top tier) | Yes — fresh | Implementation passes large enough to earn a spawn |
 
-The challenger being **always fresh** is critical. The agent doing the work cannot judge its own work — a fresh agent with no investment in the output is more honest. This is the key lesson from Anthropic's harness design research: separating generation from evaluation, and tuning the evaluator to be skeptical rather than lenient.
+Tiers are relative capability, not memorized model names — lineups change.
 
-The implementer being fresh prevents context drift on long sessions.
+The challenger being **always fresh** is critical. The agent doing the work cannot judge its own work — a fresh agent with no investment in the output is more honest. This is the key lesson from Anthropic's harness design research: separating generation from evaluation, and tuning the evaluator to be skeptical rather than lenient. The Challenger is the skill's review mechanism; do not add ad-hoc checkers alongside it.
+
+The implementer being fresh prevents context drift on long sessions. It is not a requirement for every component: a small component at an established level, on a design the user already approved, is cheaper and just as good implemented inline. Spawn when the pass is large, exploratory, or genuinely parallel with another — not by default.
 
 ### Subagent prompts must include:
 

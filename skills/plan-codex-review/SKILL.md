@@ -2,8 +2,8 @@
 name: plan-codex-review
 description: >
   Three-phase coding pipeline that pairs Claude's reasoning with Codex's implementation muscle:
-  deep planning by Claude (Fable) in forced plan mode with a relentless requirements
-  interview and cheap exploration subagents, implementation delegated to
+  deep planning by Claude in forced plan mode (runs on the session model) with a relentless
+  requirements interview and cheap exploration subagents, implementation delegated to
   Codex via the codex plugin (gpt-5.6, high effort), and a fresh-context max-thinking review
   by Claude (Fable) that produces a Codex-ready remediation plan (gpt-5.6, xhigh effort).
   Claude Code only — requires the Agent tool and the openai-codex plugin.
@@ -16,11 +16,18 @@ description: >
 
 A three-phase pipeline for substantial coding tasks:
 
-1. **Plan** — Claude (Fable, deep thinking) switches into plan mode, explores the codebase via cheap subagents, interviews the user relentlessly until shared understanding, and presents an implementation plan following plan-mode conventions. User approves via the plan-mode gate before any code is written.
+1. **Plan** — Claude (session model, deep thinking) switches into plan mode, explores the codebase via cheap subagents, interviews the user relentlessly until shared understanding, and presents an implementation plan following plan-mode conventions. User approves via the plan-mode gate before any code is written.
 2. **Implement** — Codex executes the approved plan (`gpt-5.6`, `high` effort, write-capable).
 3. **Review** — a fresh-context Claude (Fable, max thinking) subagent judges the diff against the plan and produces severity-ranked findings plus a Codex-ready remediation plan. The user then chooses: stop, remediate (`gpt-5.6`, `xhigh` effort), or remediate and re-review (loop).
 
-The division of labor is deliberate: Claude does the judgment-heavy ends (planning, reviewing), Codex does the implementation middle, and exploration is pushed to cheap models so Fable tokens are spent only on reasoning.
+The division of labor is deliberate: Claude does the judgment-heavy ends (planning, reviewing), Codex does the implementation middle, and exploration is pushed to cheap models so top-tier tokens are spent only on reasoning.
+
+## Execution Notes
+
+- **Response length**: The interview is the value here, not commentary around it. Questions come batched with your recommended answer; the Phase 2 return is a one-paragraph summary; the Phase 3 gate is the findings summary and nothing more. Written output runs longer than these formats want by default, and lowering reasoning effort does not reliably shorten it.
+- **Scope and completion**: The approved plan is the contract. Do not add work Codex was not asked to do, and do not quietly drop plan items. Report a phase complete only when it actually is — if Codex produced a partial diff, say which plan items are unimplemented rather than summarizing around the gap.
+- **Delegation**: Exploration subagents are the only spawns this skill makes outside its three named phases. Do not improvise extra reviewers — Phase 3 is the review mechanism. Keep concurrent explorers in single digits.
+- **Corrections**: Only flag an earlier statement when the error changes the plan, the diff, or a decision the user already made. State it plainly and continue — a review finding against your own plan is expected and needs no commentary beyond the remediation entry.
 
 ## Prerequisites (check before Phase 1)
 
@@ -49,7 +56,7 @@ Overrides: if the user names a different location, use it. If the user says they
 Runs in the main conversation thread. Think hard throughout this phase — planning quality drives everything downstream.
 
 1. **Force plan mode ON.** If not already in plan mode, switch it on yourself via the `EnterPlanMode` tool (load its schema via ToolSearch first if it is deferred). If the tool is unavailable or the call fails, **stop** and tell the user to enable plan mode manually (Shift+Tab) — wait for confirmation; do not plan outside plan mode.
-2. **Explore via cheap subagents.** Fan out `Explore` subagents with `model: sonnet` to map the relevant parts of the codebase (architecture, conventions, the files the task will touch, existing tests, CI checks). Spawn them in parallel when the questions are independent. Escalate an individual exploration to `model: opus` only when it requires real judgment (e.g., "which of these three abstractions should the change hook into"), not for search and retrieval. Never use Fable for exploration subagents.
+2. **Explore via cheap subagents.** Fan out `Explore` subagents at the mid tier to map the relevant parts of the codebase (architecture, conventions, the files the task will touch, existing tests, CI checks). Spawn them in parallel when the questions are independent. Escalate an individual exploration one tier only when it requires real judgment (e.g., "which of these three abstractions should the change hook into"), not for search and retrieval. Never use the top tier for exploration subagents.
 3. **Interview relentlessly.** Before writing the plan, interrogate the user about every aspect of the task until you reach shared understanding — walk down each branch of the decision tree, resolving dependencies between decisions one by one. Rules:
    - For every question, provide your recommended answer.
    - Batch related questions in one turn rather than dribbling them out; keep unrelated decision branches in separate turns.
@@ -80,7 +87,7 @@ Runs in the main conversation thread. Think hard throughout this phase — plann
    - The full plan contents (longform documents near the top of the prompt, task at the end)
    - The diff to review: `git diff <baseline-ref>` output plus the contents of any untracked files Codex created (or, in a non-git repo, the plan's file list to read directly)
    - Pre-existing dirty paths to ignore, if any were recorded
-   - Permission to spawn its own `Explore` subagents with `model: sonnet` for surrounding-context questions — and an instruction never to use Fable or Opus for exploration
+   - Permission to spawn its own `Explore` subagents at the mid tier for surrounding-context questions — and an instruction never to use a top-tier model for exploration
    - The required output format (below)
 2. **The reviewer judges the diff against the plan**, with fresh eyes and no authorship bias: correctness, plan coverage (everything implemented? anything out-of-scope added?), integration with surrounding code, error handling, test adequacy, and whether verification commands actually passed.
 3. **Required reviewer output** — two parts:
@@ -111,8 +118,8 @@ There is no hard iteration cap — every loop passes through this gate, so the u
 
 | Step | Who | Model / effort |
 |------|-----|----------------|
-| Planning | Main thread (plan mode forced on) | Fable (session model), deep thinking |
-| Exploration (plan + review) | `Explore` subagents | sonnet (opus only for judgment calls) |
+| Planning | Main thread (plan mode forced on) | Session model, deep thinking |
+| Exploration (plan + review) | `Explore` subagents | mid tier (one tier up only for judgment calls) |
 | Implementation | `codex:codex-rescue` | `gpt-5.6`, `high`, `--write` |
 | Review | `general-purpose` subagent | `fable`, ultrathink |
 | Remediation | `codex:codex-rescue` | `gpt-5.6`, `xhigh`, `--write` |

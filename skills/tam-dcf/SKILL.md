@@ -24,12 +24,16 @@ Long-horizon FCFF DCF for a single growth stock, **anchored** to a TAM analysis 
 
 The TAM/revenue path is mostly settled by the time this skill runs — don't relitigate it. The DCF skill is for the *math*, *margin assumptions*, and *sensitivity*, where most of the iteration value lives.
 
-## Agentic Execution Notes (Claude Opus 4.7)
+## Agentic Execution Notes
 
-- **Effort**: Use `xhigh` for orchestration + pushback. Use `sonnet medium` for the dcf-math subagent (the work is Python, not deep reasoning). Use `opus xhigh` for the domain-expert subagent when invoked.
-- **Don't rebuild the TAM**: read it, summarize the user's interpretation, but do not relitigate layer-by-layer. If the TAM revenue path looks broken or inconsistent on inspection, FLAG it to the user — don't silently compensate.
-- **Subagents are the budget**: dispatch dcf-math via subagent so its Python compute doesn't pollute the orchestrator's context. Same for peer-margin / WACC anchor research via anchor-researcher.
+Express model choices by relative capability, not memorized names — lineups change. "Top tier" = strongest available; "mid tier" = the general workhorse.
+
+- **Effort**: If the harness exposes an effort control, start orchestration + pushback at the workhorse tier and step up only where a specific judgment call is genuinely hard. Mid tier at `medium` for the dcf-math subagent (the work is Python, not deep reasoning). Top tier at `xhigh` for the domain-expert subagent when invoked. Lower tiers are stronger than prior-model defaults suggest; sweep rather than pinning the ceiling.
+- **Don't rebuild the TAM**: read it, summarize the user's interpretation, but do not relitigate layer-by-layer. If the TAM revenue path looks broken or inconsistent on inspection, FLAG it to the user — don't silently compensate. Stay inside the DCF's scope: margins, reinvestment, ROIC, WACC, sensitivity. Do not expand into work the user did not ask for.
+- **Subagents are the budget**: dispatch dcf-math via subagent so its Python compute doesn't pollute the orchestrator's context. Same for peer-margin / WACC anchor research via anchor-researcher. Do not dispatch a subagent for work you can finish in one response, and do not improvise a second opinion — the domain-expert subagent (Mode A and Mode B) is the sanctioned one, and it is user-confirmed. dcf-math is delegated because it runs Python, not because a second reading is wanted.
 - **Slow by default**: per-anchor confirm for margin assumptions, WACC components, reinvestment intensity. The dcf-math runs in code, but the *assumptions feeding it* are per-anchor.
+- **Keep turns tight**: Per-anchor presentation is the value, the peer range, the source, your pick, and a one-line reason. Default responses run longer than this dialogue needs, and lowering effort does not reliably shorten them. The same applies to `dcf.md` — every section spec in `references/output-format.md` is a ceiling, not a target.
+- **Corrections**: When a sanity check FAILs or the user moves an assumption, revise it, say in one line which number changed and why, and continue. No apologies, no recap of the superseded reasoning, no running tally of prior discrepancies.
 
 ### All Math Runs in Python — No Exceptions
 
@@ -577,4 +581,4 @@ Within a session, survives context compaction the same way: re-read `dcf-state.j
 | `references/output-format.md` | `dcf.md` section spec + `dcf.html` schema (self-contained, inline assets) |
 | `references/state-schema.md` | `dcf-state.json` structure, resume contract |
 | `agents/dcf-math.md` | Python-driven FCFF + WACC + reverse-DCF + sensitivity subagent |
-| `agents/domain-expert.md` | On-demand opus-xhigh subagent for margin / ROIC / WACC / peer-benchmark opinions |
+| `agents/domain-expert.md` | On-demand top-tier `xhigh` subagent for margin / ROIC / WACC / peer-benchmark opinions |

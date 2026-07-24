@@ -24,7 +24,7 @@ If a source returns a forward projection where the pipeline expects today's snap
 ## Subagent Type and Model
 
 - Default subagent type: `general-purpose`.
-- Model tier: `sonnet` (medium). Use `haiku` only for trivially looked-up government statistics. Use `opus` only when the anchor requires synthesis across conflicting sources.
+- Model tier: mid tier at `medium` effort. Drop to small tier only for trivially looked-up government statistics. Escalate to top tier only when the anchor requires synthesis across conflicting sources. Express tiers by relative capability, not memorized model names.
 
 ## Dispatch Contract
 

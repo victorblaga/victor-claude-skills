@@ -91,7 +91,9 @@ All artifacts go in `.docs/plans/<feature-name>/`. The feature name is auto-gene
 ## Execution Notes
 
 - **Model/effort selection**: Every subagent spawn is a cost decision. Pick the cheapest capability tier that is plausibly adequate (see Capability Tiers in the Subagent Protocol) and escalate only on evidence. Do not default to the strongest model or maximum effort out of caution.
-- **Parallel subagents**: Spawn multiple subagents in the same turn when the orchestration plan assigns independent tasks to subagents (e.g., parallel implementation, parallel file exploration). Do not spawn a subagent for work you can complete directly in a single response.
+- **Parallel subagents**: Spawn multiple subagents in the same turn when the orchestration plan assigns independent tasks to subagents (e.g., parallel implementation, parallel file exploration). Do not spawn a subagent for work you can complete directly in a single response. Keep concurrent spawns in single digits.
+- **Scope and completion**: Implement the plan at the scope the proposal approved. Make routine judgment calls; check in only when different readings produce materially different work. Finish the whole task — report a phase complete only when every task in it is done and committed. If one is genuinely blocked, finish the rest and say plainly which is outstanding and why.
+- **Deliverable length**: The workflow's written artifacts (`proposal.md`, `implementation-plan.md`, `final-validation.md`, PR bodies) follow the templates in the phase references — those are ceilings, not targets. Written output runs longer than the format wants by default, and lowering effort does not reliably shorten it. Cover the substance; skip filler sections, restated context, and summaries of what an adjacent document already says.
 - **Parallel tool calls**: When reading multiple files or running independent searches, make all tool calls in parallel.
 - **Literal scope**: Be explicit about where instructions apply (e.g., "Apply this pattern to *every* new module, not just the first one").
 - **Minimalism guardrail**: Keep solutions simple and focused — see the Software Design Principles section; the minimalism rules there bind the orchestrator too, not just implementation subagents.
@@ -223,7 +225,7 @@ Use the **Agent tool** with a clear, self-contained prompt. The subagent has no 
 - Any constraints or conventions from the project's instruction files (CLAUDE.md, AGENTS.md, or equivalent)
 
 ### Waiting and progress policy
-- Once a subagent owns a substantive task, do not duplicate that task in the main thread just because the result is taking time.
+- Once a subagent owns a substantive task, do not duplicate that task in the main thread just because the result is taking time — and once it returns, do not redo its work or re-derive its findings. Commit to the delegation.
 - Use the waiting time for non-overlapping orchestration work: status updates, reading the next phase reference, preparing commit messages, or gathering adjacent context.
 - For background agents (launched with `run_in_background: true`), you'll be notified when they complete — do not poll or sleep.
 - For foreground agents, the Agent tool blocks until completion — only use foreground when you need the result before proceeding.

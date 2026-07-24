@@ -9,7 +9,7 @@ The orchestrator does not do math inline. LLMs are unreliable on compounded mult
 ## Subagent Type and Model
 
 - Subagent type: `general-purpose`.
-- Model tier: **`sonnet`** at **`medium`** effort. The work is Python script writing + execution + structured reporting. Deep reasoning is not the bottleneck; correctness of math is. Sonnet is fine.
+- Model tier: **mid tier** at **`medium`** effort. The work is Python script writing + execution + structured reporting. Deep reasoning is not the bottleneck; correctness of math is. Express tiers by relative capability, not memorized model names.
 
 ## When You Are Dispatched
 

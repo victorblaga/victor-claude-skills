@@ -20,7 +20,7 @@ The main flow may also proactively offer to dispatch you when a speculative laye
 ## Subagent Type and Model
 
 - Subagent type: `general-purpose`.
-- Model tier: **`opus`** at **`xhigh`** effort. Reasoning load is the whole point — this subagent is purchased for judgment, not retrieval.
+- Model tier: **top tier** (strongest available) at **`xhigh`** effort. Reasoning load is the whole point — this subagent is purchased for judgment, not retrieval.
 
 If you spawn further work, stay within the same tier or step down — never escalate above the parent.
 

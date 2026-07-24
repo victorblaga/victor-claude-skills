@@ -64,8 +64,10 @@ If no session is found, proceed to Phase 1.
 
 ## Execution Notes
 
-- **Effort**: If the harness exposes an effort control, run dimension agents at high effort and the Calibrator/Adjudicator at the highest available. Cruft detection requires semantic judgment, not checklist matching.
-- **Parallel subagents**: Launch all 4 dimension agents simultaneously in a single turn. The orchestrator must fan out deliberately.
+- **Effort**: Run dimension agents at the tier their phase reference pins (mid tier, high effort) — cruft detection requires semantic judgment, not checklist matching. The Calibrator and Adjudicator stay at the highest available: they gate what gets applied without human review, so this is the one place in the skill where capability outranks cost.
+- **Parallel subagents**: Launch all dimension agents simultaneously in a single turn. The orchestrator must fan out deliberately. The fan-out counts are set by the phase references (4 dimension agents, or N area agents in the sharded variant; ≤3 explorers each; ≤8 parallel Appliers) — do not exceed them, and do not add subagents outside the phase definitions.
+- **Report length**: `report.md` follows the section spec in `references/phase-7-report.md`, and that spec is a ceiling. Written output runs longer than the format wants by default, and lowering effort does not reliably shorten it. No filler sections, and no restating per-finding detail that already lives in `triage.md`.
+- **Corrections**: When an Applier veto or a Phase 6 revert overturns an earlier call, record it and continue. Do not narrate the reassessment — the ledger and `triage.md` are the record.
 - **Parallel tool calls**: Instruct dimension agents to read files and run searches in parallel when independent.
 - **Literal scope**: Be explicit about exclusions and boundaries (e.g., "Skip *all* files in `generated/` and `vendored/`, not just the first ones you see").
 - **Minimalism in auto-apply**: Applier subagents should make the minimum change that removes the cruft. Do not refactor adjacent code "while you're there."

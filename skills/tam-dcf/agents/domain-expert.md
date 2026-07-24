@@ -27,7 +27,7 @@ Dispatch is always user-confirmed.
 ## Subagent Type and Model
 
 - Subagent type: `general-purpose`.
-- Model tier: **`opus`** at **`xhigh`** effort. Same logic as TAM's domain-expert — you're purchased for judgment.
+- Model tier: **top tier** (strongest available) at **`xhigh`** effort. Same logic as TAM's domain-expert — you're purchased for judgment. Express tiers by relative capability, not memorized model names.
 
 ## Dispatch Contract
 

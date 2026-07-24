@@ -14,10 +14,12 @@ Become the codebase expert and answer the user's questions with evidence — the
 
 ## Execution Notes
 
-- **Effort**: If the harness exposes an effort control, use the highest tier for the initial exploration and for any complex reasoning about guarantees or edge cases.
+- **Effort**: If the harness exposes an effort control, start the initial exploration at the workhorse tier and step up only for genuinely hard reasoning about guarantees, concurrency, or edge cases. Routine lookups — "where is X defined", "what calls Y" — start lower. Lower tiers are stronger than prior-model defaults suggest; sweep downward rather than pinning the ceiling.
+- **Answer length**: Answer the question that was asked, at the length it needs. A question with a one-line answer gets one line plus its citation. Default responses run longer than this format wants, and lowering effort does not reliably shorten them — cut by dropping detail the user would not act on, not by compressing into fragments, abbreviations, or jargon.
+- **Corrections**: A follow-up question about an earlier answer is not, by itself, evidence that the answer was wrong — answer what was asked. Correct an earlier statement only when the error changes what the user would conclude or do; then state it plainly in one sentence and continue. Do not re-audit how you phrased or verified a claim that was accurate.
 - **Parallel tool use**: When reading multiple files or running independent searches during setup, make all tool calls in parallel.
 - **Batch user turns**: In Q&A mode, every user turn adds reasoning overhead. If the user asks several questions at once, answer them all in one response rather than asking for one at a time.
-- **Quote-grounding for large codebases**: When the user asks about behavior across many files or a large module, first have a subagent (or do directly) extract relevant code quotes with file:line references. Base your answer on those quotes rather than holding the entire codebase in working memory.
+- **Quote-grounding for large codebases**: When the user asks about behavior across many files or a large module, first have a subagent (or do directly) extract relevant code quotes with file:line references. Base your answer on those quotes rather than holding the entire codebase in working memory. Spawn for breadth, never for a second opinion — do not dispatch a subagent to re-check an answer you have already grounded in quoted code.
 
 ## Setup
 

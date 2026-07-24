@@ -51,6 +51,14 @@ The reason it's hard to see: intent lives in prose, but code generation pulls fr
 
 This skill's job is to catch the defaults, name them out loud, and propose what a real choice would look like instead.
 
+## Execution Notes
+
+- **Effort**: If the harness exposes an effort control, start the four-lens read and the diagnostic checks at the workhorse tier — judging whether a choice was a default or a decision is what this skill is bought for. Applying accepted fixes starts lower. Lower tiers are stronger than prior-model defaults suggest; sweep downward rather than pinning the ceiling.
+- **Delegation**: This skill mostly reads and judges — do it directly. Spawn a subagent only for genuinely wide exploration (a design system spread across many files). Never spawn one to re-check findings you already made; a second pass over your own review is not independence.
+- **Report length**: A finding is one line of statement, one of location, one of proposed fix. Default responses run longer than that, and lowering effort does not reliably shorten them — say the finding and stop. The report is a worksheet the user acts on, not an essay about craft.
+- **Completion**: Walk every finding through triage — call the review complete only when each has a verdict, and if something could not be judged from source, say so rather than dropping it.
+- **Corrections**: Only flag an earlier statement when the error changes a finding or a fix. State it plainly and continue.
+
 ## Workflow
 
 ```

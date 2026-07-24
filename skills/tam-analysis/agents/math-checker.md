@@ -7,7 +7,7 @@ Dispatched by the main `tam-analysis` flow to validate compound numeric math via
 ## Subagent Type and Model
 
 - Default subagent type: `general-purpose`.
-- Model tier: `sonnet` (medium). The reasoning load is small — the work is writing Python and reporting discrepancies.
+- Model tier: mid tier at `medium` effort. The reasoning load is small — the work is writing Python and reporting discrepancies. Express tiers by relative capability, not memorized model names.
 
 ## When You Are Dispatched
 

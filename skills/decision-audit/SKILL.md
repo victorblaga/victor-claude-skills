@@ -36,9 +36,20 @@ quality, style, or test coverage — only discretionary decisions.
 ## Execution Notes
 
 - **Explicit invocation only.** Never run this because implementation "just finished".
-- **Effort**: if the harness exposes an effort control, use a high tier for comparison and
-  triage — judging blast radius requires judgment. The cross-check subagent runs at the
-  session's default tier.
+- **Effort**: if the harness exposes an effort control, start comparison and triage at the
+  workhorse tier — judging blast radius requires judgment — and step up only where a specific
+  decision turns on a genuinely hard call. The cross-check subagent runs at the session's
+  default tier. Lower tiers are stronger than prior-model defaults suggest; sweep downward
+  rather than pinning the ceiling.
+- **One cross-check per audit scope.** Do not add a verification pass over your own comparison,
+  and do not spawn a second extractor for a "better" reading — the independence comes from the
+  fresh context, not from the count.
+- **Length**: the per-decision block is a fixed format and every field in it is one to three
+  sentences. The report follows the template below. Written output runs longer than both want
+  by default, and lowering effort does not reliably shorten it — fill the fields and stop.
+- **Corrections**: an incomplete self-report is the expected finding, not something to
+  apologize for. Record the blindspot, triage it, continue. Do not narrate your own
+  reassessment or tally what the session missed.
 - **Honesty over image**: the self-elicitation is enumeration, not confession. A decision
   made confidently still gets listed. Omitting a decision to look better defeats the skill.
 

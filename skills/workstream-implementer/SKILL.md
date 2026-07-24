@@ -24,6 +24,16 @@ This skill is the outer controller. It may implement small fixes directly, but f
 - Use `mega-review` then `review-triage` after large or risky diffs.
 - Use `agent-browser` for browser, dogfood, and end-to-end UI verification.
 
+## Execution Notes
+
+Express model choices by relative capability, not memorized names — lineups change.
+
+- **Effort**: If the harness exposes an effort control, start ticket refinement, repo scoping, and implementation planning at the workhorse tier and step up only for genuinely hard architectural calls. Routine work — status updates, PR bodies, JIRA comments, CI log reading — starts lower. Lower tiers are stronger than prior-model defaults suggest; sweep downward rather than pinning the ceiling.
+- **Delegation budget**: subagents multiply cost and latency — each re-establishes context, re-explores, and reports back. Delegate when the payoff clearly exceeds that overhead: wide multi-repo exploration, genuinely independent parallel tracks, or an independent fresh-context review (`mega-review` after a large or risky diff is exactly that, and stays a sanctioned delegation). Do not delegate work you can finish in a handful of tool calls, and do not delegate *command-output verification* — running the tests and quoting the result belongs in the main loop. Commit to a delegation rather than redoing it. Keep concurrent spawns in single digits.
+- **Scope and completion**: deliver the refined contract at the scope approved, across the repos scoped. Make routine judgment calls; check in only when different readings produce materially different work. Finish the whole ticket — call it review-ready only when every scoped repo has its branch, PR, verification, and JIRA update done. If one repo is genuinely blocked, finish the others and say plainly which is outstanding and why.
+- **Response length**: conversation turns run longer than this workflow needs, and lowering effort does not reliably shorten them. The workbook carries the detail; chat carries the decision the user has to make plus one concrete outcome per phase change. The same applies to written artifacts — JIRA descriptions, PR bodies, and `verification.md` cover the substance without filler sections or restated context.
+- **Corrections**: only flag an earlier statement when the error changes the code, the contract, or a decision the user already made. State it plainly and continue — no apologies, no recap of what went wrong, no tally of prior mistakes.
+
 ## Storage
 
 Use this global, agent-agnostic layout:

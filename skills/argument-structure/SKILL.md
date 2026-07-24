@@ -328,6 +328,7 @@ If the pyramid has 2 arguments instead of 3, reduce the tier to 2 boxes. If it h
 - Do not produce a pyramid without an answer. If you can't get to a one-sentence answer, stop and tell the user why.
 - Do not apologize, hedge, or add caveats. The pyramid is a tool for committing to a position.
 - Do not paste the full pyramid + plan into the chat window. The HTML file is the deliverable. Chat gets a link plus a 2-4 line summary, and nothing more.
+- Do not pad the HTML. Each pyramid node is one sentence; each restructuring step is a headline plus one or two sentences. Written output runs longer than this format wants by default, and lowering reasoning effort does not reliably shorten it — fill the placeholders and stop. More steps is not a better plan.
 
 ## The bar
 

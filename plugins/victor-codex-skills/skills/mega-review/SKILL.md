@@ -36,7 +36,8 @@ Spend where it buys recall and judgment; cut pure overhead:
 - **The orchestrator never ingests bulk content.** No diff reading, no findings inlining, no evidence output in the parent. It reads only small artifacts (`review-plan.md`, `intent.md`, interview answers, subagent confirmations).
 - **Cache-first prompt layout.** Dimension prompts share an identical prefix (static rules + conventions + runtime + intent + inline hunks); per-agent material goes last.
 - **Centralize curation, distribute reading.** Small digests (conventions, intent, hot spots, hunk index) are built once and passed down; bulk code reading stays in each agent's disposable context.
-- **Explorer floor is mid-tier, never small.** Cap ~4 explorer spawns per dimension agent; read directly when ≤2 files are involved.
+- **Explorer floor is mid-tier, never small.** Cap ~4 explorer spawns per dimension agent; read directly when ≤2 files are involved. These caps are ceilings, not targets — do not spawn ad-hoc re-checks outside the defined steps. Phase 1b's Critical/High double-verification is the one sanctioned second pass.
+- **Deliverables are sized, not padded.** `report.md` is assembled verbatim from finding text; the Consolidator adds severity lines, dedup merges, tension/pattern annotations, ordering, and headers — nothing else. Written output runs longer than the format wants by default, and lowering effort does not reliably shorten it. The section spec is a ceiling.
 
 ## Parse the Request
 

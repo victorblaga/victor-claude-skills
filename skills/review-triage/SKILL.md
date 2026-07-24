@@ -20,7 +20,10 @@ Interactive, finding-by-finding triage of a `/mega-review` report. The user and 
 
 ## Execution Notes
 
-- **Effort**: If the harness exposes an effort control, use the highest tier — triage requires judgment about trade-offs and architectural fit.
+- **Effort**: If the harness exposes an effort control, start at the workhorse tier — triage requires judgment about trade-offs and architectural fit — and step up only for findings that turn on genuinely hard architectural calls. Lower tiers are stronger than prior-model defaults suggest; sweep downward rather than pinning the ceiling.
+- **Presentation length**: The per-finding block is a fixed format and every field in it is one to three sentences. Default responses run longer than that, and lowering effort does not reliably shorten them — fill the fields and stop. No preamble before a finding, no summary after a verdict.
+- **Corrections**: When the user overturns a recommendation, record the decision and move to the next finding. Do not re-argue it, restate your original reasoning, or narrate the reassessment. A user revisiting a prior verdict (see Edge Cases) is routine — update both files and continue.
+- **Completion**: Every finding gets a verdict recorded in the right file before the triage is complete — excluding IDs subsumed by an already-decided tension or pattern, and handling skips per Edge Cases.
 - **Batched turns**: Every user turn adds reasoning overhead. When presenting findings, batch related low-severity items when possible. Keep the triage moving.
 - **Literal scope**: Be explicit about which findings a decision applies to (e.g., "This reject applies to *all* similar pattern-conformity findings in the review").
 

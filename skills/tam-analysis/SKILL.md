@@ -27,12 +27,16 @@ The discipline this enforces: a TAM build that could surface a multi-layer compo
 
 **This skill does TAM only.** The hand-off block is designed for a future DCF skill or for the user's existing DCF prompt. Do not attempt the DCF here.
 
-## Agentic Execution Notes (Claude Opus 4.7)
+## Agentic Execution Notes
 
-- **Effort**: Use `xhigh` for orchestration and pushback reasoning. Use `medium` (Sonnet) for anchor-research subagents. Use `medium` for math-checker (it runs code, doesn't need deep reasoning).
-- **Subagents are a budget tool**: Dispatch anchor-research and math-check work to subagents so the main thread stays clean across a long multi-layer session. The main thread holds the dialogue and the state.
-- **Parallel research only when independent**: If a layer needs three anchors (e.g., population, per-capita usage, online conversion %), dispatch them in parallel. Do not parallelize when one anchor's range determines the next anchor's scope.
+Express model choices by relative capability, not memorized names — lineups change. "Top tier" = strongest available; "mid tier" = the general workhorse; "small tier" = the cheapest adequate option.
+
+- **Effort**: If the harness exposes an effort control, start orchestration and pushback reasoning at the workhorse tier and step up only where a specific judgment call is genuinely hard. Mid tier at `medium` for anchor-research subagents and for math-checker (it runs code — deep reasoning is not the bottleneck). Lower tiers are stronger than prior-model defaults suggest; sweep rather than pinning the ceiling.
+- **Subagents are a budget tool**: Dispatch anchor-research and math-check work to subagents so the main thread stays clean across a long multi-layer session. The main thread holds the dialogue and the state. Do not dispatch a subagent for work you can finish in one response, and do not improvise a second opinion — the domain-expert subagent is the sanctioned one, and it is user-confirmed. Math-checking is delegated because it runs Python, not because a second reading is wanted.
+- **Parallel research only when independent**: If a layer needs three anchors (e.g., population, per-capita usage, online conversion %), dispatch them in parallel. Do not parallelize when one anchor's range determines the next anchor's scope. Keep concurrent dispatches in single digits.
 - **Slow by default**: This skill is intentionally per-anchor. Do not batch multiple anchors into one turn unless the user issued `faster` or `autopilot`.
+- **Keep turns tight**: Per-anchor presentation is value, range, source, confidence, your pick, and a one-line reason — not an essay. Default responses run longer than this dialogue needs, and lowering effort does not reliably shorten them.
+- **Corrections**: When a math-checker FAIL or a user correction moves a number, revise it, say in one line which number changed and why, and continue. No apologies, no recap of the superseded reasoning, no running tally of prior discrepancies.
 - **Save before talking**: Every confirmed anchor, every layer summary, every multiplication result is written to disk before being summarized in chat. The dialogue is recoverable from `dialogue.md` after a context compaction.
 
 ## Invocation
@@ -232,13 +236,13 @@ Dispatch is always user-confirmed — never run silently.
 
 **Persona is picked by the main flow** to match the specific question, not the company overall. AMZN's ad-network layer → ad-tech expert. AMZN's logistics moat → supply-chain operator. The persona composition pattern: "veteran [primary domain] analyst + ex-[adjacent operator role]" — forces triangulation between markets view and operator view. Full persona examples in `agents/domain-expert.md`.
 
-Model tier: opus xhigh. This subagent is purchased for judgment.
+Model tier: top tier at `xhigh`. This subagent is purchased for judgment.
 
 Output is saved (appended) to `~/.investing/companies/<TICKER>/<DATE>/expert-opinions.md` for later reference. The opinion is presented to the user immediately and may shift the analysis — log how it shifted in `dialogue.md`.
 
 ## Math-Checker
 
-Dispatched to a fresh Sonnet subagent (`agents/math-checker.md`). Runs at:
+Dispatched to a fresh mid-tier subagent (`agents/math-checker.md`). Runs at:
 
 - After every layer's **pool projection** (step 3): validates pool compounding from today → maturity.
 - After every layer's **multiplication step**: validates real-pricing compounding, today's-$ sizing math, and the today's-$ → nominal conversion at layer maturity (the only inflation overlay in the whole pipeline).
@@ -327,6 +331,6 @@ These hold for every turn:
 | `references/state-schema.md` | `state.json` structure, `sources.md` / `dialogue.md` / `handoff.md` formats, resume contract |
 | `agents/anchor-researcher.md` | Subagent prompt for cited anchor lookup |
 | `agents/math-checker.md` | Subagent prompt for code-validated math discipline |
-| `agents/domain-expert.md` | On-demand opus-xhigh subagent for expert opinion / pressure-test (persona picked per question) |
+| `agents/domain-expert.md` | On-demand top-tier `xhigh` subagent for expert opinion / pressure-test (persona picked per question) |
 
 Read references on demand — do not preload everything. Read `references/layer-protocols.md` at Step 0 (you need it to propose the layer structure). Read `references/per-layer-protocol.md` when you enter Layer 1. Read `references/multiplication-protocol.md` at the multiplication step. Read `references/handoff-format.md` at hand-off. Read `references/state-schema.md` once at session start (you need the schema to write `state.json` correctly).
