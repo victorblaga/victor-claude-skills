@@ -22,7 +22,7 @@ A file becomes an exemplar when:
 
 ### Exemplar file format
 
-`.docs/plans/<name>/exemplars.md`:
+`.scratch/docs/plans/<name>/exemplars.md`:
 
 ```markdown
 # Exemplars
@@ -77,7 +77,7 @@ After each user correction, ask: "I noticed you changed X to Y. Want me to log t
 
 ### Corrections file format
 
-`.docs/plans/<name>/corrections.md`:
+`.scratch/docs/plans/<name>/corrections.md`:
 
 ```markdown
 # Corrections Log

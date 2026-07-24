@@ -15,12 +15,14 @@ description: >
 
 Proactive multi-dimensional codebase hygiene. Four parallel dimension agents (each owning two related cruft dimensions) analyze the repo, a Calibrator dedupes and assigns blast radius per finding, LOW-blast findings auto-apply via per-file Appliers, HIGH-blast findings get triaged — conversationally with the user by default, or by a top-tier Adjudicator subagent in auto mode. Polyglot, Python-leaning, with per-language tool detection.
 
+**Artifact location.** Everything this skill writes is scratch, not product. Default to `.scratch/` at the repository root (`git rev-parse --show-toplevel`), unless the project's or user's instruction files (`AGENTS.md`, `CLAUDE.md`, or equivalent) name a different scratch location — those win. Outside a git repo, use `~/.scratch/<project>/`. Paths below assume the default.
+
 **CRITICAL RULES:**
 - **Preflight is scope-aware, not paranoid** — only uncommitted changes to tracked files *inside the sweep scope* block; unrelated artifacts don't. One consolidated confirmation, not five prompts. See Phase 1.
 - **Breadth over precision in analysis** — agents are encouraged to flag cross-dimension findings. The Calibrator dedupes.
 - **Blast radius, not confidence, gates auto-apply** — obvious-correct + low-impact auto-applies; obvious-correct + high-impact still goes to triage.
 - **Rejects become inline markers, not external ledgers** — `cleanup-sweep-skip: <reason>` lives with the code. Markers encode *human* rationale; auto mode never places them.
-- **Session artifacts are ephemeral** — live in `.docs/cleanup/<session>/`, gitignored.
+- **Session artifacts are ephemeral** — live in `.scratch/docs/cleanup/<session>/`, gitignored.
 
 ## Parse the Request
 
@@ -51,7 +53,7 @@ Record the mode in `scope.md` and `status.md`.
 
 Before starting, check for existing work:
 
-1. Look for `.docs/cleanup/*/status.md` in the project
+1. Look for `.scratch/docs/cleanup/*/status.md` in the project
 2. If found, read the most-recent session's `status.md` and present: *"Found in-progress sweep from YYYY-MM-DD at phase `X`, step `Y`. Resume?"* (In auto mode: resume without asking.)
 3. On resume, pick up at the phase indicated; use per-phase resume rules in the referenced phase file
 
@@ -85,7 +87,7 @@ Read only the phase you're entering. Do not preload all references.
 | **6 — Verify** | Post-apply test run; final CI-equivalent; 3-attempt fix cycle (autonomous revert-and-defer in auto mode) | `references/phase-6-verify.md` |
 | **7 — Report** | Inline final summary + marker-age nudge + optional test-sweep nudge | `references/phase-7-report.md` |
 
-Phase transitions: announce explicitly (*"Phase 1 complete, entering Phase 2."*), read the next phase reference, update `.docs/cleanup/<session>/status.md`.
+Phase transitions: announce explicitly (*"Phase 1 complete, entering Phase 2."*), read the next phase reference, update `.scratch/docs/cleanup/<session>/status.md`.
 
 ## Supporting References
 
@@ -113,7 +115,7 @@ Main-thread orchestration (triage walkthrough with user) inherits the session mo
 ## Artifact Layout
 
 ```
-.docs/cleanup/YYYY-MM-DD-<slug>/
+.scratch/docs/cleanup/YYYY-MM-DD-<slug>/
   status.md            # phase / step / next-action — drives resume
   scope.md             # target + exclusions + detected languages + tool availability + mode + sharding
   findings/
@@ -128,7 +130,7 @@ Main-thread orchestration (triage walkthrough with user) inherits the session mo
   report.md            # final summary
 ```
 
-Preflight ensures `.docs` is in `.gitignore` before creating this structure.
+Preflight ensures `.scratch` is in `.gitignore` before creating this structure.
 
 ## Cross-Skill Boundaries
 
@@ -144,8 +146,8 @@ Preflight ensures `.docs` is in `.gitignore` before creating this structure.
 
 If the user stops mid-sweep ("stop", "abandon", "let's not do this"):
 1. Ensure no uncommitted half-applied state — commit whatever is clean, warn about anything dirty
-2. Tell the user the branch name and `.docs/cleanup/<session>/` path
-3. Ask: *"Clean up (delete branch + `.docs` session dir), or leave for later resume?"*
+2. Tell the user the branch name and `.scratch/docs/cleanup/<session>/` path
+3. Ask: *"Clean up (delete branch + `.scratch` session dir), or leave for later resume?"*
 4. Act on their choice
 
 ## Cross-Phase Principles

@@ -37,13 +37,13 @@ Never default to the project's integration branch (`main`, `master`, `dev`, `sta
 
 If staying on an integration branch is the user's explicit choice, warn once and honor it.
 
-### 3. `.docs` gitignore check (silent)
+### 3. `.scratch` gitignore check (silent)
 
 ```bash
-grep -qE '^\.docs/?$' .gitignore 2>/dev/null
+grep -qE '^\.scratch/?$' .gitignore 2>/dev/null
 ```
 
-If absent, append `.docs/` to `.gitignore` and commit with `chore: ignore .docs sweep session dir`. Note the action in the confirmation card — do not ask a standalone question.
+If absent, append `.scratch/` to `.gitignore` and commit with `chore: ignore .scratch sweep session dir`. Note the action in the confirmation card — do not ask a standalone question.
 
 ### 4. Language detection
 
@@ -60,7 +60,7 @@ Combine with file-extension counts via `find`/`wc` to rank languages by LoC. Rec
 
 For each detected language, probe the tools in `references/tool-registry.md` with `command -v` / version checks. **Do not offer installs** — modern LLM-only analysis is an adequate fallback. Record availability in `scope.md`; each dimension agent notes gaps per the degradation policy. If the user explicitly asks for a tool install, honor it per the registry's install-scope rules.
 
-Run available tools now and save output to `.docs/cleanup/<session>/tool-output/` per the registry's ingestion section (after session init in step 8; order the steps accordingly).
+Run available tools now and save output to `.scratch/docs/cleanup/<session>/tool-output/` per the registry's ingestion section (after session init in step 8; order the steps accordingly).
 
 ### 6. Baseline test run
 
@@ -106,7 +106,7 @@ Sweep preflight summary:
   Languages:  Python (68%), TypeScript (32%)
   Tools:      vulture ✓ ruff ✓ mypy ✓ knip ✗ madge ✗ (missing → LLM-only fallback)
   Tests:      pytest — baseline GREEN
-  .gitignore: added `.docs/` (committed)
+  .gitignore: added `.scratch/` (committed)
 
 Proceed? (or adjust any line)
 ```
@@ -116,7 +116,7 @@ Auto mode — print the same card as an announcement and proceed.
 ### 9. Initialize session
 
 1. Generate session slug: `YYYY-MM-DD-<5-random-alphanumerics>`
-2. Create `.docs/cleanup/<slug>/` and subdirs
+2. Create `.scratch/docs/cleanup/<slug>/` and subdirs
 3. Write `scope.md` (target, exclusions, languages, tools, mode, sharding, baseline) and `status.md`:
 
 ```markdown
@@ -138,7 +138,7 @@ Auto mode — print the same card as an announcement and proceed.
 ### 10. Scan existing `cleanup-sweep-skip` markers
 
 ```bash
-rg -n "cleanup-sweep-skip" <scope> -g '!.docs/**' -g '!node_modules/**' -g '!.venv/**'
+rg -n "cleanup-sweep-skip" <scope> -g '!.scratch/**' -g '!node_modules/**' -g '!.venv/**'
 ```
 
 Record all markers + line numbers + ages (use `git blame` for age) in `scope.md` under "Known skip markers". Pass this list to all dimension agents in Phase 2 so they exclude marked regions from findings.
@@ -149,7 +149,7 @@ All of the following must be true before entering Phase 2:
 
 - [ ] No unresolved blocking git entries (in-scope tracked changes)
 - [ ] Branch decision executed (PR-continue or cleanup branch)
-- [ ] `.docs` gitignore resolved
+- [ ] `.scratch` gitignore resolved
 - [ ] Languages detected; sharding decided
 - [ ] Tool probe complete (silent; gaps noted)
 - [ ] Baseline test state recorded

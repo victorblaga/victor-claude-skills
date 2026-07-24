@@ -66,7 +66,7 @@ Duration: <start — end> (from status.md timestamps)
 After writing the report, run the marker scan and append / print an age-nudge block:
 
 ```bash
-rg -n "cleanup-sweep-skip" <repo-root> -g '!.docs/**' -g '!node_modules/**' -g '!.venv/**'
+rg -n "cleanup-sweep-skip" <repo-root> -g '!.scratch/**' -g '!node_modules/**' -g '!.venv/**'
 ```
 
 Parse each match for the trailing `(YYYY-MM-DD)`. Compute age. Classify:
@@ -130,7 +130,7 @@ Deferred (will re-surface next run): D
 Commits: <sha-start>..<sha-end>
 CI status: <result>
 
-Report: .docs/cleanup/<session>/report.md
+Report: .scratch/docs/cleanup/<session>/report.md
 ```
 
 Offer next steps:

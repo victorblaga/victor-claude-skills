@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 
-ROOT = Path.home() / ".docs" / "workstream-implementer" / "projects"
+ROOT = Path.home() / ".scratch" / "workstream-implementer" / "projects"
 VALID_REPO_STATUS = {"active", "reference", "ignored"}
 VALID_MERGE_STRATEGY = {"squash", "merge", "rebase", "ask"}
 

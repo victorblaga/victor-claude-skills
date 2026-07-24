@@ -9,8 +9,8 @@ Phase 3.2 validates the **plan** against the proposal. Phase 4 runs quick local 
 ## Phase 5.1: Proposal Coverage Audit
 
 Launch a **subagent with fresh context** (tier: DEEP — see Capability Tiers in SKILL.md; STANDARD for Small workflows) that receives:
-- The amended proposal (`.docs/plans/<feature-name>/proposal.md`)
-- The implementation plan (`.docs/plans/<feature-name>/implementation-plan.md`)
+- The amended proposal (`.scratch/docs/plans/<feature-name>/proposal.md`)
+- The implementation plan (`.scratch/docs/plans/<feature-name>/implementation-plan.md`)
 - The full diff from the base branch (`git diff <base-branch>...HEAD`)
 - Access to the codebase (for reading test files and inspecting behavior)
 
@@ -44,7 +44,7 @@ One of:
 - **PASS WITH NOTES** — all requirements covered, but there are minor observations (scope additions, alternative approaches taken). List them. Ready for PR unless the user objects.
 - **GAPS FOUND** — concrete gaps exist. List them with severity (critical vs. nice-to-have).
 
-Write findings to `.docs/plans/<feature-name>/final-validation.md`. Commit.
+Write findings to `.scratch/docs/plans/<feature-name>/final-validation.md`. Commit.
 Alongside the verdict, the orchestrator reviews `decisions.md` (next to `status.md`, if present) and surfaces entries worth user attention with the validation results.
 Update `status.md` to `Current phase: 5`, `Current step: 5.1-validation-complete`, and `Next action` based on the verdict.
 
@@ -72,8 +72,8 @@ The validation subagent should receive a prompt like:
 
 > You are reviewing a completed implementation against its original proposal.
 >
-> **Proposal**: Read `.docs/plans/<feature-name>/proposal.md`
-> **Implementation plan**: Read `.docs/plans/<feature-name>/implementation-plan.md`
+> **Proposal**: Read `.scratch/docs/plans/<feature-name>/proposal.md`
+> **Implementation plan**: Read `.scratch/docs/plans/<feature-name>/implementation-plan.md`
 > **Full diff**: Run `git diff <base-branch>...HEAD`
 > **Codebase access**: Full read access to all files
 >
@@ -81,7 +81,7 @@ The validation subagent should receive a prompt like:
 > 1. Extract every requirement and acceptance criterion from the proposal
 > 2. For each one, check: (a) is it implemented in the diff? (b) is it tested?
 > 3. Flag anything in the diff that exceeds proposal scope
-> 4. Write your findings to `.docs/plans/<feature-name>/final-validation.md` using the format described in the phase reference
+> 4. Write your findings to `.scratch/docs/plans/<feature-name>/final-validation.md` using the format described in the phase reference
 > 5. End with a verdict: PASS, PASS WITH NOTES, or GAPS FOUND
 >
 > Be thorough but fair — minor naming differences or slightly different approaches that achieve the same outcome are fine. Focus on behavioral gaps, not stylistic ones.

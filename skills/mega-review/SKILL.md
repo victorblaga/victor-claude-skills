@@ -75,8 +75,10 @@ Pass `{HUNKS_MODE}` (`inline` or `index`) and the path to subagents. Findings mu
 
 ### Output Directory
 
+**Artifact location.** Everything this skill writes is scratch, not product. Default to `.scratch/` at the repository root (`git rev-parse --show-toplevel`), unless the project's or user's instruction files (`AGENTS.md`, `CLAUDE.md`, or equivalent) name a different scratch location — those win. Outside a git repo, use `~/.scratch/<project>/`. Paths below assume the default.
+
 ```
-.docs/reviews/YYYY-MM-DD-pr-NNN-XXXXX/
+.scratch/docs/reviews/YYYY-MM-DD-pr-NNN-XXXXX/
 ```
 
 - `pr-NNN` — the PR number (e.g. `pr-97`); if there's no PR, use `diff` (e.g. `2026-03-11-diff-a3b2c`)
@@ -89,13 +91,13 @@ Also write `{OUTPUT_DIR}/reviewed-at.json`:
 {"head_sha": "<current HEAD>", "base": "<merge-base>", "branch": "<branch name>", "timestamp": "<ISO date>"}
 ```
 
-**Gitignore preflight**: check that `.docs/` is gitignored (review reports are local artifacts, not PR content):
+**Gitignore preflight**: check that `.scratch/` is gitignored (review reports are local artifacts, not PR content):
 
 ```bash
-grep -qE '^\.docs/?$' .gitignore 2>/dev/null || echo "ADD_NEEDED"
+grep -qE '^\.scratch/?$' .gitignore 2>/dev/null || echo "ADD_NEEDED"
 ```
 
-If missing, ask: "Append `.docs/` to `.gitignore`? (recommended)". On yes: append and commit `chore: ignore .docs review artifacts`.
+If missing, ask: "Append `.scratch/` to `.gitignore`? (recommended)". On yes: append and commit `chore: ignore .scratch review artifacts`.
 
 ## Dimensions
 
@@ -140,13 +142,13 @@ Launch the planner subagent unless the skip trigger applies (~10 files AND ~500 
 
 Read the project's `CLAUDE.md` (and guideline documents it references). Summarize conventions relevant to each dimension → `{PROJECT_CONVENTIONS}`. Pass to all subagents.
 
-**Prior decisions:** read `.docs/reviews/{project}/notes.md` if it exists → `{PRIOR_DECISIONS}`. Pass to the Calibrator in Step 3 (not to dimension agents — avoid anchoring).
+**Prior decisions:** read `.scratch/docs/reviews/{project}/notes.md` if it exists → `{PRIOR_DECISIONS}`. Pass to the Calibrator in Step 3 (not to dimension agents — avoid anchoring).
 
 **Runtime context** — deployment and scale facts that decide whether assumption-dependent findings are real or theoretical. Combined into `{RUNTIME_CONTEXT}`.
 
 #### Runtime profile (persistent, per project)
 
-Path: `.docs/reviews/{project}/runtime-profile.md`
+Path: `.scratch/docs/reviews/{project}/runtime-profile.md`
 
 **If it exists:** read it, note a one-line summary for the interview preview, proceed.
 

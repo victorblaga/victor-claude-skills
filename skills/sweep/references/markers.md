@@ -92,7 +92,7 @@ cleanup-sweep-skip: do not merge with sibling_module — they diverge in context
 In preflight (Phase 1), scan for markers:
 
 ```bash
-rg -n "cleanup-sweep-skip" <scope> -g '!.docs/**' -g '!node_modules/**' -g '!.venv/**'
+rg -n "cleanup-sweep-skip" <scope> -g '!.scratch/**' -g '!node_modules/**' -g '!.venv/**'
 ```
 
 Parse each match into:

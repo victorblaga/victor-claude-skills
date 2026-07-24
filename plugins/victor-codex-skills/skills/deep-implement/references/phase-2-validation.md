@@ -23,7 +23,7 @@ The subagent's job is to act as a critical reviewer. It should look for:
 
 The subagent writes its findings to:
 ```
-.docs/plans/<feature-name>/review-findings.md
+.scratch/docs/plans/<feature-name>/review-findings.md
 ```
 
 ### Review Findings Structure

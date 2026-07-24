@@ -115,8 +115,8 @@ Do NOT proceed to Phase 7 in a red state. Update `status.md` with `Phase: verify
 If Phase 1 recorded baseline tests as red (user accepted proceeding), the comparison is: was the set of failing tests the *same* at baseline as after the sweep? Use this command to compare:
 
 ```bash
-# Phase 1 baseline captured: .docs/cleanup/<session>/baseline-test-failures.txt
-diff <(sort .docs/cleanup/<session>/baseline-test-failures.txt) <(sort current-failures.txt)
+# Phase 1 baseline captured: .scratch/docs/cleanup/<session>/baseline-test-failures.txt
+diff <(sort .scratch/docs/cleanup/<session>/baseline-test-failures.txt) <(sort current-failures.txt)
 ```
 
 If the diff is empty: treat as "all pass" for the purposes of declaring Phase 6 green.

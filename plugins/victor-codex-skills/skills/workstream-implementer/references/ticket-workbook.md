@@ -3,7 +3,7 @@
 Ticket workbooks live at:
 
 ```text
-~/.docs/workstream-implementer/projects/<project>/tickets/<JIRA-KEY>/
+~/.scratch/workstream-implementer/projects/<project>/tickets/<JIRA-KEY>/
 ```
 
 The workbook is local implementation state. Do not link these paths in JIRA.

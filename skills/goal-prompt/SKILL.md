@@ -53,6 +53,7 @@ Generated prompts run under strong reasoning models (GPT-5.6-class Codex, Claude
 - **Right-sized output**: require concise responses, and deliverables sized to the task — cover the substance without filler sections, redundant summaries, or boilerplate. State this in the prompt; reasoning-effort settings do not reliably shorten user-facing output.
 - **Delegation budget**: subagents multiply cost and latency — each re-establishes context, re-explores, and reports back. Instruct the loop to delegate only when the payoff clearly exceeds that overhead; not for work completable in a handful of tool calls, and not for re-checking what a defined review step already covers (the adversarial review loop below is the sanctioned delegated review). Tell it to commit to a delegation rather than redoing the work, and to keep concurrent agents in single digits.
 - **Verification before done**: name the most relevant validation available and require quoting its output; if validation cannot run, the prompt must require explaining why and naming the next best check.
+- **Artifact location**: the loop's own working files — decision log, notes, scratch analysis — are scratch, not product. Tell it to default to `.scratch/` at the repository root, unless the project's or user's instruction files name a different scratch location, and to use `~/.scratch/<project>/` outside a git repo. Real deliverables go wherever the goal contract says.
 
 ## Dev Prompt Requirements
 
@@ -78,7 +79,7 @@ The generated prompt must require the goal-loop agent to:
    - Surface trade-offs, not just regressions. Examples: "storage increases about 2x to reduce lookup latency", "memory rises for batching", "writes get slower so reads get faster".
    - Pause for explicit user acceptance when a material performance, storage, memory, cost, or complexity trade-off appears. Do not hide trade-offs in the final summary after the decision has already been made.
    - If no measurable performance surface exists, state why.
-7. Maintain a decision log at `.docs/decision-logs/<branch-slug>.md`, appending each decision at the moment it is made: underspecification choices, deviations from the task contract, symptom-vs-root-cause calls, and trade-offs below the pause threshold in requirement 6. The final summary must include a Decisions section drawn from this log; a bare success claim is not acceptable completion.
+7. Maintain a decision log at `.scratch/docs/decision-logs/<branch-slug>.md` (or the project's named scratch location), appending each decision at the moment it is made: underspecification choices, deviations from the task contract, symptom-vs-root-cause calls, and trade-offs below the pause threshold in requirement 6. The final summary must include a Decisions section drawn from this log; a bare success claim is not acceptable completion.
 8. Verify before declaring completion. Quote the relevant command output or browser evidence in the final summary.
 
 ## General Prompt Requirements
@@ -94,7 +95,7 @@ The generated prompt must require the goal-loop agent to:
    - Stop after a clean review or 5 review cycles, whichever comes first.
    - Ignore nits unless they affect accuracy, completeness, or usability of the deliverable.
 4. Skip code-only gates (simplify, performance profiling, PR/CI). If the work grows a code surface (a script, a pipeline, site config), apply the relevant Dev requirements to that code only.
-5. Maintain a decision log at `.docs/decision-logs/<goal-slug>.md`, appending each decision at the moment it is made: underspecification choices, deviations from the goal contract, and trade-offs taken without asking. The final summary must include a Decisions section drawn from this log; a bare success claim is not acceptable completion.
+5. Maintain a decision log at `.scratch/docs/decision-logs/<goal-slug>.md` (or the project's named scratch location), appending each decision at the moment it is made: underspecification choices, deviations from the goal contract, and trade-offs taken without asking. The final summary must include a Decisions section drawn from this log; a bare success claim is not acceptable completion.
 6. Verify before declaring completion. Quote the concrete evidence — published URL, produced file path, command output — in the final summary.
 
 ## Output Format

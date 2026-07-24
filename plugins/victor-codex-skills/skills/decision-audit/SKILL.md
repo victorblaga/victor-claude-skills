@@ -19,6 +19,8 @@ model implements decisions flawlessly but decides badly where the task was under
 then declares success — a fix that works by coincidence, a scope-narrowing nobody approved,
 a trade-off taken silently.
 
+**Artifact location.** Everything this skill writes is scratch, not product. Default to `.scratch/` at the repository root (`git rev-parse --show-toplevel`), unless the project's or user's instruction files (`AGENTS.md`, `CLAUDE.md`, or equivalent) name a different scratch location — those win. Outside a git repo, use `~/.scratch/<project>/`. The paths in this skill assume the default.
+
 Asking "which choices are you not confident of?" is not enough: it only surfaces *known*
 uncertainty, from the same model that made the bad choice. This skill hardens the idea with
 three mechanisms:
@@ -50,7 +52,7 @@ Detect the mode — do not ask:
   Self-elicitation (Phase 2) draws on it.
 - **Fresh-session** — the implementation happened elsewhere (overnight goal run, a previous
   session). Phase 2 instead reads the decision log at
-  `.docs/decision-logs/<branch-or-goal-slug>.md` if present. If no log exists, skip Phase 2,
+  `.scratch/docs/decision-logs/<branch-or-goal-slug>.md` if present. If no log exists, skip Phase 2,
   run the audit on the cross-check extraction alone, and state that limitation explicitly in
   the triage and the report.
 
@@ -143,7 +145,7 @@ low-risk items 3–5 at a time to keep triage moving.
 
 ## Report
 
-Save to `.docs/decision-audits/YYYY-MM-DD-<slug>.md`:
+Save to `.scratch/docs/decision-audits/YYYY-MM-DD-<slug>.md`:
 
 ```markdown
 # Decision Audit — {slug}

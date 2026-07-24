@@ -12,6 +12,8 @@ description: >
 
 Become the codebase expert and answer the user's questions with evidence — the user interrogates you about the code.
 
+**Artifact location.** Everything this skill writes is scratch, not product. Default to `.scratch/` at the repository root (`git rev-parse --show-toplevel`), unless the project's or user's instruction files (`AGENTS.md`, `CLAUDE.md`, or equivalent) name a different scratch location — those win. Outside a git repo, use `~/.scratch/<project>/`. The paths in this skill assume the default.
+
 ## Execution Notes
 
 - **Effort**: Use a high reasoning effort for the initial exploration and for any complex reasoning about guarantees or edge cases.
@@ -60,15 +62,15 @@ You do not need to announce every gap as you find it - just keep a running list 
 
 When the user asks for it, produce a gaps document.
 
-**Location**: `.docs/cross-examine/<timestamp>-<id>-gaps.md` where timestamp is `YYYY-MM-DD` and id is a short random hex string (6 chars).
+**Location**: `.scratch/docs/cross-examine/<timestamp>-<id>-gaps.md` where timestamp is `YYYY-MM-DD` and id is a short random hex string (6 chars).
 
-**Gitignore preflight**: Before writing the gaps file, check that `.docs/` is in `.gitignore`:
+**Gitignore preflight**: Before writing the gaps file, check that `.scratch/` is in `.gitignore`:
 
 ```bash
-grep -qE '^\.docs/?$' .gitignore 2>/dev/null || echo "ADD_NEEDED"
+grep -qE '^\.scratch/?$' .gitignore 2>/dev/null || echo "ADD_NEEDED"
 ```
 
-If missing, ask the user: "Append `.docs/` to `.gitignore`? (recommended — gap dumps are local artifacts)". On yes: append and commit `chore: ignore .docs cross-examine artifacts`.
+If missing, ask the user: "Append `.scratch/` to `.gitignore`? (recommended — gap dumps are local artifacts)". On yes: append and commit `chore: ignore .scratch cross-examine artifacts`.
 
 **Format**:
 

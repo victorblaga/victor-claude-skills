@@ -12,6 +12,8 @@ description: >
 
 Become the codebase expert and answer the user's questions with evidence — the user interrogates you about the code.
 
+**Artifact location.** Everything this skill writes is scratch, not product. Default to `.scratch/` at the repository root (`git rev-parse --show-toplevel`), unless the project's or user's instruction files (`AGENTS.md`, `CLAUDE.md`, or equivalent) name a different scratch location — those win. Outside a git repo, use `~/.scratch/<project>/`. The paths in this skill assume the default.
+
 ## Execution Notes
 
 - **Effort**: If the harness exposes an effort control, start the initial exploration at the workhorse tier and step up only for genuinely hard reasoning about guarantees, concurrency, or edge cases. Routine lookups — "where is X defined", "what calls Y" — start lower. Lower tiers are stronger than prior-model defaults suggest; sweep downward rather than pinning the ceiling.
@@ -62,15 +64,15 @@ You don't need to announce every gap as you find it — just keep a running list
 
 When the user asks for it ("give me the gaps", "wrap up", "what's missing", "dump the gaps"), produce a gaps document:
 
-**Location**: `.docs/cross-examine/<timestamp>-<id>-gaps.md` where timestamp is `YYYY-MM-DD` and id is a short random hex string (6 chars).
+**Location**: `.scratch/docs/cross-examine/<timestamp>-<id>-gaps.md` where timestamp is `YYYY-MM-DD` and id is a short random hex string (6 chars).
 
-**Gitignore preflight**: Before writing the gaps file, check that `.docs/` is in `.gitignore`:
+**Gitignore preflight**: Before writing the gaps file, check that `.scratch/` is in `.gitignore`:
 
 ```bash
-grep -qE '^\.docs/?$' .gitignore 2>/dev/null || echo "ADD_NEEDED"
+grep -qE '^\.scratch/?$' .gitignore 2>/dev/null || echo "ADD_NEEDED"
 ```
 
-If missing, ask the user: "Append `.docs/` to `.gitignore`? (recommended — gap dumps are local artifacts)". On yes: append and commit `chore: ignore .docs cross-examine artifacts`.
+If missing, ask the user: "Append `.scratch/` to `.gitignore`? (recommended — gap dumps are local artifacts)". On yes: append and commit `chore: ignore .scratch cross-examine artifacts`.
 
 **Format**:
 

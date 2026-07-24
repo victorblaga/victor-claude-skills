@@ -5,13 +5,13 @@ Final validation and documentation reconciliation passed. Time to ship.
 ## Standard Mode
 
 1. **Decide what to do with working docs**:
-   - If repository norms or user preference say workflow docs should stay local-only, run `git rm --cached` on files in `.docs/plans/<feature-name>/`, commit the removal, and keep the files on disk
+   - If repository norms or user preference say workflow docs should stay local-only, run `git rm --cached` on files in `.scratch/docs/plans/<feature-name>/`, commit the removal, and keep the files on disk
    - If the repo treats these docs as useful review artifacts, keep them in the branch
 2. **Rebase onto latest base branch**: Pull the latest base branch and rebase. If conflicts arise, resolve straightforward ones yourself and escalate complex ones to the user.
 3. **Push the branch** to origin
 4. **Create the PR** using `gh pr create`:
    - Title: derived from the feature name / proposal title
-   - Body: summary of what was implemented and why (drawn from the proposal). If Phase 5 flagged any consciously descoped items, mention them in the PR description. If Phase 6 updated project docs or knowledge artifacts, include a "Documentation updates" section listing which files were changed and why, using `.docs/plans/<feature-name>/doc-reconciliation.md` as the source of truth.
+   - Body: summary of what was implemented and why (drawn from the proposal). If Phase 5 flagged any consciously descoped items, mention them in the PR description. If Phase 6 updated project docs or knowledge artifacts, include a "Documentation updates" section listing which files were changed and why, using `.scratch/docs/plans/<feature-name>/doc-reconciliation.md` as the source of truth.
    - Target: the base branch (dev/main)
 5. **Wait for CI** — check the PR's CI status
 6. **If CI fails**: Read the CI output, diagnose, fix, push. Max 3 attempts — after that, present the full diagnostic to the user and let them decide.

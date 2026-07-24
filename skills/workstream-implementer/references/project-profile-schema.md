@@ -3,7 +3,7 @@
 Project profiles live at:
 
 ```text
-~/.docs/workstream-implementer/projects/<project>/project.json
+~/.scratch/workstream-implementer/projects/<project>/project.json
 ```
 
 They are local-machine config. Do not commit them. Use `~` in paths where possible.

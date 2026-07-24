@@ -13,7 +13,7 @@ description: >
 
 ## Overview
 
-Coordinate implementation work that starts from a JIRA ticket or a new idea and may span multiple local repos. Treat the initial ticket as raw input, not as a complete implementation contract, unless it is already clearly refined. JIRA is the stakeholder contract. The local workbook under `~/.docs/workstream-implementer/` is the implementation state.
+Coordinate implementation work that starts from a JIRA ticket or a new idea and may span multiple local repos. Treat the initial ticket as raw input, not as a complete implementation contract, unless it is already clearly refined. JIRA is the stakeholder contract. The local workbook under `~/.scratch/workstream-implementer/` is the implementation state.
 
 The first responsibility is ticket refinement: clarify the user, job, pain, desired outcome, constraints, non-goals, and acceptance criteria before repo scoping or implementation planning. Keep this conversational and appropriately sized for the ticket. Do not turn small mechanical work into a heavyweight product discovery exercise, but do challenge vague or solution-first tickets before building.
 
@@ -26,10 +26,12 @@ This skill is the outer controller. It may implement small fixes directly, but f
 
 ## Storage
 
+The workbook is deliberately global rather than per-repo: a ticket can span several repos, so its state cannot live inside any one of them. Everything here is scratch, not product — never commit it. If the user's instruction files name a different location for cross-repo scratch, that wins over the default below.
+
 Use this global, agent-agnostic layout:
 
 ```text
-~/.docs/workstream-implementer/
+~/.scratch/workstream-implementer/
   projects/
     <project>/
       project.json

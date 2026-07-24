@@ -81,23 +81,23 @@ Never abort the sweep because of a missing tool.
 
 ## Tool Output Ingestion
 
-When a tool is available, run it in preflight (or early in the relevant dimension agent) and save raw output to `.docs/cleanup/<session>/tool-output/<tool>.txt`. The dimension agent reads this file as seed evidence and reconciles it against LLM findings, deduplicating and enriching with context.
+When a tool is available, run it in preflight (or early in the relevant dimension agent) and save raw output to `.scratch/docs/cleanup/<session>/tool-output/<tool>.txt`. The dimension agent reads this file as seed evidence and reconciles it against LLM findings, deduplicating and enriching with context.
 
 Example preflight commands (save output, do not abort on tool errors):
 
 ```bash
-mkdir -p .docs/cleanup/<session>/tool-output
+mkdir -p .scratch/docs/cleanup/<session>/tool-output
 
 # Python
-vulture <scope> > .docs/cleanup/<session>/tool-output/vulture.txt 2>&1 || true
-ruff check --select F401,F841 <scope> > .docs/cleanup/<session>/tool-output/ruff.txt 2>&1 || true
-pycycle --here --ignore <scope> > .docs/cleanup/<session>/tool-output/pycycle.txt 2>&1 || true
-mypy --strict <scope> > .docs/cleanup/<session>/tool-output/mypy.txt 2>&1 || true
+vulture <scope> > .scratch/docs/cleanup/<session>/tool-output/vulture.txt 2>&1 || true
+ruff check --select F401,F841 <scope> > .scratch/docs/cleanup/<session>/tool-output/ruff.txt 2>&1 || true
+pycycle --here --ignore <scope> > .scratch/docs/cleanup/<session>/tool-output/pycycle.txt 2>&1 || true
+mypy --strict <scope> > .scratch/docs/cleanup/<session>/tool-output/mypy.txt 2>&1 || true
 
 # TypeScript
-npx knip > .docs/cleanup/<session>/tool-output/knip.txt 2>&1 || true
-npx madge --circular <scope> > .docs/cleanup/<session>/tool-output/madge.txt 2>&1 || true
-npx tsc --noEmit --strict > .docs/cleanup/<session>/tool-output/tsc-strict.txt 2>&1 || true
+npx knip > .scratch/docs/cleanup/<session>/tool-output/knip.txt 2>&1 || true
+npx madge --circular <scope> > .scratch/docs/cleanup/<session>/tool-output/madge.txt 2>&1 || true
+npx tsc --noEmit --strict > .scratch/docs/cleanup/<session>/tool-output/tsc-strict.txt 2>&1 || true
 ```
 
 Never let a tool's non-zero exit code abort the sweep — tools reporting findings is normal.

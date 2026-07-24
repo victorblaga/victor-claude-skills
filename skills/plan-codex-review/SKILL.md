@@ -40,16 +40,18 @@ The division of labor is deliberate: Claude does the judgment-heavy ends (planni
 
 **The implementation plan is not written to disk.** It follows plan-mode conventions: presented for approval via the plan-mode gate and kept in-conversation. Phase 2 inlines its full contents into the Codex prompt, so no file is needed. (Exception: if the user explicitly asks for a persisted copy, write it to a location of their choosing after plan approval.)
 
-Review artifacts live in `.docs/plan/` inside the current working directory, named from a short kebab-case slug of the task plus the date:
+**Artifact location.** Everything this skill writes is scratch, not product. Default to `.scratch/` at the repository root (`git rev-parse --show-toplevel`), unless the project's or user's instruction files (`AGENTS.md`, `CLAUDE.md`, or equivalent) name a different scratch location — those win. Outside a git repo, use `~/.scratch/<project>/`. Paths below assume the default.
+
+Review artifacts live in `.scratch/docs/plan/` inside the current working directory, named from a short kebab-case slug of the task plus the date:
 
 | Artifact | Path |
 |----------|------|
-| Review + remediation plan (round 1) | `.docs/plan/YYYY-MM-DD-<slug>-review.md` |
-| Review + remediation plan (round N) | `.docs/plan/YYYY-MM-DD-<slug>-review-N.md` |
+| Review + remediation plan (round 1) | `.scratch/docs/plan/YYYY-MM-DD-<slug>-review.md` |
+| Review + remediation plan (round N) | `.scratch/docs/plan/YYYY-MM-DD-<slug>-review-N.md` |
 
 Overrides: if the user names a different location, use it. If the user says they don't want persistent files, skip the review file writes and present the review inline only.
 
-**Git scope: working tree only.** This skill never commits, branches, or pushes. Code changes and `.docs/plan/` artifacts are left for the user to commit (or ignore) themselves.
+**Git scope: working tree only.** This skill never commits, branches, or pushes. Code changes and `.scratch/docs/plan/` artifacts are left for the user to commit (or ignore) themselves.
 
 ## Phase 1 — Plan (Claude, main thread, deep thinking)
 
@@ -93,7 +95,7 @@ Runs in the main conversation thread. Think hard throughout this phase — plann
 3. **Required reviewer output** — two parts:
    - **Findings**, severity-ranked (Critical / Major / Minor / Nit), each with file:line evidence
    - **Remediation plan** — a self-contained, Codex-ready plan covering every Critical and Major finding (Minor/Nit included at the reviewer's discretion): same structure as a Phase 1 plan (context, changes, verification). It must be executable by Codex without access to the review conversation.
-4. **Write the review file** to `.docs/plan/YYYY-MM-DD-<slug>-review.md` (subsequent rounds get `-review-2.md`, `-review-3.md`, …).
+4. **Write the review file** to `.scratch/docs/plan/YYYY-MM-DD-<slug>-review.md` (subsequent rounds get `-review-2.md`, `-review-3.md`, …).
 5. **A clean review** (no Critical or Major findings) ends the run: report it, mention any Minor/Nit items inline, and stop.
 
 ### Review gate
@@ -112,7 +114,7 @@ There is no hard iteration cap — every loop passes through this gate, so the u
 
 - **Codex invocation fails** (CLI missing, unauthenticated, companion error): stop, show the error verbatim, point to `/codex:setup`. Never substitute main-thread implementation for a failed Codex run without asking.
 - **Reviewer subagent returns inadequate output** (empty, no remediation plan, no file:line evidence): retry once with a more specific prompt. If it fails again, do the review in the main thread and tell the user the subagent failed.
-- **Cancellation** ("stop", "abandon"): report what's in the working tree and `.docs/plan/`, and leave everything in place — this skill never deletes user work.
+- **Cancellation** ("stop", "abandon"): report what's in the working tree and `.scratch/docs/plan/`, and leave everything in place — this skill never deletes user work.
 
 ## Model summary
 

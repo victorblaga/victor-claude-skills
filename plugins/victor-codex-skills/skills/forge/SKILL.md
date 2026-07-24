@@ -12,6 +12,8 @@ description: >
 
 Builds clean, well-structured code through iterative, top-down construction. Works in horizontal slices — design all components at one abstraction level, validate, implement, then descend to the next level. Uses fresh-context agents for implementation and independent challenger agents for validation.
 
+**Artifact location.** Everything this skill writes is scratch, not product. Default to `.scratch/` at the repository root (`git rev-parse --show-toplevel`), unless the project's or user's instruction files (`AGENTS.md`, `CLAUDE.md`, or equivalent) name a different scratch location — those win. Outside a git repo, use `~/.scratch/<project>/`. The paths in this skill assume the default.
+
 The destination is code where every component does one thing, every layer speaks at one level of granularity, and business logic never tangles with infrastructure.
 
 ## Modes
@@ -49,7 +51,7 @@ Announce: "This looks like a [scope] task. I'll use [abbreviated/standard/full] 
 
 ### Resuming a Session
 
-Before starting fresh, check for `.docs/plans/*/progress.md`. If a matching in-progress forge exists, read its `progress.md` and ask: "Found an in-progress forge for <name> at <level/phase>. Resume from there?" On resume, reload `plan.md`, `exemplars.md`, and `corrections.md` before continuing — they carry the accumulated design state and the user's calibration.
+Before starting fresh, check for `.scratch/docs/plans/*/progress.md`. If a matching in-progress forge exists, read its `progress.md` and ask: "Found an in-progress forge for <name> at <level/phase>. Resume from there?" On resume, reload `plan.md`, `exemplars.md`, and `corrections.md` before continuing — they carry the accumulated design state and the user's calibration.
 
 ### Prototype Escape Hatch
 
@@ -190,18 +192,18 @@ The implementer being fresh prevents context drift on long sessions.
 
 ## Output Artifacts
 
-**Gitignore preflight**: Before creating `.docs/plans/<name>/`, check that `.docs/` is in `.gitignore` (forge planning artifacts are local workflow state, not PR content):
+**Gitignore preflight**: Before creating `.scratch/docs/plans/<name>/`, check that `.scratch/` is in `.gitignore` (forge planning artifacts are local workflow state, not PR content):
 
 ```bash
-grep -qE '^\.docs/?$' .gitignore 2>/dev/null || echo "ADD_NEEDED"
+grep -qE '^\.scratch/?$' .gitignore 2>/dev/null || echo "ADD_NEEDED"
 ```
 
-If missing, ask the user: "Append `.docs/` to `.gitignore`? (recommended)". On yes: append and commit `chore: ignore .docs forge artifacts`.
+If missing, ask the user: "Append `.scratch/` to `.gitignore`? (recommended)". On yes: append and commit `chore: ignore .scratch forge artifacts`.
 
-All artifacts live in `.docs/plans/<name>/`:
+All artifacts live in `.scratch/docs/plans/<name>/`:
 
 ```
-.docs/plans/<name>/
+.scratch/docs/plans/<name>/
 ├── plan.md            # Architecture: constraints, diagrams, components. Evolves with each level.
 ├── exemplars.md       # User-validated reference files with descriptions
 ├── corrections.md     # Correction log: CORRECTION → LESSON with WHY

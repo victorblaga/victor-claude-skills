@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 
-ROOT = Path.home() / ".docs" / "workstream-implementer" / "projects"
+ROOT = Path.home() / ".scratch" / "workstream-implementer" / "projects"
 
 
 def now() -> str:

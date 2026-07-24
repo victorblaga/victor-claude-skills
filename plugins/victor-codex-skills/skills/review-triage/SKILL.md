@@ -16,6 +16,8 @@ description: >
 
 Interactive, finding-by-finding triage of a `/mega-review` report. The user and the assistant walk through every finding together, deciding what to fix, what to reject, and what to defer. The output is an ordered implementation plan.
 
+**Artifact location.** Everything this skill writes is scratch, not product. Default to `.scratch/` at the repository root (`git rev-parse --show-toplevel`), unless the project's or user's instruction files (`AGENTS.md`, `CLAUDE.md`, or equivalent) name a different scratch location — those win. Outside a git repo, use `~/.scratch/<project>/`. The paths in this skill assume the default.
+
 **Core principle: architecture preservation.** The burden of proof is on the finding to justify a change, not on the developer to justify keeping the current design. Many review suggestions destroy more value than they create. This skill exists to separate the signal from the noise.
 
 ## Execution Notes
@@ -27,8 +29,8 @@ Interactive, finding-by-finding triage of a `/mega-review` report. The user and 
 ## Locate the Review
 
 1. The user may provide a path directly. If so, use it.
-2. Otherwise, scan `.docs/reviews/` for the most recent review folder (by date prefix in the directory name).
-3. Confirm with the user: "I found a review at `.docs/reviews/{folder}/`. Is this the one to triage?"
+2. Otherwise, scan `.scratch/docs/reviews/` for the most recent review folder (by date prefix in the directory name).
+3. Confirm with the user: "I found a review at `.scratch/docs/reviews/{folder}/`. Is this the one to triage?"
 
 The review folder contains:
 - `report.md` — the consolidated report (source of truth for findings, severities, and verdict)
@@ -56,7 +58,7 @@ Derive a short project identifier from the review context. This is used for the 
 
 ### 3. Read the runtime context
 
-Read `.docs/reviews/{project}/runtime-profile.md` (persistent deployment/scale facts) and `{review_folder}/review-context.md` (change-specific guarantees) if they exist. Findings carry an `Assumes` field stating the runtime conditions they depend on — these two files are the ground truth for judging whether those assumptions hold. If neither file exists, assumptions in findings are unverified; ask the user when a decision hinges on one.
+Read `.scratch/docs/reviews/{project}/runtime-profile.md` (persistent deployment/scale facts) and `{review_folder}/review-context.md` (change-specific guarantees) if they exist. Findings carry an `Assumes` field stating the runtime conditions they depend on — these two files are the ground truth for judging whether those assumptions hold. If neither file exists, assumptions in findings are unverified; ask the user when a decision hinges on one.
 
 ### 4. Create output files
 
@@ -86,7 +88,7 @@ Initialize with:
 
 **Persistent notes** (survives review folder deletion):
 ```
-.docs/reviews/{project}/notes.md
+.scratch/docs/reviews/{project}/notes.md
 ```
 
 If this file already exists, read it — it contains prior decisions from earlier reviews. Append to it; never overwrite. If it does not exist, create it with:
@@ -172,7 +174,7 @@ Apply these principles when making recommendations:
 - Findings that were already addressed in a previous review cycle (check `notes.md`)
 - Findings whose stated assumptions the runtime profile or change context contradicts — record the contradicted assumption in the rejection rationale so the decision is revisitable if the guarantee changes
 
-**Keeping the runtime profile current:** when the user's triage answers reveal a runtime fact not yet in `.docs/reviews/{project}/runtime-profile.md` (e.g. "we only ever run one instance", "that table is tiny"), append it to the profile — dated, like `notes.md` entries — so future reviews calibrate against it automatically.
+**Keeping the runtime profile current:** when the user's triage answers reveal a runtime fact not yet in `.scratch/docs/reviews/{project}/runtime-profile.md` (e.g. "we only ever run one instance", "that table is tiny"), append it to the profile — dated, like `notes.md` entries — so future reviews calibrate against it automatically.
 
 ### Trivial findings
 

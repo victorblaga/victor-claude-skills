@@ -51,23 +51,23 @@ Before writing the proposal, make sure you've considered:
 When it's time to write (either the user says so or you've reached natural completion), create:
 
 ```
-.docs/plans/<feature-name>/proposal.md
+.scratch/docs/plans/<feature-name>/proposal.md
 ```
 
 ### Gitignore preflight
 
-Before writing into `.docs/`, ensure `.docs/` is in `.gitignore` (session artifacts are ephemeral workflow state, not PR content):
+Before writing into `.scratch/docs/`, ensure `.scratch/` is in `.gitignore` (session artifacts are ephemeral workflow state, not PR content):
 
 ```bash
-grep -qE '^\.docs/?$' .gitignore 2>/dev/null || echo "ADD_NEEDED"
+grep -qE '^\.scratch/?$' .gitignore 2>/dev/null || echo "ADD_NEEDED"
 ```
 
-If missing, ask the user: "Append `.docs/` to `.gitignore`? (recommended — keeps deep-implement workflow files local)". On yes: append `.docs/` to `.gitignore` and commit with `chore: ignore .docs workflow artifacts`.
+If missing, ask the user: "Append `.scratch/` to `.gitignore`? (recommended — keeps deep-implement workflow files local)". On yes: append `.scratch/` to `.gitignore` and commit with `chore: ignore .scratch workflow artifacts`.
 
 Also create or update:
 
 ```
-.docs/plans/<feature-name>/status.md
+.scratch/docs/plans/<feature-name>/status.md
 ```
 
 The feature name should be a short, descriptive slug derived from the problem (e.g., `refactor-matching-pipeline`, `fix-geocoder-timeout`). If there's a JIRA ticket, include it (e.g., `CEN-123-refactor-matching-pipeline`).
@@ -131,7 +131,7 @@ Launch a **subagent with fresh context** (tier: DEEP — see Capability Tiers in
 
 This is a one-shot artifact-producing agent. Expect it to take time; do not replace it locally because it's running long.
 
-The subagent reads the report and the relevant code, then produces `.docs/plans/<name>/proposal.md` in the standard proposal format:
+The subagent reads the report and the relevant code, then produces `.scratch/docs/plans/<name>/proposal.md` in the standard proposal format:
 
 - **Problem Statement** — synthesized from the executive summary and architectural tensions. Write a narrative ("The codebase has X structural issues that manifest as Y problems"), not a list of findings.
 - **Context** — pulled from the review's scope, dimension summaries, and the code itself.
@@ -151,7 +151,7 @@ Add a metadata line at the top of the proposal:
 
 Use `review-` prefix followed by the review directory name:
 ```
-.docs/plans/review-2026-03-16-pr-42-x8k2f/proposal.md
+.scratch/docs/plans/review-2026-03-16-pr-42-x8k2f/proposal.md
 ```
 
 ### After transformation
