@@ -12,7 +12,7 @@ description: >
 
 Interactive, finding-by-finding triage of a `/mega-review` report. The user and the assistant walk through every finding together, deciding what to fix, what to reject, and what to defer. The output is an ordered implementation plan.
 
-**Artifact location.** Everything this skill writes is scratch, not product. Default to `.scratch/` at the repository root (`git rev-parse --show-toplevel`), unless the project's or user's instruction files (`AGENTS.md`, `CLAUDE.md`, or equivalent) name a different scratch location — those win. Outside a git repo, use `~/.scratch/<project>/`. The paths in this skill assume the default.
+**Artifact location.** This skill writes scratch, not product. Everything goes under `.scratch/` at the repo root (`~/.scratch/<project>/` outside one); a scratch path named in `AGENTS.md` / `CLAUDE.md` wins. Paths below assume the default.
 
 **Core principle: architecture preservation.** The burden of proof is on the finding to justify a change, not on the developer to justify keeping the current design. Many review suggestions destroy more value than they create. This skill exists to separate the signal from the noise.
 

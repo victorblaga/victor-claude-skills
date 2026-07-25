@@ -17,7 +17,7 @@ model implements decisions flawlessly but decides badly where the task was under
 then declares success — a fix that works by coincidence, a scope-narrowing nobody approved,
 a trade-off taken silently.
 
-**Artifact location.** Everything this skill writes is scratch, not product. Default to `.scratch/` at the repository root (`git rev-parse --show-toplevel`), unless the project's or user's instruction files (`AGENTS.md`, `CLAUDE.md`, or equivalent) name a different scratch location — those win. Outside a git repo, use `~/.scratch/<project>/`. The paths in this skill assume the default.
+**Artifact location.** This skill writes scratch, not product. Everything goes under `.scratch/` at the repo root (`~/.scratch/<project>/` outside one); a scratch path named in `AGENTS.md` / `CLAUDE.md` wins. Paths below assume the default.
 
 Asking "which choices are you not confident of?" is not enough: it only surfaces *known*
 uncertainty, from the same model that made the bad choice. This skill hardens the idea with

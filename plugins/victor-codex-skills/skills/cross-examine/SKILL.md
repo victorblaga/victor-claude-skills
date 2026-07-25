@@ -10,7 +10,7 @@ description: >
 
 Become the codebase expert and answer the user's questions with evidence — the user interrogates you about the code.
 
-**Artifact location.** Everything this skill writes is scratch, not product. Default to `.scratch/` at the repository root (`git rev-parse --show-toplevel`), unless the project's or user's instruction files (`AGENTS.md`, `CLAUDE.md`, or equivalent) name a different scratch location — those win. Outside a git repo, use `~/.scratch/<project>/`. The paths in this skill assume the default.
+**Artifact location.** This skill writes scratch, not product. Everything goes under `.scratch/` at the repo root (`~/.scratch/<project>/` outside one); a scratch path named in `AGENTS.md` / `CLAUDE.md` wins. Paths below assume the default.
 
 ## Execution Notes
 
@@ -62,13 +62,7 @@ When the user asks for it, produce a gaps document.
 
 **Location**: `.scratch/docs/cross-examine/<timestamp>-<id>-gaps.md` where timestamp is `YYYY-MM-DD` and id is a short random hex string (6 chars).
 
-**Gitignore preflight**: Before writing the gaps file, check that `.scratch/` is in `.gitignore`:
-
-```bash
-grep -qE '^\.scratch/?$' .gitignore 2>/dev/null || echo "ADD_NEEDED"
-```
-
-If missing, ask the user: "Append `.scratch/` to `.gitignore`? (recommended — gap dumps are local artifacts)". On yes: append and commit `chore: ignore .scratch cross-examine artifacts`.
+**Gitignore preflight**: if `.scratch/` is not matched by `.gitignore`, offer to append it and commit that as a `chore:` on its own — these are local artifacts, not PR content.
 
 **Format**:
 

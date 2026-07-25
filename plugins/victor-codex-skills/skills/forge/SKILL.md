@@ -11,7 +11,7 @@ description: >
 
 Builds clean, well-structured code through iterative, top-down construction. Works in horizontal slices — design all components at one abstraction level, validate, implement, then descend to the next level. Uses fresh-context agents for implementation and independent challenger agents for validation.
 
-**Artifact location.** Everything this skill writes is scratch, not product. Default to `.scratch/` at the repository root (`git rev-parse --show-toplevel`), unless the project's or user's instruction files (`AGENTS.md`, `CLAUDE.md`, or equivalent) name a different scratch location — those win. Outside a git repo, use `~/.scratch/<project>/`. The paths in this skill assume the default.
+**Artifact location.** This skill writes scratch, not product. Everything goes under `.scratch/` at the repo root (`~/.scratch/<project>/` outside one); a scratch path named in `AGENTS.md` / `CLAUDE.md` wins. Paths below assume the default.
 
 The destination is code where every component does one thing, every layer speaks at one level of granularity, and business logic never tangles with infrastructure.
 
@@ -191,13 +191,7 @@ The implementer being fresh prevents context drift on long sessions.
 
 ## Output Artifacts
 
-**Gitignore preflight**: Before creating `.scratch/docs/plans/<name>/`, check that `.scratch/` is in `.gitignore` (forge planning artifacts are local workflow state, not PR content):
-
-```bash
-grep -qE '^\.scratch/?$' .gitignore 2>/dev/null || echo "ADD_NEEDED"
-```
-
-If missing, ask the user: "Append `.scratch/` to `.gitignore`? (recommended)". On yes: append and commit `chore: ignore .scratch forge artifacts`.
+**Gitignore preflight**: if `.scratch/` is not matched by `.gitignore`, offer to append it and commit that as a `chore:` on its own — these are local artifacts, not PR content.
 
 All artifacts live in `.scratch/docs/plans/<name>/`:
 

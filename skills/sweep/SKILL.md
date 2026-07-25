@@ -13,7 +13,7 @@ description: >
 
 Proactive multi-dimensional codebase hygiene. Four parallel dimension agents (each owning two related cruft dimensions) analyze the repo, a Calibrator dedupes and assigns blast radius per finding, LOW-blast findings auto-apply via per-file Appliers, HIGH-blast findings get triaged — conversationally with the user by default, or by a top-tier Adjudicator subagent in auto mode. Polyglot, Python-leaning, with per-language tool detection.
 
-**Artifact location.** Everything this skill writes is scratch, not product. Default to `.scratch/` at the repository root (`git rev-parse --show-toplevel`), unless the project's or user's instruction files (`AGENTS.md`, `CLAUDE.md`, or equivalent) name a different scratch location — those win. Outside a git repo, use `~/.scratch/<project>/`. Paths below assume the default.
+**Artifact location.** This skill writes scratch, not product. Everything goes under `.scratch/` at the repo root (`~/.scratch/<project>/` outside one); a scratch path named in `AGENTS.md` / `CLAUDE.md` wins. Paths below assume the default.
 
 **CRITICAL RULES:**
 - **Preflight is scope-aware, not paranoid** — only uncommitted changes to tracked files *inside the sweep scope* block; unrelated artifacts don't. One consolidated confirmation, not five prompts. See Phase 1.

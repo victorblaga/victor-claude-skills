@@ -36,7 +36,7 @@ The division of labor is deliberate: Claude does the judgment-heavy ends (planni
 
 **The implementation plan is not written to disk.** It follows plan-mode conventions: presented for approval via the plan-mode gate and kept in-conversation. Phase 2 inlines its full contents into the Codex prompt, so no file is needed. (Exception: if the user explicitly asks for a persisted copy, write it to a location of their choosing after plan approval.)
 
-**Artifact location.** Everything this skill writes is scratch, not product. Default to `.scratch/` at the repository root (`git rev-parse --show-toplevel`), unless the project's or user's instruction files (`AGENTS.md`, `CLAUDE.md`, or equivalent) name a different scratch location — those win. Outside a git repo, use `~/.scratch/<project>/`. Paths below assume the default.
+**Artifact location.** This skill writes scratch, not product. Everything goes under `.scratch/` at the repo root (`~/.scratch/<project>/` outside one); a scratch path named in `AGENTS.md` / `CLAUDE.md` wins. Paths below assume the default.
 
 Review artifacts live in `.scratch/docs/plan/` inside the current working directory, named from a short kebab-case slug of the task plus the date:
 

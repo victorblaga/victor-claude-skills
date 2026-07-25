@@ -21,11 +21,9 @@ This is the Codex-native variant. Behavior matches the Claude canonical skill; d
 - **Conventions file:** read `AGENTS.md` first; fall back to `CLAUDE.md` if absent.
 - **Parallel fan-out:** launch all applicable dimension subagents + evidence pass in one turn when the harness supports it.
 
-**CRITICAL RULES:**
-- **READ-ONLY** — never modify any project code. The only output is the review report and its artifact files.
-- **Fan out** — launch all applicable dimension subagents (and the evidence subagent when planned) simultaneously in a single turn.
-- **All artifacts go in one dedicated review directory** — see Output Directory below.
-- **Coverage over filtering** — dimension agents report everything they find; the calibration step handles severity. A finding downgraded later is cheap; a finding silently dropped is unrecoverable.
+**READ-ONLY.** Never modify project code. The only output is the review report and its artifact files.
+
+Operating notes: launch all applicable dimension subagents (plus the evidence subagent when planned) in a single turn; write every artifact into the one review directory (see Output Directory); and let dimension agents report everything they find — calibration assigns severity, since a finding downgraded later is cheap and one silently dropped is unrecoverable.
 
 ## Token economics
 
@@ -84,7 +82,7 @@ Pass `{HUNKS_MODE}` (`inline` or `index`) and the path to subagents. Findings mu
 
 ### Output Directory
 
-**Artifact location.** Everything this skill writes is scratch, not product. Default to `.scratch/` at the repository root (`git rev-parse --show-toplevel`), unless the project's or user's instruction files (`AGENTS.md`, `CLAUDE.md`, or equivalent) name a different scratch location — those win. Outside a git repo, use `~/.scratch/<project>/`. Paths below assume the default.
+**Artifact location.** This skill writes scratch, not product. Everything goes under `.scratch/` at the repo root (`~/.scratch/<project>/` outside one); a scratch path named in `AGENTS.md` / `CLAUDE.md` wins. Paths below assume the default.
 
 ```
 .scratch/docs/reviews/YYYY-MM-DD-pr-NNN-XXXXX/
@@ -100,13 +98,7 @@ Also write `{OUTPUT_DIR}/reviewed-at.json`:
 {"head_sha": "<current HEAD>", "base": "<merge-base>", "branch": "<branch name>", "timestamp": "<ISO date>"}
 ```
 
-**Gitignore preflight**: check that `.scratch/` is gitignored (review reports are local artifacts, not PR content):
-
-```bash
-grep -qE '^\.scratch/?$' .gitignore 2>/dev/null || echo "ADD_NEEDED"
-```
-
-If missing, ask: "Append `.scratch/` to `.gitignore`? (recommended)". On yes: append and commit `chore: ignore .scratch review artifacts`.
+**Gitignore preflight**: if `.scratch/` is not matched by `.gitignore`, offer to append it and commit that as a `chore:` on its own — these are local artifacts, not PR content.
 
 ## Dimensions
 

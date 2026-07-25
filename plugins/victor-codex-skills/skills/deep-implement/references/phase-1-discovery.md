@@ -56,13 +56,7 @@ When it's time to write (either the user says so or you've reached natural compl
 
 ### Gitignore preflight
 
-Before writing into `.scratch/docs/`, ensure `.scratch/` is in `.gitignore` (session artifacts are ephemeral workflow state, not PR content):
-
-```bash
-grep -qE '^\.scratch/?$' .gitignore 2>/dev/null || echo "ADD_NEEDED"
-```
-
-If missing, ask the user: "Append `.scratch/` to `.gitignore`? (recommended — keeps deep-implement workflow files local)". On yes: append `.scratch/` to `.gitignore` and commit with `chore: ignore .scratch workflow artifacts`.
+If `.scratch/` is not matched by `.gitignore`, offer to append it and commit that as a `chore:` on its own — session artifacts are ephemeral workflow state, not PR content.
 
 Also create or update:
 
