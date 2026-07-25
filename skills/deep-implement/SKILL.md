@@ -1,14 +1,11 @@
 ---
 name: deep-implement
 description: >
-  End-to-end workflow for turning a problem statement into a validated proposal and implemented solution.
-  Covers discovery (Socratic questioning to uncover root causes), proposal writing, independent validation
-  with structured review, implementation planning, and execution with per-task commits and PR creation.
-  Also supports review-driven mode: accepts a mega-review report as input, transforms findings into a
-  proposal, and implements fixes on the current branch.
-  Trigger ONLY when the user explicitly says "deep-implement", "deep implement", or invokes via
-  /deep-implement. Do not trigger on general implementation requests — this is a deliberate, heavyweight
-  workflow that the user opts into by name.
+  Heavyweight end-to-end workflow: problem statement through Socratic discovery, written
+  proposal, independent validation, implementation plan, per-task commits and PR. Also
+  accepts a mega-review report as input and implements the fixes on the current branch.
+  Trigger only when the user explicitly says "deep-implement" or invokes /deep-implement —
+  not on ordinary implementation requests.
 ---
 
 # Deep Implement

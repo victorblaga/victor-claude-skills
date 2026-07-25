@@ -1,14 +1,12 @@
 ---
 name: sweep
 description: >
-  Whole-codebase hygiene workflow across duplication, dead code, circular deps, weak types,
-  defensive boilerplate, legacy shims, and comment slop, with blast-radius calibration and
-  triage of high-impact findings (conversational by default, subagent-adjudicated in auto mode).
-  Trigger ONLY when the user explicitly says "sweep", "cleanup sweep", "run a sweep",
-  "sweep the codebase", or invokes $sweep. Do NOT trigger on "do a cleanup pass",
-  "purge cruft", "clean up the whole codebase", single-file cleanup, PR-specific review
-  (use $mega-review), feature implementation (use $deep-implement), or casual "clean this up"
-  requests.
+  Whole-codebase hygiene pass across duplication, dead code, circular deps, weak types,
+  defensive boilerplate, legacy shims and comment slop, with blast-radius calibration and
+  triage of high-impact findings (conversational by default, subagent-adjudicated in auto
+  mode). Trigger only when the user explicitly says "sweep", "run a sweep", or invokes
+  $sweep — not on casual cleanup requests, single-file cleanup, or PR review (that is
+  $mega-review).
 ---
 
 # Sweep

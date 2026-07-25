@@ -1,15 +1,11 @@
 ---
 name: argument-structure
 description: >
-  Analyze any draft or idea against the Minto Pyramid Principle and deliver actionable
-  restructuring recommendations. Extracts the pyramid (one-sentence answer, 2-4 MECE
-  arguments, evidence per argument), diagnoses gaps, and delivers the fix as a visual HTML
-  artifact. Trigger ONLY when the user explicitly invokes "argument-structure",
-  "$argument-structure", "run argument-structure", "minto this", "run minto", "apply minto",
-  "minto-ify", "pyramid this", "build the pyramid", "pyramid principle this", or
-  "structure this as a pyramid". Do NOT trigger on generic structure/logic questions
-  ("what is the takeaway", "is this MECE", "pressure-test this"), drafting, editing, or
-  voice work.
+  Restructure a draft or idea with the Minto Pyramid Principle: extract the one-sentence
+  answer, 2-4 MECE arguments and the evidence under each, diagnose the gaps, and deliver
+  the fix as a visual HTML artifact. Trigger only on explicit invocation —
+  "argument-structure", "$argument-structure", "minto this", "pyramid this", or a
+  similar named request.
 ---
 
 # Argument Structure

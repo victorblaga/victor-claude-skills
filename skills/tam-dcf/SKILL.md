@@ -1,17 +1,13 @@
 ---
 name: tam-dcf
 description: >
-  Long-horizon FCFF DCF for a single growth stock, anchored to a completed TAM analysis
-  produced by /tam-analysis. Loads handoff.md + state.json from the most recent
-  ~/.investing/companies/<TICKER>/<DATE>/ session and refuses to proceed if none exists.
-  Per-anchor dialogue on the DCF-specific assumptions (mature margins, reinvestment
-  intensity, ROIC, WACC components, lease + SBC treatment), with Python-validated math,
-  reverse-DCF per scenario, sensitivity matrices, and a final report saved as both
-  Markdown (canonical) and interactive HTML (sensitivity heatmaps + charts). Trigger
-  ONLY on explicit invocation: "/tam-dcf", "/tam-dcf <TICKER>", "/tam-dcf <TICKER>
-  <DATE>", "/tam-dcf resume <TICKER>". Do not trigger on generic phrases like "value X",
-  "build a DCF for X", "what's X worth" — this is a deliberate workflow that requires
-  a completed TAM analysis as input.
+  Long-horizon FCFF DCF for a single growth stock, anchored to a completed tam-analysis.
+  Loads handoff.md + state.json from the most recent ~/.investing/companies/<TICKER>/<DATE>/
+  and refuses to proceed if none exists. Per-anchor dialogue on mature margins, reinvestment
+  intensity, ROIC, WACC components, leases and SBC; Python-validated math, reverse-DCF per
+  scenario, sensitivity matrices, and a report saved as Markdown plus interactive HTML.
+  Trigger only on explicit invocation — "/tam-dcf", "/tam-dcf <TICKER>", "/tam-dcf
+  <TICKER> <DATE>", "/tam-dcf resume <TICKER>".
 ---
 
 # TAM-DCF

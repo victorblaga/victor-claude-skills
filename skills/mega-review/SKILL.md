@@ -1,11 +1,10 @@
 ---
 name: mega-review
 description: >
-  Comprehensive multi-dimensional code review producing a structured markdown report.
-  Trigger ONLY when the user explicitly says "mega-review", "mega review", or invokes
-  /mega-review. Do NOT trigger on generic review requests ("deep review", "comprehensive
-  review", "full review", "review everything", "review this"), one-off cleanup, or when
-  the user wants code changes — this skill is strictly read-only analysis that outputs a report.
+  Read-only multi-dimensional review of a diff or PR: parallel dimension agents, an evidence
+  pass, verification, severity calibration, and synthesis into a markdown report. Changes no
+  code. Trigger only when the user explicitly says "mega-review" or invokes /mega-review —
+  not on generic review requests.
 ---
 
 # Mega Review

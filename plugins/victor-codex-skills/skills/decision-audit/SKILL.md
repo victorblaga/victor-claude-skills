@@ -1,15 +1,13 @@
 ---
 name: decision-audit
 description: >
-  Post-implementation audit of the decisions a coding session made — the choices, not the
-  diff. Elicits a structured self-report by category, cross-checks it against an independent
-  fresh-context extraction from the diff, and triages risky decisions one at a time
-  (keep / revise / revert). Works same-session (right after implementation) or fresh-session
-  (e.g. the morning after an overnight goal run, using the decision log the run left behind).
-  Trigger ONLY when the user explicitly says "decision-audit", "/decision-audit",
-  "audit your decisions", or "audit the choices".
-  Do NOT trigger for general code review requests ("review this", "check the code") — that is
-  /mega-review — and do NOT auto-fire after finishing implementation work.
+  Audit the decisions a coding session made — the choices, not the diff. Elicits a
+  structured self-report by category, cross-checks it against an independent fresh-context
+  extraction from the diff, then triages risky decisions one at a time (keep / revise /
+  revert). Works same-session or from the decision log an overnight goal run left behind.
+  Trigger only on explicit invocation — "decision-audit", "$decision-audit", "audit your
+  decisions". Not for general code review (that is $mega-review), and never auto-fire after
+  finishing implementation work.
 ---
 
 # Decision Audit

@@ -1,13 +1,12 @@
 ---
 name: tam-analysis
 description: >
-  Conversational bottom-up Fermi TAM analysis for a single growth stock. Builds defensible
-  revenue-at-maturity in nominal $ across 5 scenarios (bear / low / base / high / bull) layer by layer through slow per-anchor dialogue, with
-  cited research for every number, code-validated math, per-layer maturity + real pricing
-  power as an internal sizing tool, and a final DCF-ingestible hand-off block. Trigger ONLY on explicit invocation:
-  "/tam-analysis", "/tam-analysis <TICKER>", "/tam-analysis resume <TICKER>". Do not
-  trigger on generic phrases like "let's value X", "analyze TAM for X", "what's the TAM of X" —
-  this is a deliberate, multi-session workflow the user opts into by name.
+  Conversational bottom-up Fermi TAM analysis for a single growth stock: revenue-at-maturity
+  in nominal $ across bear / low / base / high / bull, built layer by layer through slow
+  per-anchor dialogue with cited research for every number, code-validated math, per-layer
+  maturity and real pricing power as an internal sizing tool, and a DCF-ingestible hand-off
+  block. Trigger only on explicit invocation — "$tam-analysis", "$tam-analysis <TICKER>",
+  "$tam-analysis resume <TICKER>".
 ---
 
 # TAM Analysis

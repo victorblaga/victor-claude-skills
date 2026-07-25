@@ -1,10 +1,9 @@
 ---
 name: long-form-article
 description: >
-  Collaborative workflow for writing or rewriting long-form articles for newsletters, essays,
-  or educational content. Trigger ONLY when the user explicitly says "long-form-article",
-  "long form article", or invokes /long-form-article. Do NOT trigger on general requests to
-  write an article, rewrite a piece, draft content, edit, copy-edit, or proofread.
+  Collaborative workflow for writing or rewriting long-form articles, newsletters and
+  essays. Trigger only when the user explicitly says "long-form-article" or invokes
+  /long-form-article — not on general requests to write, rewrite, or edit a piece.
 ---
 
 # Long-Form Article

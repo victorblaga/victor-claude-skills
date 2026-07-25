@@ -1,15 +1,11 @@
 ---
 name: review-triage
 description: >
-  Interactive triage of a mega-review report into an implementation plan.
-  Takes findings from $mega-review and walks through them one at a time with
-  the user, deciding accept / reject / defer for each. Produces an ordered
-  implementation-plan.md and maintains a persistent notes.md for rejected and
-  deferred findings that survives review folder deletion.
-  Trigger ONLY when the user explicitly says "review-triage" or invokes $review-triage.
-  Do NOT trigger on generic "triage the review" / "triage findings" phrasing, running a
-  review ($mega-review), or implementing findings ($deep-implement) — this skill is
-  strictly the triage step between those two.
+  Walk a mega-review report finding by finding with the user — accept / reject / defer —
+  producing an ordered implementation-plan.md plus a persistent notes.md that outlives the
+  review folder. Trigger only when the user explicitly says "review-triage" or invokes
+  $review-triage. This is the step between $mega-review and $deep-implement, not either
+  of them.
 ---
 
 # Review Triage

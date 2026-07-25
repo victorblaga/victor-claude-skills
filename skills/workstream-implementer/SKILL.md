@@ -1,12 +1,11 @@
 ---
 name: workstream-implementer
 description: >
-  Project-aware implementation workflow for taking a JIRA ticket or new project idea through
-  stakeholder contract clarification, local project profile resolution, multi-repo planning,
-  implementation, verification, PR creation, CI monitoring, and JIRA review updates. Use ONLY
-  when the user explicitly invokes "workstream-implementer", "/workstream-implementer",
-  "$workstream-implementer", or says to use workstream-implementer for a ticket or idea.
-  Do not trigger on ordinary implementation requests.
+  Project-aware implementation of a JIRA ticket or new project idea: stakeholder contract
+  clarification, local project profile resolution, multi-repo planning, implementation,
+  verification, PR creation, CI monitoring and JIRA review updates. Trigger only when the
+  user explicitly invokes "workstream-implementer" or /workstream-implementer — not on
+  ordinary implementation requests.
 ---
 
 # Workstream Implementer

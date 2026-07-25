@@ -1,15 +1,11 @@
 ---
 name: plan-codex-review
 description: >
-  Three-phase coding pipeline that pairs Claude's reasoning with Codex's implementation muscle:
-  deep planning by Claude in forced plan mode (runs on the session model) with a relentless
-  requirements interview and cheap exploration subagents, implementation delegated to
-  Codex via the codex plugin (gpt-5.6, high effort), and a fresh-context max-thinking review
-  by Claude (Fable) that produces a Codex-ready remediation plan (gpt-5.6, xhigh effort).
-  Claude Code only — requires the Agent tool and the openai-codex plugin.
-  Trigger ONLY when the user explicitly says "plan-codex-review" or invokes via /plan-codex-review.
-  Do not trigger on general implementation requests — this is a deliberate pipeline the user opts
-  into by name.
+  Three-phase pipeline: Claude plans in forced plan mode with a relentless requirements
+  interview and cheap exploration subagents, Codex implements via the openai-codex plugin,
+  then a fresh-context Claude review produces a Codex-ready remediation plan. Claude Code
+  only — requires the Agent tool and the codex plugin. Trigger only when the user explicitly
+  says "plan-codex-review" or invokes /plan-codex-review.
 ---
 
 # Plan / Codex / Review

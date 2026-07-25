@@ -1,11 +1,10 @@
 ---
 name: forge
 description: >
-  Iterative, top-down code construction skill. Builds clean, well-structured code through
-  horizontal-first layered design with progressive autonomy. Trigger ONLY when the user
-  explicitly says "forge" or invokes $forge. Do NOT trigger on general requests to build,
-  refactor, restructure, or refine code — those are ordinary implementation work, not this
-  heavyweight construction workflow.
+  Iterative top-down code construction: horizontal-first layered design with progressive
+  autonomy, calibrated against exemplar files the user has approved. Trigger only when the
+  user explicitly says "forge" or invokes $forge — not on ordinary build, refactor, or
+  restructure requests.
 ---
 
 # Forge

@@ -1,11 +1,9 @@
 ---
 name: cross-examine
 description: >
-  Become the codebase expert and answer the user's questions with evidence. The user
-  interrogates you about the code. Trigger ONLY when the user explicitly says
-  "cross-examine", "cross examine", or invokes $cross-examine. Do NOT trigger on general
-  requests to explain code, understand a codebase, or answer questions about how something
-  works.
+  Become the codebase expert and answer with evidence while the user interrogates you
+  about the code. Trigger only when the user explicitly says "cross-examine" or invokes
+  $cross-examine — not on general requests to explain code or how something works.
 ---
 
 # Cross-Examine
