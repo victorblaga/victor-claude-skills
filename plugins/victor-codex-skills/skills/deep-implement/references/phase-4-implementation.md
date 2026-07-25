@@ -83,6 +83,17 @@ After each task — whether implemented inline or by a subagent — run only tha
 
 Fix failures before committing. This is quick, mechanical confirmation that the task spec holds — not an independent audit.
 
+**Bug fixes and behavior changes — the test must be seen to fail before the patch.** Run the new
+test against the unpatched code and quote the failure, then apply the change and quote the pass. A
+test written after the fix and never seen red proves only that it agrees with the code sitting in
+front of it; that is the cheapest possible way to ship a test that would not have caught the bug it
+names. If running it in that order is impractical because the fix is already written, stash or
+revert the source change, run the test, and restore. If it passes against the unpatched code, either
+the test does not exercise the bug or the diagnosis is wrong — stop and say which, rather than
+recording a green run.
+
+**Deletion tasks** — removing slop, dead scaffolding, a flag, an abstraction, or an unnecessary guard — are done only when behavior is shown unchanged. Run the covering test before and after the deletion and quote both results. If nothing covers the deleted path, say so and either add a test first or report the deletion as unverified — do not describe it as verified. Remove the whole construct, not part of it: a deleted flag takes its losing branch, its config key, its docs, and its tests with it. A deletion that leaves a stub behind is the slop it was meant to remove.
+
 **Independent verification subagent** (rare opt-in): spawn only when the plan explicitly flags a task as **high-risk** (auth, data migrations, concurrency, public API contract changes, or similar). Tier: STANDARD. The subagent independently reviews: does the implementation match the task spec? Do verification criteria pass? Any obvious issues? For all other tasks, local checks plus the end-of-phase CI run and Phase 5 audit are sufficient.
 
 ### After each task

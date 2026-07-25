@@ -11,7 +11,7 @@ Independent validation of designs and implementations. The challenger is a FRESH
 
 ## Grading Criteria
 
-The challenger evaluates against five criteria. Each finding must be CONCRETE — specific file, line, or component reference, not vague observations.
+The challenger evaluates against six criteria. Each finding must be CONCRETE — specific file, line, or component reference, not vague observations.
 
 ### 1. Abstraction Discipline
 Does each component work at one granularity level?
@@ -72,6 +72,20 @@ This criterion only applies when exemplars exist. If no exemplars yet, skip.
 - Exemplar uses frozen dataclasses for domain types; new code uses dicts
 - Exemplar names stagers by source (CrmStager, RegistryStager); new code uses generic names (DataStager1, DataStager2)
 
+### 6. Slop — Weight Without Purpose
+Does the code contain anything that costs a maintainer and buys nothing?
+
+Check against the Slop Red Flags in `design-principles.md`: guards with no named failure mode, single-implementation abstractions, parameters no caller varies, pass-through wrappers, tests that assert on mocks, comments narrating the work, and flags or fallbacks hedging a decided change.
+
+**FAIL examples:**
+- `try/except Exception: log; return None` around an internal call that cannot fail that way
+- A `StagerProtocol` interface with exactly one implementer
+- `def build(self, sources, *, strict=True)` where every caller passes the default
+- A test asserting `mock_publisher.publish.assert_called_once()` and nothing about the result
+- The new assembler added while the old one is still wired up behind `if use_new_assembler:`
+
+**Test:** for each construct, name what breaks without it. "Nothing, but it is safer" is a finding.
+
 ## How to Prompt the Challenger
 
 The challenger subagent receives:
@@ -99,6 +113,7 @@ Evaluate against these criteria:
 3. Typed boundaries — do domain types cross every module boundary?
 4. Narrative readability — does code read like a story?
 5. Exemplar conformance — does it match established patterns? (skip if no exemplars)
+6. Slop — is there anything that costs a maintainer and buys nothing? (see Slop Red Flags in design-principles.md)
 
 For each finding:
 - WHAT: The specific problem
@@ -114,7 +129,7 @@ Rate each finding:
 Do NOT:
 - Approve work that has structural problems just because it "works"
 - Use phrases like "overall this is good" — focus on what's wrong
-- Suggest stylistic changes (formatting, comment style) — only structural issues
+- Suggest stylistic changes (formatting, naming taste) — structural problems and slop only. A comment that narrates the work *is* in scope; a comment you would word differently is not.
 - Praise the code before listing findings — lead with the problems
 ```
 
@@ -145,10 +160,11 @@ The challenger produces a structured report:
 
 The challenger's natural tendency is to be too lenient. Counter this with:
 
-1. **Lead with problems, not praise.** The challenger report starts with findings, not "overall impressions."
-2. **Grade against the standard, not the baseline.** "Better than typical AI-generated code" is not a pass. The standard is the exemplar files and design principles.
-3. **Question "fine" assessments.** If the challenger finds nothing wrong, it should re-examine more carefully. Perfect scores are suspicious — there's almost always something to improve.
-4. **Calibrate with corrections log.** The corrections log captures the USER's quality bar. If the user previously corrected something similar, a lenient pass is wrong.
+1. **Weight without purpose counts as a problem.** The easiest lenient pass is to accept a guard, a wrapper, or an interface because it is harmless. Harmless is not free — someone maintains it forever.
+2. **Lead with problems, not praise.** The challenger report starts with findings, not "overall impressions."
+3. **Grade against the standard, not the baseline.** "Better than typical AI-generated code" is not a pass. The standard is the exemplar files and design principles.
+4. **Question "fine" assessments.** If the challenger finds nothing wrong, it should re-examine more carefully. Perfect scores are suspicious — there's almost always something to improve.
+5. **Calibrate with corrections log.** The corrections log captures the USER's quality bar. If the user previously corrected something similar, a lenient pass is wrong.
 
 ## When to Skip the Challenger
 

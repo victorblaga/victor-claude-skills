@@ -32,4 +32,16 @@ Final validation and documentation reconciliation passed. Time to ship.
 
 ## Common
 
+**The PR body carries a reviewer packet.** A human still reads this diff, and how long that takes is
+set by what you hand them. Alongside the summary, include:
+
+- **Reading order** — the changed files in the order that makes the change comprehensible, one clause
+  each on why. Start where the behavior enters the system, end at the tests. A reviewer left to read
+  in `git diff` order reconstructs your reasoning backwards from its consequences.
+- **How it was verified** — the commands actually run, and their results. Never list a check that was
+  not run.
+- **Not verified** — what the tests do not cover, what was checked by reading only, what still needs
+  a human in a browser or a staging environment, and any assumption the implementation rests on.
+  Leaving this section out is itself a claim that nothing is outstanding; only make it if it is true.
+
 Do **not** merge the PR — that's always the user's action via the GitHub web UI.

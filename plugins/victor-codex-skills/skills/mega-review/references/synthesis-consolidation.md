@@ -57,6 +57,19 @@ When the **same defect class** appears in **≥3 locations** (same mistake, not 
 
 Patterns reduce noise without losing recall — the Consolidator merges subsumed findings under the pattern.
 
+**Part C — Slop profile**
+
+Read `ai-slop.md` (skip Part C if the AS dimension did not run) plus any slop-class findings other dimensions raised, and produce one rollup:
+
+### Slop profile
+- **Removable lines:** ~{M} of ~{N} added ({P}%)
+- **Findings per class:** S1=… S2=… S3=… S4=… S5=… S6=… S7=… S8=…
+- **Dominant classes:** {top two, with the strongest example ID for each}
+- **Reading:** (2-3 sentences — what the distribution says about how this change was produced: defensive hedging under uncertainty, abstraction ahead of need, coverage padding, an unfinished migration)
+- **Deletion pass:** (can the slop be removed as one commit, or does some of it need staged work? Name what needs staging and why — usually an uncovered path that needs a test first.)
+
+A slop class repeating in ≥3 locations is also a Part B pattern — roll it up there and reference it here rather than listing occurrences twice.
+
 ---
 
 End with:
@@ -66,6 +79,7 @@ End with:
 - Tension-subsumed findings: {count} of {total}
 - Recurring patterns: {count}
 - Pattern-subsumed findings: {count} of {total}
+- Slop: {count} findings, ~{M} removable lines ({P}% of added), dominant class {S#} (or "AS dimension not run")
 - Intent assessment: (1-2 sentences — does the change deliver what was asked? Pull from IC findings.)
 - Assessment: (1-2 sentences — architectural evolution needed?)
 
@@ -99,9 +113,10 @@ You are the Review Consolidator — a verbatim assembler. Merge dimension findin
 2. **Deduplicate:** same issue across dimensions → one finding, note all dimensions.
 3. **Apply tensions:** Architectural Tensions section first; annotate subsumed findings `Part of T-{N}`.
 4. **Apply patterns:** Recurring Patterns section; annotate subsumed findings `Part of P-{N}`; in severity sections, omit individual subsumed findings (they're covered by the pattern entry).
-5. **Copy finding text verbatim** from dimension files for Issue, Code, Suggestion, Impact, etc. Your edits are limited to: severity lines, dedup merges, tension/pattern annotations, ordering, and section headers.
-6. **Sort** by severity: Critical, High, Medium, Low.
-7. **Verdict:** Ready / Ready with fixes / Not ready — based on Critical/High counts and intent gaps (any IC Missing/Partial on core requirements → at least "Ready with fixes"; any Critical → "Not ready" unless user context says otherwise).
+5. **Apply the slop profile:** copy synthesis Part C into the Slop Profile section verbatim. AS findings still appear in their severity sections — the profile summarizes, it does not replace them.
+6. **Copy finding text verbatim** from dimension files for Issue, Code, Suggestion, Impact, etc. Your edits are limited to: severity lines, dedup merges, tension/pattern annotations, ordering, and section headers.
+7. **Sort** by severity: Critical, High, Medium, Low.
+8. **Verdict:** Ready / Ready with fixes / Not ready — based on Critical/High counts and intent gaps (any IC Missing/Partial on core requirements → at least "Ready with fixes"; any Critical → "Not ready" unless user context says otherwise).
 
 **Writing the file is the whole point.** After Write succeeds, reply ≤3 lines with file path and stat summary (e.g. "2 critical / 5 high / 11 medium / 8 low / 3 rejected").
 
@@ -134,6 +149,12 @@ You are the Review Consolidator — a verbatim assembler. Merge dimension findin
 (Omit if none. Copy each pattern with locations list. Then:)
 
 > Findings marked `Part of P-{N}` are rolled up above.
+
+## Slop Profile
+
+(Omit if the AI Slop dimension did not run. Copy the slop profile from `architectural-synthesis.md` verbatim, then:)
+
+> AS findings appear in the severity sections below. Accepted together, they form a single deletion pass.
 
 ## Critical Findings
 

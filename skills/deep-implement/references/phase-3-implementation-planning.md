@@ -47,6 +47,13 @@ execution per task in Phase 4.0 — see suggested execution modes on each task b
 **What**: Clear description of the change — specific enough that an agent with only
 this task description and the codebase can implement it without ambiguity.
 **Files affected**: List of files to create/modify/delete
+**Program design**: The signatures this task introduces or changes — exact names and types, not
+prose. New or changed types with their fields; new or changed function and method signatures with
+parameter and return types; the call path through them (`entry -> validation -> domain op ->
+dependency`). Name the type that crosses every module boundary this task touches: if that type is
+`dict`, `Any`, or unnamed, introduce a domain type here, in the plan, rather than leaving the
+implementer to invent one. Omit this field only for tasks that add no new symbol — a config edit, a
+doc change, a pure deletion.
 **Approach**: How to implement this — key decisions, patterns to follow, gotchas to watch for
 **Suggested execution**: inline / subagent — brief rationale (e.g., "inline — single file, straightforward")
 **High-risk**: yes / no — if yes, note why (auth, migration, concurrency, public API, etc.)
@@ -77,6 +84,14 @@ The planning agent decides the dependency/ordering strategy based on:
 - **Sequential**: When tasks are small, tightly coupled, or there are only 2-3 of them. Good for small/medium changes.
 - **Waves (parallel + sequential)**: When there are independent tasks that can run simultaneously, followed by tasks that depend on them. Good for larger changes.
 
+**Order by behavior, not by layer.** Whichever strategy applies, the first slice through the system
+is a thin working path end to end — one real input reaching one real output — not "all the models",
+then "all the services", then "all the endpoints". Layer-ordered plans look tidy and defer every
+integration risk to the final task, where the wrong assumption is most expensive and the diff is
+least reviewable. Behavior-ordered plans put that assumption in front of you at task 1. Extend the
+working path with the next case, then the first failure mode, then the remaining variants. A task
+that cannot be exercised until a later task lands needs a stated reason.
+
 For each task, the planner also suggests an execution mode (`inline` or `subagent`) and whether it is **high-risk** (needs independent verification — see Phase 4). These are recommendations only. The orchestrator makes the final assignment in Phase 4.0 based on live context — e.g., a task suggested as `subagent` may run inline if context is clean and the diff is small; conversely, inline may become subagent if the main thread is already heavy.
 
 Default planner bias: suggest **`inline`** unless there is a concrete reason for `subagent` (large exploration surface, parallelizable independence, or DEEP-tier reasoning need).
@@ -94,6 +109,13 @@ A good plan should:
 - Be self-contained enough that an agent with no conversation history can execute it
 - Follow the project's software design principles — new abstractions should be deep (not shallow wrappers), module boundaries should hide complexity, and internal steps should be plain classes/functions rather than framework services
 - Tag each task with a suggested execution mode and high-risk flag to inform Phase 4.0 orchestration
+- Pass the **change-amplification test**: name the most likely follow-up change to this feature, then
+  count the places this plan would make you edit to satisfy it. One or two, in the same layer, is
+  fine. A branch in the caller plus a field on the type plus a config key plus a mapping table plus
+  three tests means the concept is smeared across the design — and it is smeared *now*, for the
+  current requirement, not just for the hypothetical one. Fix the design before implementing. Record
+  the named next change and the count in the plan's Overview; the point is not to build for that
+  change, it is that the count is evidence about the design you already have.
 
 Commit the implementation plan.
 Update `status.md` to `Current phase: 3`, `Current step: 3.1-plan-complete`, and `Next action: Validate the implementation plan`.

@@ -38,6 +38,7 @@ After all Appliers finish:
    6. `cleanup: remove legacy / fallback code (N files, M findings)` (if any reached LOW)
    7. `cleanup: break circular imports (N files, M findings)` (if any reached LOW)
    8. `cleanup: remove unnecessary defensive code (N files, M findings)` (rare; most DF are HIGH)
+   9. `cleanup: strengthen low-value tests (N files, M findings)` (strengthenings and merges only — test *deletions* are always HIGH and go to triage)
 2. Files with findings from multiple dimensions appear in only ONE commit: choose the dimension with the most findings in that file; tie-break to the earlier (safer) dimension in the list.
 3. Run the baseline test command. If newly red, see "Post-apply verification" below.
 

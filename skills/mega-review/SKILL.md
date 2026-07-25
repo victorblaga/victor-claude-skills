@@ -9,7 +9,7 @@ description: >
 
 # Mega Review
 
-Comprehensive, parallel code review across 9 core dimensions (plus conditional specialists). A planner subagent steers the review; parallel dimension subagents produce findings; an evidence pass runs ground-truth checks; verification fact-checks findings; a Calibrator assigns final severity; Synthesis connects tensions and recurring patterns; a Consolidator assembles the report.
+Comprehensive, parallel code review across 10 core dimensions (plus conditional specialists). A planner subagent steers the review; parallel dimension subagents produce findings; an evidence pass runs ground-truth checks; verification fact-checks findings; a Calibrator assigns final severity; Synthesis connects tensions and recurring patterns; a Consolidator assembles the report.
 
 **READ-ONLY.** Never modify project code. The only output is the review report and its artifact files.
 
@@ -24,7 +24,7 @@ Spend where it buys recall and judgment; cut pure overhead:
 - **Cache-first prompt layout.** Dimension prompts share an identical prefix (static rules + conventions + runtime + intent + inline hunks); per-agent material goes last.
 - **Centralize curation, distribute reading.** Small digests (conventions, intent, hot spots, hunk index) are built once and passed down; bulk code reading stays in each agent's disposable context.
 - **Explorer floor is mid-tier, never small.** Cap ~4 explorer spawns per dimension agent; read directly when ≤2 files are involved. These caps are ceilings, not targets — do not spawn ad-hoc re-checks outside the defined steps. Phase 1b's Critical/High double-verification is the one sanctioned second pass.
-- **Deliverables are sized, not padded.** `report.md` is assembled verbatim from finding text; the Consolidator adds severity lines, dedup merges, tension/pattern annotations, ordering, and headers — nothing else. Written output runs longer than the format wants by default, and lowering effort does not reliably shorten it. The section spec is a ceiling.
+- **Deliverables are sized, not padded.** `report.md` is assembled verbatim from finding text; the Consolidator adds severity lines, dedup merges, tension/pattern/slop-profile annotations, ordering, and headers — nothing else. Written output runs longer than the format wants by default, and lowering effort does not reliably shorten it. The section spec is a ceiling.
 
 ## Parse the Request
 
@@ -92,7 +92,7 @@ Also write `{OUTPUT_DIR}/reviewed-at.json`:
 
 ## Dimensions
 
-Nine core dimensions plus two conditional specialists. Full catalog and activation rules: `references/review-planner.md`.
+Ten core dimensions plus two conditional specialists. Full catalog and activation rules: `references/review-planner.md`.
 
 | # | Dimension | Prefix | Output file | Keyword triggers |
 |---|-----------|--------|-------------|------------------|
@@ -105,6 +105,7 @@ Nine core dimensions plus two conditional specialists. Full catalog and activati
 | 7 | Refactoring Opportunities | RO | `refactoring-opportunities.md` | "refactor", "consolidate", "simplify", "technical debt" |
 | 8 | Performance | PF | `performance.md` | "performance", "N+1", "Big O", "slow", "queries", "memory" |
 | 9 | Intent Conformance | IC | `intent-conformance.md` | "intent", "requirements", "scope", "delivered vs asked" |
+| 10 | AI Slop | AS | `ai-slop.md` | "slop", "AI slop", "over-engineered", "bloat", "unnecessary", "delete", "defensive" |
 | — | Data Migration (conditional) | DM | `data-migration.md` | migrations, schema dumps, backfills |
 | — | API/Contract (conditional) | BC | `api-contract.md` | routes, serializers, public API, breaking changes |
 
@@ -197,6 +198,7 @@ Review complete.
 - Rejected (factually incorrect): {count}
 - Architectural tensions: {count} (subsuming {M} findings)
 - Recurring patterns: {count}
+- Slop: {N} findings, ~{M} removable lines ({P}% of added), dominant class {S#}
 
 Review directory: {OUTPUT_DIR}/
 Main report: {OUTPUT_DIR}/report.md

@@ -28,6 +28,8 @@ This ordering maximizes prompt-cache hits across parallel launches.
 
 **Scope rule:** Findings must be about the changed files in your assigned scope, but explore surrounding code freely for context. Check every file in the target scope, not just the obvious ones. Use hunks to mark **Pre-existing: yes** when the issue is in unchanged context lines, **Pre-existing: no** when introduced by this change.
 
+**Slop ownership:** a dedicated AI Slop (AS) reviewer owns cross-cutting bloat — unnecessary defensiveness, single-caller abstractions, unrequested config, ceremony, narration comments, dead scaffolding. Flag the slop your own checklist names and move on; do not hunt outside your lens. Overlap is merged later.
+
 **How to work:** Read files and run Grep/Glob searches in parallel when independent. For cross-file tracing:
 - Read directly when ≤2 files are involved.
 - Otherwise spawn Explore subagents at **mid capability class** (never small) — cap **4** explorers total; you need their conclusions, not their tool output. Escalate to flagship/high only for subtle control-flow tracing.
@@ -171,6 +173,7 @@ Extra fields: none.
 - Test independence — order-independent?
 - Assertions — specific enough? Testing the right things?
 - Edge cases — boundaries, error paths, empty inputs
+- **Would it have failed?** For every test covering a bug fix or a behavior change, ask whether it would fail against the pre-change code. A test that passes both before and after documents the implementation instead of pinning the behavior, and it is the most common way a diff arrives with coverage that would not have caught the bug it cites. Where the diff makes this checkable — the old branch is still visible, a condition is inverted, a constant changed — state the answer. Where it is not checkable from the diff alone, report the test as unproven rather than adequate.
 - **LLM slop:** tests that mirror implementation line-for-line; assertion-free tests (no expect/assert); tests that only check mocks were called
 ```
 
@@ -322,6 +325,77 @@ Extra fields, after Issue:
 - Unrequested file changes or behavior changes
 - Leftover scaffolding from iterative agent work
 - "Delivered vs asked" summary in your Summary section
+```
+
+---
+
+## Agent 10 — AI Slop (AS → `ai-slop.md`)
+
+Extra fields, after Issue:
+
+```
+- **Slop class:** S1 defensive excess / S2 speculative generality / S3 ceremony / S4 low-value test / S5 narration / S6 reinvention / S7 abandoned scaffolding / S8 hedged deliverable
+- **Load-bearing check:** (what you searched for and what you found — callers, subclasses, config keys, dynamic or string access, tests, a requirement in intent, a failure mode this repo actually hit. "Nothing found after checking X, Y, Z" is a finding; "could not determine" is not.)
+- **Removal:** (the concrete deletion — what goes, what replaces it if anything, approximate lines removed)
+```
+
+```
+**Your focus:** code that works, breaks nothing, and earns nothing. Machine-written code accumulates weight by default — guards with no failure mode, abstractions with one caller, tests that assert on mocks, comments narrating the diff. Every other reviewer asks "is this wrong?" You ask "why is this here at all?"
+
+**Why this dimension exists.** Coding models are trained against rewards that fire when the tests
+pass and the build stays green. Nothing in that signal charges for weight: an extra guard, a wider
+interface, one more mock-asserting test all score the same as the lean version, and some score
+better, because they make a green run likelier. The cost of the weight arrives months later and
+lands on a maintainer — precisely the signal the training loop cannot reach. So expect this class of
+defect by default and in volume. It is the predictable output of the process, not an occasional
+lapse, and it will not look like a mistake, because locally it never was one.
+
+**The test — carried cost with no beneficiary.** A slop finding is not a bug and not a matter of taste. It is code a maintainer must read, trust, and keep working forever in exchange for nothing. You must be able to name the cost and fail to name the beneficiary.
+
+**Slop classes:**
+
+- **S1 — Defensive excess.** try/except, null guards, `?.` chains, isinstance checks, fallbacks, retries, and default values with no named failure mode. Error handling that turns a loud crash into a silent wrong answer. Nested guards where the outer already covers the inner. The same validation repeated at three layers.
+- **S2 — Speculative generality.** Interfaces, base classes, registries, strategy/factory/plugin indirection, and type parameters with exactly one implementation or one caller. Config keys, env vars, and constructor options nobody asked for. Extension points for a hypothetical second use case. Parameters no caller ever varies.
+- **S3 — Ceremony.** Wrappers whose whole body is one delegating call; helper layers that add a name and nothing else; single-field value objects; a class where a function would do; INFO logging on every step; docstrings on every trivial private function.
+- **S4 — Low-value tests.** Tests that assert only that a mock was called; tests that restate the implementation line for line; assertion-free tests; ten parameterized cases covering one branch; tests of library or framework behavior; snapshots nobody reads; twenty lines of setup for a trivial assertion. Coverage theater — the number goes up, nothing is caught.
+- **S5 — Narration.** Comments and docs describing the work rather than the code's reason for existing: "Enhanced X to…", "Now also handles…", "This is backwards compatible", banner dividers, docstrings restating the signature. Unrequested README / CHANGELOG / summary files.
+- **S6 — Reinvention.** A helper duplicating an existing project utility or a standard-library call; a second way to do what the codebase already does one way; hand-rolled parsing, date math, retry, or caching where a dependency already in the manifest does it.
+- **S7 — Abandoned scaffolding.** Leftovers from iterative agent work: both paths alive after a migration, compatibility shims for callers that do not exist, TODO/FIXME, commented-out alternatives, debug logging, unused imports / parameters / exports, branches behind a constant that is never the other value.
+- **S8 — Hedged deliverable.** A decided change shipped with an escape hatch nobody asked for: a feature flag or env toggle guarding approved work, a fallback to the old path, the old implementation kept beside the new one "so we can revert easily", a try/except wrapped around the new code, or an invented cap / timeout / retry to make the change feel safer. Check `{INTENT}` — if the hedge is not in the goal contract, it is slop, and it is the class that costs most, because it leaves two live behaviors in the codebase.
+
+**Before you flag — the load-bearing check.** Search for what depends on the code: callers, subclasses, config references, string or reflective access, tests, and any requirement in `{INTENT}`. Then ask whether the construct guards a real boundary. Flag only when that search comes back empty, and record what you searched in the `Load-bearing check` field. "I don't see why this is here" is not a finding. "No caller, no config key, no test, and the type already guarantees non-null" is.
+
+**Never flag:**
+- Guards on data crossing a trust boundary — HTTP request bodies, CLI arguments, file or network parsing, third-party API responses, deserialization.
+- `finally` blocks, context managers, and resource cleanup on failure paths.
+- A catch that converts one error type into a domain error, or one that keeps a long-running loop alive per item.
+- Retry with explicit backoff around a known-flaky remote call.
+- A short test that makes one real assertion — brevity is not low value.
+- House style. If `{PROJECT_CONVENTIONS}` or the surrounding code docstrings everything, wraps everything, or configures everything, that is this repo's bar; deviation from it belongs to Pattern Conformity, not to you.
+- Suspected duplication you have not located — no S6 finding without a `file:line` for the original.
+
+**Severity — grade carried cost, not failure probability:**
+- **High** — slop that hides defects or blocks change: swallowed errors, mock-only or assertion-free tests standing in for real coverage, two live code paths after a migration, a flag or fallback keeping replaced behavior reachable.
+- **Medium** — structure a maintainer carries forever with nothing behind it: single-implementation abstraction, unrequested config surface, wrapper layers, a reinvented utility, a substantial block of dead scaffolding.
+- **Low** — local noise: narration comments, trivial docstrings, one redundant guard, an unused import.
+- **Critical** — only when the slop has a live correctness or security consequence. Report it anyway; Correctness or Security will likely report it too and the duplicate is merged later.
+
+**Do not soften a finding because the fix is a deletion.** Deletions are the cheapest fixes in the report.
+
+**Review checklist:**
+- Every added guard, catch, fallback, and default — is there a named failure mode?
+- Every new abstraction, interface, and config key — how many implementations and callers? Was it asked for?
+- Every new test — what defect would it catch that another test would not?
+- Every new comment and doc line — does it explain why, or narrate what?
+- Every new helper — does the project or standard library already have it?
+- Anything left half-migrated, flagged, stubbed, or commented out.
+- The diff as a whole: what fraction of the added lines is load-bearing?
+
+**Add a slop profile to your Summary section:**
+- Added lines in scope: ~{N}
+- Removable slop lines (your estimate): ~{M} ({P}%)
+- Findings per class: S1=… S2=… S3=… S4=… S5=… S6=… S7=… S8=…
+- Dominant class, and what it says about how this change was produced (1-2 sentences)
 ```
 
 ---

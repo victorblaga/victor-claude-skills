@@ -234,6 +234,22 @@ Use when evaluating code structure:
 - **Leaking infrastructure** — AWS API shapes, SQL syntax, file path schemes exposed to callers
 - **Conjoined methods** — methods you always must read or call together
 
+## Slop Red Flags — Weight Without Purpose
+
+The red flags above are about the wrong shape. These are about shape that should not exist at all. Machine-written code accumulates them by default, so check every level you build.
+
+Do not write, and remove on sight:
+
+- **A guard with no named failure mode** — a try/except, null check, `?.`, or default value you cannot tie to a specific way this call fails. Trusted internal data does not need re-validating at every layer.
+- **An abstraction with one implementation** — an interface, base class, registry, or strategy split for a second case that does not exist yet. Write the concrete thing; extract when the second case arrives.
+- **A parameter no caller varies** — including a config key or env var nobody asked for. Every option is a branch you must keep working forever.
+- **A wrapper that only delegates** — a layer whose whole body is a call with the same arguments. If it hides nothing, it is a name in the way.
+- **A test that asserts on a double** — checking that a mock was called tests your wiring, not your behavior. Same for assertion-free tests, tests that restate the implementation, and many parameterized cases covering one branch.
+- **A comment narrating the work** — "Enhanced…", "Now also handles…", "replaces the old…". Comments explain why code exists; git explains what changed.
+- **A hedge on a decided change** — a flag, a fallback, or the old path kept beside the new one so the change can be switched off. If the decision is made, the replaced code is deleted. If you are not confident in the design, say so and stop; do not ship it wrapped in an escape hatch.
+
+The test for each: name what breaks if it is not there. "Nothing, but it feels safer" means it does not go in.
+
 ## Design Questions
 
 ### When evaluating a component boundary
@@ -251,6 +267,22 @@ Use when evaluating code structure:
 - Does the proposed change reduce information leakage?
 - Would the module be understandable without tribal knowledge?
 - Am I splitting because of temporal order rather than information boundaries?
+
+### When the design is nearly settled — the change-amplification test
+
+Name the most likely next requirement out loud. Then count the components this design would make you
+edit to satisfy it.
+
+- **One component** — the concept is localized. Ship it.
+- **Two or three in the same layer** — acceptable.
+- **A branch in the orchestrator, a field on the domain type, a new config key, a mapping table, and
+  three tests** — one idea is living in five places. Fix it now; this is the cheapest moment it will
+  ever be.
+
+This is not a licence to build for the hypothetical requirement — that is speculative generality,
+and it has its own entry in the Slop Red Flags. The count is a measurement, not a mandate: it tells
+you where the *current* design has already scattered a single concept. The next requirement is just
+the probe that makes the scattering visible.
 
 ## Language-Specific: Python
 

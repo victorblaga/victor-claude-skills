@@ -1,6 +1,6 @@
 # Phase 2 — Analyze
 
-Launch **4 parallel dimension agents** (mid tier, high effort) in a **single message** so they run concurrently. Each agent owns **two related dimensions** that share a detection strategy — one context holding both checklists classifies overlapping findings better than two agents flagging them separately, and it halves the read amplification.
+Launch **4 parallel dimension agents** (mid tier, high effort) in a **single message** so they run concurrently. Each agent owns **two or three related dimensions** that share a detection strategy — one context holding all of their checklists classifies overlapping findings better than separate agents flagging them independently, and it cuts the read amplification.
 
 | Agent | Dimensions | Shared detection strategy | Output file |
 |-------|-----------|---------------------------|-------------|
@@ -33,7 +33,7 @@ You are a sweep dimension agent. Your job is to find specific categories of cruf
 
 **You may modify NO source code.** You produce a findings file only.
 
-**Breadth over precision:** If you notice findings in dimensions outside your two primaries, flag them anyway with the appropriate prefix (see Finding ID Prefixes below). The Calibrator will dedupe cross-agent overlap.
+**Breadth over precision:** If you notice findings in dimensions outside your own primaries, flag them anyway with the appropriate prefix (see Finding ID Prefixes below). The Calibrator will dedupe cross-agent overlap.
 
 **Finding ID Prefixes:**
 - DU = Duplication
@@ -41,9 +41,10 @@ You are a sweep dimension agent. Your job is to find specific categories of cruf
 - DC = Dead Code
 - CD = Circular Dependency
 - WT = Weak Type
-- DF = Defensive Code
+- DF = Defensive & Speculative Code
 - LF = Legacy / Fallback
 - CS = Comment / Slop
+- TS = Test Slop
 
 **Output format — each finding, use exactly this format:**
 
@@ -240,14 +241,14 @@ CD — critical nuances:
 
 ---
 
-## Agent D — Defensive Code & Comment Slop (DF + CS)
+## Agent D — Defensive & Speculative Code, Comment Slop, Test Slop (DF + CS + TS)
 
 ```
 {COMMON PREAMBLE}
 
-Both of your dimensions are removal-biased and governed by Chesterton's Fence: before flagging anything, articulate why it's safe to remove. When in doubt, don't flag — or flag with LOW confidence and a note.
+All of your dimensions are removal-biased and governed by Chesterton's Fence: before flagging anything, articulate why it's safe to remove. When in doubt, don't flag — or flag with LOW confidence and a note.
 
-**Primary dimension 1 — Defensive Code (DF):** defensive programming constructs that do not serve a specific, articulable purpose.
+**Primary dimension 1 — Defensive & Speculative Code (DF):** constructs — defensive or speculative — that do not serve a specific, articulable purpose. Both halves fail the same test: name what breaks without this. "Nothing, but it feels safer" and "nothing yet" are both findings.
 
 DF — what you look for:
 - `try/except Exception` / `try/catch (e)` that logs and swallows, where propagation would be correct
@@ -260,6 +261,20 @@ DF — what you look for:
 - Scala: `.getOrElse(...)` / `.recover { case _ => }` that hides real errors
 - TS: `?.` chaining that hides a real "this should exist" invariant
 - Defensive type checks (`isinstance(x, int)` at the start of a function with typed signature)
+
+DF — speculative constructs (same test, other direction — built for a future that never arrived):
+- An interface, abstract base class, protocol, registry, or strategy split with exactly one implementation
+- A parameter or keyword argument no caller ever varies from its default
+- Config keys, env vars, and settings entries with no reader outside their own definition
+- Feature flags and toggles whose value is fixed everywhere they are read — the finding includes the losing branch, its tests and its docs
+- Both a new and an old implementation of the same thing still wired up after a migration
+- Extension points, hooks, and `**kwargs` pass-throughs with no second consumer
+- Generic containers or type parameters instantiated with one type everywhere
+
+DF — speculative constructs to leave alone:
+- A single-implementation interface that exists to make a boundary testable, where a test does substitute it
+- A flag genuinely mid-rollout — look for a recent commit or ticket reference before flagging
+- A parameter on a public API that callers outside this repo may pass
 
 DF — what counts as "serving a purpose" (leave these alone):
 - Handling unsanitized external input (API boundary, CLI input, network parse)
@@ -300,6 +315,29 @@ CS — never flag:
 - Type-checking or linter ignore comments with rationales
 
 CS blast radius is almost always LOW (comments don't affect runtime behavior). Self-assess LOW and let the Calibrator confirm.
+
+**Primary dimension 3 — Test Slop (TS):** tests that cost maintenance and catch nothing. Test files only — skip this dimension entirely if tests are outside the sweep scope.
+
+TS — what you look for:
+- Tests whose only assertions are on doubles: `mock.assert_called_once()`, `verify(dep).method()` — these check wiring, not behavior
+- Assertion-free tests (a smoke test that deliberately checks "does not raise" is fine when it says so; one that looks like it meant to assert is not)
+- Tests that restate the implementation line for line, so any refactor breaks them while behavior is unchanged
+- Many parameterized cases exercising the same branch with different literals
+- Tests of library or framework behavior rather than this codebase's behavior
+- Snapshot / golden tests with no meaningful assertion and no reader
+- Twenty-plus lines of setup for one trivial assertion (a getter, a constructor, a pass-through)
+- Duplicate tests: two names, same path, same assertions
+
+TS — what you KEEP:
+- A one-line test with one real assertion on real behavior — short is not weak
+- Mock-based tests that also assert on the result or on observable state, not only on the call
+- Regression tests tied to a ticket or a past incident, however small
+- Contract tests at a boundary (serialization shape, API response) — repetitive by nature
+- Property, fuzz, and characterization tests written to pin down legacy behavior before a change
+
+TS — the proposed fix is one of three, in this order: (a) **strengthen** — replace the mock assertion with an assertion on the result or observable state; (b) **merge** — fold duplicate or near-duplicate cases into one; (c) **delete** — only when there is no real behavior to assert. Prefer (a) over (c): a weak test usually marks behavior somebody wanted covered.
+
+TS blast radius: deletion is HIGH (you may be removing the only coverage of a path — the Calibrator checks); strengthening or merging is LOW.
 ```
 
 ---
@@ -324,7 +362,7 @@ While agents run, the main thread:
 When Phase 1 chose area-sharding (scope > ~50k LoC):
 
 1. Partition the scope into N directory subtrees of roughly comparable LoC (N chosen so each shard is a comfortable single-agent read; typically 4–8).
-2. Launch one agent per area, same tier/effort, whose prompt is the Common Preamble plus **all eight dimension checklists** from Agents A–D above, scoped to its subtree. Output file: `findings/area-<slug>.md`, using the standard prefixes.
+2. Launch one agent per area, same tier/effort, whose prompt is the Common Preamble plus **all nine dimension checklists** from Agents A–D above, scoped to its subtree. Output file: `findings/area-<slug>.md`, using the standard prefixes.
 3. Add to each area agent's prompt: *"Cross-file duplication or cycles that cross your area boundary: flag what you can see and mark 'possible cross-area' — the Calibrator has whole-scope visibility."*
 4. The Calibrator (Phase 3) additionally merges cross-area findings.
 
@@ -341,9 +379,9 @@ After all agents complete:
 ```markdown
 - Phase: analyze-complete
 - Step: ready-to-calibrate
-- Findings per dimension: DU=X, TC=Y, DC=Z, CD=A, WT=B, DF=C, LF=D, CS=E
+- Findings per dimension: DU=X, TC=Y, DC=Z, CD=A, WT=B, DF=C, LF=D, CS=E, TS=F
 - Total raw findings: (sum)
 - Next action: launch Calibrator agent
 ```
 
-3. Announce: *"Phase 2 complete. N raw findings across 8 dimensions (4 agents). Entering Phase 3 (Calibrator)."* Read `references/phase-3-calibrate.md` before proceeding.
+3. Announce: *"Phase 2 complete. N raw findings across 9 dimensions (4 agents). Entering Phase 3 (Calibrator)."* Read `references/phase-3-calibrate.md` before proceeding.

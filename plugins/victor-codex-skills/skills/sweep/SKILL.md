@@ -2,7 +2,8 @@
 name: sweep
 description: >
   Whole-codebase hygiene pass across duplication, dead code, circular deps, weak types,
-  defensive boilerplate, legacy shims and comment slop, with blast-radius calibration and
+  defensive and speculative boilerplate, legacy shims, low-value tests and comment slop,
+  with blast-radius calibration and
   triage of high-impact findings (conversational by default, subagent-adjudicated in auto
   mode). Trigger only when the user explicitly says "sweep", "run a sweep", or invokes
   $sweep — not on casual cleanup requests, single-file cleanup, or PR review (that is
@@ -168,9 +169,11 @@ Default scope excludes tests; Phase 7 nudges user to run the sweep against tests
 
 ### Chesterton's Fence on Removal Dimensions
 
-Comments-slop and defensive-code dimensions are removal-biased. Before flagging:
+Comment-slop, defensive-code and test-slop dimensions are removal-biased. Before flagging:
 - **Comments**: distinguish WHAT-comments (slop) from WHY-comments (load-bearing). A comment explaining a non-obvious constraint, workaround, or invariant stays. Only flag comments that restate the code.
 - **Defensive code**: a try/except, null check, or fallback may exist because something *did* fail in production. Don't flag unless you can articulate why the failure mode it guards against is impossible.
+- **Speculative code**: an interface with one implementer, an unvaried parameter, or a fixed-value flag may be mid-rollout or an external API surface. Check for a recent commit or ticket reference before flagging.
+- **Tests**: a weak test usually marks behavior somebody wanted covered. Prefer strengthening it to one real assertion over deleting it; delete only when there is no real behavior left to assert.
 
 When in doubt → mark HIGH-blast and route to triage, not auto-apply.
 

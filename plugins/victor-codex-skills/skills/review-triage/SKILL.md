@@ -32,11 +32,11 @@ The review folder contains:
 - `report.md` — the consolidated report (source of truth for findings, severities, and verdict)
 - `review-plan.md`, `intent.md` — planner output (v2+; absent in older reviews)
 - `review-context.md` — change-specific runtime assumptions from the batched interview (absent in older reviews)
-- Dimension-specific files: `code-quality.md`, `architecture.md`, `correctness.md`, `test-quality.md`, `security-error-handling.md`, `pattern-conformity.md`, `refactoring-opportunities.md`, `performance.md`, `intent-conformance.md`, `data-migration.md`, `api-contract.md` (last three v2+; absent if not activated)
+- Dimension-specific files: `code-quality.md`, `architecture.md`, `correctness.md`, `test-quality.md`, `security-error-handling.md`, `pattern-conformity.md`, `refactoring-opportunities.md`, `performance.md`, `intent-conformance.md`, `ai-slop.md`, `data-migration.md`, `api-contract.md` (last four v2+; absent if not activated)
 - `evidence/findings.md` — ground-truth failures from test/lint/type-check (v2+; absent if no evidence pass)
 - `architectural-synthesis.md`, `calibration.md` (older reviews may name calibration `skeptic.md`)
 
-**Finding ID prefixes:** CQ, AR, CR, TQ, SE, PC, RO, PF, IC (intent), DM (migration), BC (API contract), EV (evidence pass), T- (architectural tension), P- (recurring pattern rollup).
+**Finding ID prefixes:** CQ, AR, CR, TQ, SE, PC, RO, PF, IC (intent), AS (AI slop), DM (migration), BC (API contract), EV (evidence pass), T- (architectural tension), P- (recurring pattern rollup).
 
 ## Setup
 
@@ -105,12 +105,23 @@ Present findings in this order:
 1. **Delivered vs. Asked** (IC summary) — if the report has intent gaps (Missing/Partial requirements), discuss whether to accept fixing them before individual findings.
 2. **Architectural tensions** (T-1, T-2, ...) — meta-findings subsuming individual findings. Triaging a tension decides all subsumed findings at once.
 3. **Recurring patterns** (P-1, P-2, ...) — rolled-up repeated defects. Triaging a pattern decides all listed occurrences at once (same as tensions).
-4. **Critical** severity findings (skip IDs marked `Part of T-{N}` or `Part of P-{N}` unless the parent was rejected)
-5. **High** severity findings
-6. **Medium** severity findings
-7. **Low** severity findings
+4. **Slop profile** (if the report has one) — before any individual AS finding, take one decision on the deletion pass as a whole: does slop removal happen at all on this branch, and does it go in this PR or a follow-up? That answer is the default for every AS finding and saves repeating the argument.
+5. **Critical** severity findings (skip IDs marked `Part of T-{N}` or `Part of P-{N}` unless the parent was rejected)
+6. **High** severity findings
+7. **Medium** severity findings
+8. **Low** severity findings
 
 Within each severity level, group by dimension to maintain context continuity.
+
+### Slop findings (AS)
+
+Slop findings are numerous, homogeneous, and removal-only. Handle them differently from the rest:
+
+- **Batch by slop class, not one by one.** Present all S5 narration findings together, all S2 speculative-generality findings together, and so on. One verdict per class is the default; the user can split individual findings out of a class.
+- **Require the homework.** Every AS finding carries a `Load-bearing check`. If it says "could not determine" or names nothing it searched, do not present it as acceptable — verify it yourself, or recommend REJECT for lack of evidence.
+- **Invert the risk framing.** For a deletion, *risk if we fix it* is regression risk: is the removed path covered by a test, and does anything reach it that the check missed? *Risk if we leave it* is carried cost: every future reader must understand and preserve it. State both in those terms.
+- **Architecture preservation cuts both ways here.** This skill's default protects the existing design against reviewer churn. Deleting scaffolding a coding agent added last week is not churn against the design — it is restoring it. The default-to-reject guardrails below exist to stop *new* abstractions from being introduced; do not apply them to S2/S3/S7/S8 findings, which delete abstractions.
+- **S8 is the project's own rule.** A feature flag, fallback, or old-path-kept-beside-new that the goal contract never asked for contradicts a stated convention against hedging. Accept unless the user names a reason the hedge is wanted.
 
 ### For each finding, present
 
@@ -152,12 +163,15 @@ Apply these principles when making recommendations:
 - Race conditions or concurrency bugs
 - Intent conformance gaps (Missing/Partial requirements from IC or Delivered vs. Asked)
 - Evidence-pass failures (EV-* findings from test/lint/type-check output)
+- Slop findings (AS) whose load-bearing check came back empty — most of all S7 abandoned scaffolding and S8 hedged deliverables (flags, fallbacks, and old paths left alive that nobody asked for)
 
 **Accept with scrutiny:**
 - Performance issues — is there evidence of real impact, or is it theoretical? "This is O(n^2)" matters only if n is large enough to matter in practice. Check the claimed scale against the runtime profile, not the reviewer's guess.
 - Concurrency findings — real only under the deployment's actual parallelism. A race that requires ≥2 instances is not a bug under a hard single-instance guarantee; recommend reject with that rationale, noting the condition under which it becomes real.
 - Test gaps — missing tests for important behavior are worth adding. Missing tests for trivial getters are not.
 - DRY violations — is the duplication actually causing maintenance problems, or is it harmless parallelism?
+- Low-value tests (AS/S4) — deleting a test that only asserts on mocks is right, but a weak test often marks behavior somebody wanted covered. Prefer strengthening it to one real assertion over deleting it outright.
+- Slop in files this branch did not otherwise touch — correct, but it widens the diff. DEFER to a dedicated cleanup pass (or `/sweep`) rather than reject.
 
 **Default to reject (burden of proof on the finding):**
 - Architectural suggestions that introduce new abstractions — abstractions have cost. Does this abstraction hide meaningful complexity, or does it just add indirection?
@@ -192,7 +206,11 @@ Add the finding to the **Accepted Findings** section of `implementation-plan.md`
 - **Location:** {file:line}
 - **What to do:** {Concrete action — not just "fix this" but what the fix looks like}
 - **Complexity:** {Trivial / Small / Medium / Large — prefer Fix complexity from the finding; fall back to your judgment}
+- **Removal:** {AS findings only — exactly what gets deleted and what, if anything, replaces it}
+- **Verification:** {AS findings only — the test or check that proves behavior is unchanged after the deletion. If no test covers the path, say so: that is a reason to add one before deleting, not to skip the check.}
 ```
+
+For an accepted slop **class**, write one plan item covering the class with the full location list, not one item per occurrence.
 
 The number `{N}` is the sequential order (1, 2, 3, ...) — this becomes the implementation order.
 

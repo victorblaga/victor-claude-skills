@@ -86,7 +86,7 @@ Record the baseline command and result in `scope.md`.
 
 Estimate scope size (`find <scope> -name '*.<ext>' | xargs wc -l` style, rough is fine).
 
-- **≤ ~50k LoC in scope** → **dimension-sharded** (default): 4 agents, each owning 2 dimensions, whole-scope visibility (needed for cross-file duplication).
+- **≤ ~50k LoC in scope** → **dimension-sharded** (default): 4 agents, each owning 2-3 dimensions, whole-scope visibility (needed for cross-file duplication).
 - **> ~50k LoC** → **area-sharded**: N agents by directory subtree, each running *all* dimension checklists on its area, so the codebase is read once in total instead of 4×. See Phase 2 for the variant.
 
 Record the decision in `scope.md`. The user can override in the confirmation card.

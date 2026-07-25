@@ -114,7 +114,7 @@ When triage identifies a **review-driven** request (user provides a mega-review 
 
 ### Input
 
-The mega-review `report.md` — contains findings across 8 dimensions, calibration results, architectural tensions, and dimension summaries.
+The mega-review `report.md` — contains findings across every dimension the review ran, calibration results, architectural tensions, and dimension summaries.
 
 ### Transformation
 

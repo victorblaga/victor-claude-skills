@@ -15,14 +15,15 @@ State lives in `triage.md` so the session is resumable.
 
 Suggested triage order within the HIGH pool (highest judgment first):
 1. Applier-vetoed
-2. Defensive Code (DF)
+2. Defensive & Speculative Code (DF)
 3. Legacy / Fallback (LF)
-4. Weak Types (WT) with structural implications
-5. Duplication (DU) with extraction proposals
-6. Type Consolidation (TC)
-7. Circular Deps (CD)
-8. Dead Code (DC) — only the HIGH ones (reflection-risky, etc.)
-9. Comment / Slop (CS) — only if any reached HIGH (rare)
+4. Test Slop (TS) — deletions only; you may be removing the only coverage of a path
+5. Weak Types (WT) with structural implications
+6. Duplication (DU) with extraction proposals
+7. Type Consolidation (TC)
+8. Circular Deps (CD)
+9. Dead Code (DC) — only the HIGH ones (reflection-risky, etc.)
+10. Comment / Slop (CS) — only if any reached HIGH (rare)
 
 ## Initialize triage.md
 

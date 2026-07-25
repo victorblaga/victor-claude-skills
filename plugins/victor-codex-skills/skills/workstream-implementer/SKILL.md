@@ -16,12 +16,31 @@ Coordinate implementation work that starts from a JIRA ticket or a new idea and 
 
 The first responsibility is ticket refinement: clarify the user, job, pain, desired outcome, constraints, non-goals, and acceptance criteria before repo scoping or implementation planning. Keep this conversational and appropriately sized for the ticket. Do not turn small mechanical work into a heavyweight product discovery exercise, but do challenge vague or solution-first tickets before building.
 
-This skill is the outer controller. It may implement small fixes directly, but for substantial work it routes into existing implementation patterns:
+This skill is the outer controller. It owns the ticket contract, repo scope, branches, PRs, CI, and JIRA updates. It may implement small fixes directly; for substantial work it hands the change to a sibling skill:
 
-- Use `deep-implement` style for normal nontrivial tickets.
-- Use `forge` style for architecture-heavy builds, migrations, refactors, and subsystem reshaping.
-- Use `mega-review` then `review-triage` after large or risky diffs.
-- Use `agent-browser` for browser, dogfood, and end-to-end UI verification.
+- `$deep-implement` for normal nontrivial tickets.
+- `$forge` for architecture-heavy builds, migrations, refactors, and subsystem reshaping.
+- `$mega-review` then `$review-triage` after large or risky diffs.
+- `agent-browser` for browser, dogfood, and end-to-end UI verification.
+
+**Invoke the sibling skill; do not imitate it.** Load the actual skill so its phase references, gates, and checklists apply — `$deep-implement`'s program-design and per-task verification gates, `$forge`'s challenger passes, `$mega-review`'s dimension agents. A remembered approximation of a workflow skips precisely the parts that earn its cost, and it drifts as the skill improves. If a sibling skill is unavailable in this harness, say so plainly and run the phase yourself rather than silently substituting a lookalike.
+
+**Artifact ownership when a sibling skill runs.** Both this skill and the implementation skills keep plan state, and they must not compete for it:
+
+- The ticket workbook under `~/.scratch/workstream-implementer/` holds **cross-repo** state: the refined contract, repo scope, branches, PRs, verification summary, blockers, and next action. `status.md` stays the control file for the ticket as a whole.
+- The sibling skill owns **per-repo implementation state** in its own location — typically `.scratch/docs/plans/<name>/` inside that repo — including its own plan, status, and phase tracking.
+- `workstreams/<repo>.md` records the path to that directory and the sibling's current phase, so a resumed session reads the real state instead of re-deriving it.
+- Do not copy the sibling's plan into the workbook and do not keep a parallel task list. One source of truth per layer; the workbook points, it does not duplicate.
+
+## Execution Notes
+
+Express model choices by relative capability, not memorized names — lineups change.
+
+- **Effort**: If the harness exposes an effort control, start ticket refinement, repo scoping, and implementation planning at the workhorse tier and step up only for genuinely hard architectural calls. Routine work — status updates, PR bodies, JIRA comments, CI log reading — starts lower. Lower tiers are stronger than prior-model defaults suggest; sweep downward rather than pinning the ceiling.
+- **Delegation budget**: subagents multiply cost and latency — each re-establishes context, re-explores, and reports back. Delegate when the payoff clearly exceeds that overhead: wide multi-repo exploration, genuinely independent parallel tracks, or an independent fresh-context review (`mega-review` after a large or risky diff is exactly that, and stays a sanctioned delegation). Do not delegate work you can finish in a handful of tool calls, and do not delegate *command-output verification* — running the tests and quoting the result belongs in the main loop. Commit to a delegation rather than redoing it. Keep concurrent spawns in single digits.
+- **Scope and completion**: deliver the refined contract at the scope approved, across the repos scoped. Make routine judgment calls; check in only when different readings produce materially different work. Finish the whole ticket — call it review-ready only when every scoped repo has its branch, PR, verification, and JIRA update done. If one repo is genuinely blocked, finish the others and say plainly which is outstanding and why.
+- **Response length**: conversation turns run longer than this workflow needs, and lowering effort does not reliably shorten them. The workbook carries the detail; chat carries the decision the user has to make plus one concrete outcome per phase change. The same applies to written artifacts — JIRA descriptions, PR bodies, and `verification.md` cover the substance without filler sections or restated context.
+- **Corrections**: only flag an earlier statement when the error changes the code, the contract, or a decision the user already made. State it plainly and continue — no apologies, no recap of what went wrong, no tally of prior mistakes.
 
 ## Storage
 
@@ -187,9 +206,9 @@ After the refined contract and repo scope are clear, choose a mode:
 | Mode | Use When | Approval |
 |------|----------|----------|
 | Direct | Small clear fix, no architectural choices | Proceed after repo scope approval |
-| Deep | Most nontrivial product or technical tickets | Show plan, then proceed after approval |
-| Forge | Large refactor, migration, new subsystem, architecture-heavy work | Design checkpoints |
-| Review | Large/risky diff needs comprehensive audit | Run review, triage, then implement accepted findings |
+| Deep — invoke `$deep-implement` | Most nontrivial product or technical tickets | Show plan, then proceed after approval |
+| Forge — invoke `$forge` | Large refactor, migration, new subsystem, architecture-heavy work | Design checkpoints |
+| Review — invoke `$mega-review`, then `$review-triage` | Large/risky diff needs comprehensive audit | Run review, triage, then implement accepted findings |
 | Browser verification | UI or end-to-end behavior matters | Use project playbook and `agent-browser` |
 
 Small tickets can run to PR after repo scope approval. Medium tickets need plan approval. Large/refactor/migration tickets need major design checkpoints. Merges and repo settings changes always require explicit user approval.
@@ -241,7 +260,16 @@ For browser verification:
 4. Stop sessions at the end unless the user wants them left running.
 5. Report any sessions left running.
 
-Record detailed verification in `verification.md`. Put only stakeholder-safe proof in JIRA.
+**Bug fixes and behavior changes — the test must be seen to fail before the patch.** Run the new
+test against the unpatched code and quote the failure, then apply the change and quote the pass. A
+test written after the fix and never seen red proves only that it agrees with the code in front of
+it, which is exactly the test a regression slips past. If the fix is already written, stash or revert
+it, run the test, and restore. If it passes against the unpatched code, either the test does not
+exercise the bug or the diagnosis is wrong — stop and say which rather than recording a green run.
+
+Record detailed verification in `verification.md` — including both the red and the green result for
+regression work, since "tests pass" on its own is not evidence the bug is pinned. Put only
+stakeholder-safe proof in JIRA.
 
 ## Resumption
 

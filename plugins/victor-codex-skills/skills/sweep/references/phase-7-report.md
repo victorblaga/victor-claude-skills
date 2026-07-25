@@ -30,9 +30,10 @@ Duration: <start — end> (from status.md timestamps)
 | Dead Code | | | | | | | |
 | Circular Deps | | | | | | | |
 | Weak Types | | | | | | | |
-| Defensive Code | | | | | | | |
+| Defensive & Speculative | | | | | | | |
 | Legacy / Fallback | | | | | | | |
 | Comment & Slop | | | | | | | |
+| Test Slop | | | | | | | |
 | **Total** | | | | | | | |
 
 ## Commits produced
