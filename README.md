@@ -12,6 +12,8 @@ Codex-native variants live under `plugins/victor-codex-skills/skills/` and are d
 
 - **deep-implement** — End-to-end workflow for turning a problem statement into a validated proposal and implemented solution
 - **mega-review** — Adaptive multi-dimensional code review for agent-written branches: planner subagent steers 10 dimensions (+ migration/API specialists), evidence pass, intent conformance, a dedicated AI-slop dimension with a load-bearing check, falsification verification, recurring-pattern rollup, and a verdict report — with token-lean orchestration
+- **mega-review-atlas** — Interactive decomposition of a system too large for one mega-review into a frozen review atlas: behavioral units (one guarantee each), seams, horizontal sweeps, a symbol-level coverage ledger, and an evidence-gap ledger, fingerprinted to a source state. Maps only — reviews nothing
+- **mega-review-campaign** — Resumable execution of a frozen atlas: one mega-review (unit-packet mode) per unit and seam, declared sweeps, drift detection, idempotent resume, and a system-level synthesis that preserves every per-unit report
 - **review-triage** — Interactive triage of mega-review findings (tensions, patterns, slop classes, IC/EV prefixes) into an implementation plan
 - **cross-examine** — Become the codebase expert and answer the user's questions with evidence
 - **forge** — Iterative top-down code construction (build, refactor, refine) with horizontal-slice design and challenger validation
@@ -48,6 +50,14 @@ Rule of thumb across the three heavy workflows: **`deep-implement`** when you kn
 mega-review                    → report.md; reads only, changes nothing
 review-triage <report>         → accept / reject / defer per finding; ordered plan + persistent notes
 deep-implement <report>        → implements the accepted findings on the same branch
+```
+
+When the scope is too large for one review — a whole subsystem, pipeline, or oversized PR — decompose first:
+
+```text
+mega-review-atlas              → frozen atlas: units, seams, sweeps, coverage ledger
+mega-review-campaign <atlas>   → one mega-review per unit/seam + sweeps + system synthesis
+review-triage / deep-implement → as above, per the campaign report
 ```
 
 `frontend-review` audits implemented UI against design rubrics — a complement to `mega-review` on the same diff, not a replacement. `sweep` is a periodic whole-codebase hygiene pass rather than a per-change step: run it after a large `forge`, not after every feature.

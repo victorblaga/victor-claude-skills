@@ -31,10 +31,11 @@ Spend where it buys recall and judgment; cut pure overhead:
 Extract from the user's message:
 
 1. **Target scope** — resolved using this priority:
-   a. **User-specified** — files, a directory, a module, or a PR number → use that
-   b. **Open PR** — an open PR on the current branch → review the PR diff
-   c. **Diff to base** — otherwise → review the diff from the merge-base with the repo's default branch to current state, committed + uncommitted
-   d. **Fallback** — if none of the above yields changed files → ask the user what to review
+   a. **Unit packet** — a path to an atlas unit packet (from `mega-review-atlas` / `mega-review-campaign`) → unit-packet mode, see below
+   b. **User-specified** — files, a directory, a module, or a PR number → use that
+   c. **Open PR** — an open PR on the current branch → review the PR diff
+   d. **Diff to base** — otherwise → review the diff from the merge-base with the repo's default branch to current state, committed + uncommitted
+   e. **Fallback** — if none of the above yields changed files → ask the user what to review
 2. **Focus areas** (optional) — a subset of dimensions. If unspecified, run all active dimensions per the review plan.
 3. **Output directory** — see below. The user may override.
 4. **Background context** — migration context, architecture notes, or design docs the user provides inline. Pass this to every subagent as `{USER_CONTEXT}`.
@@ -69,6 +70,21 @@ Combine and deduplicate file lists → `{FILE_LIST}`. Record `{BASE}` and curren
 - Otherwise: write `{OUTPUT_DIR}/hunks/` (one file per changed source file) and `{OUTPUT_DIR}/hunks/index.md` listing paths.
 
 Pass `{HUNKS_MODE}` (`inline` or `index`) and the path to subagents. Findings must distinguish **changed vs pre-existing** code using hunk context.
+
+### Unit-Packet Mode
+
+When the target is a unit packet, the packet — not a diff — defines the review. Everything else in this skill (planner, dimensions, evidence, verification, calibration, synthesis, consolidation) runs unchanged. Overrides:
+
+- **No diff resolution.** Skip base-branch detection, merge-base, and hunks. `{FILE_LIST}` = the packet's **primary scope** (paths + symbols). Reviewers may explore the packet's **context-only scope** freely but must not report findings against it. Exception: if the caller supplies a `base` SHA (diff-mode atlas), compute hunks for the primary scope against it and keep the changed/pre-existing split.
+- **No pre-existing split otherwise.** Without a `base`, findings mark `Pre-existing: n/a (snapshot)`, and the AI-slop removable-volume estimate denominates over primary-scope lines, not added lines.
+- **Intent is supplied.** The packet's guarantee, intent, and invariants are `intent.md` — skip the missing-intent interview and the batched interview entirely. Runtime context, dimensions, hot spots, and exclusions come from the packet (and any caller-supplied runtime profile). Unit-packet runs are **non-interactive**: record unknowns as "unconfirmed" instead of asking.
+- **Planner adaptations.** `{HUNKS_MODE}` = `packet` (pass the packet path); the planner digests intent from the packet's Guarantee/Intent instead of PR metadata; tiers and the skip trigger are sized by primary-scope files/lines, not changed lines. The packet's dimension set is a **ceiling**: the planner may narrow with rationale, never widen (conditional specialists count as widening).
+- **Scope-fit signal.** Each dimension summary must end with one line: `Scope fit: ok | too broad | fragmented` — callers use it to detect a bad decomposition.
+- **Output directory** — the caller supplies `{OUTPUT_DIR}`; do not generate one. Default artifacts and report structure are unchanged. Re-review detection is disabled — prior artifacts in the directory never trigger delta mode. `reviewed-at.json` records `head_sha`, the packet path, and timestamp; omit `base`/`branch` unless a `base` was supplied.
+- **Summary artifact.** Additionally write the Step 5 summary block to `{OUTPUT_DIR}/review-summary.md`, appending one `Locations:` line per severity listing each finding's `file:line`.
+- **Finding namespace** — if the caller supplies one (the unit ID), final finding IDs read `<namespace>::<prefix-n>` in `report.md` and the summary.
+
+Include these overrides in the shared prompt prefix passed to the planner and all dimension subagents.
 
 ### Output Directory
 
@@ -214,6 +230,8 @@ If a dimension produced no findings, say so. If no tensions: "No architectural t
 | If the user wants... | Use... |
 |----------------------|--------|
 | Review a PR / diff into a report | **mega-review** (this skill) |
+| Decompose a system too big for one review | `mega-review-atlas` |
+| Run reviews across a frozen atlas | `mega-review-campaign` |
 | Triage review findings into a plan | `review-triage` |
 | Whole-codebase maintenance sweep | `sweep` |
 | Implement a feature or proposal | `deep-implement` |
