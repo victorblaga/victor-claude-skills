@@ -25,6 +25,7 @@ Codex-native variants live under `plugins/victor-codex-skills/skills/` and are d
 - **frontend-review** — Design-quality review of implemented FE surfaces against composition / craft / content / structure rubrics, with one-by-one fix triage
 - **plan-codex-review** — Three-phase pipeline: Claude plans (relentless requirements interview + cheap explorers), Codex implements, fresh-context Claude reviews and produces a Codex-ready remediation plan. Claude Code only — requires the openai-codex plugin; deliberately has no Codex-native variant
 - **decision-audit** — Post-implementation audit of the decisions a session made, not the diff: structured self-report by category, fresh-context cross-check against the diff, blindspot ranking, and one-by-one keep/revise/revert triage
+- **simplify** — Explicitly invoked, behavior-preserving refinement of a branch diff or named scope across words, comments, structure, duplication, derived state, and unshipped compatibility
 
 ## How These Fit Together
 

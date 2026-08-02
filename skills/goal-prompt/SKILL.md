@@ -11,7 +11,7 @@ description: >
 
 Create a single prompt the user can paste into a `/goal` loop. Do not implement the work yourself.
 
-Default target is **Claude Code** unless the user asks for Codex. For Claude prompts, refer to `/workstream-implementer` and `/simplify`. For Codex prompts, refer to `$victor-codex-skills:workstream-implementer` and `$simplify`.
+Default target is **Claude Code** unless the user asks for Codex. For Claude prompts, refer to `/workstream-implementer` and `/simplify`. For Codex prompts, refer to `$victor-codex-skills:workstream-implementer` and `$victor-codex-skills:simplify`.
 
 ## Inputs
 
@@ -70,7 +70,7 @@ The generated prompt must require the goal-loop agent to:
    - If Critical or Major findings remain, fix them and re-review.
    - Stop after a clean review or 5 review cycles, whichever comes first.
    - Ignore nits unless they reveal correctness, maintainability, security, or performance risk.
-5. Run `simplify` when explicitly requested or when the change adds or substantially modifies non-trivial logic, spans multiple modules, or follows an adversarial review fix pass. Skip for trivial one-file changes.
+5. Run `simplify` only when the goal text explicitly requests it. Do not infer this quality gate from change size, module count, or review activity.
 6. Make performance-profile changes explicit when performance matters or the touched path is performance-sensitive.
    - Establish the relevant baseline before changing code when feasible; if not feasible, document why and use the best available comparison.
    - Capture a before/after profile appropriate to the change: latency, throughput, query count, query plan, Big O, memory use, storage footprint, batching/indexing, pipeline runtime, or operational cost.
