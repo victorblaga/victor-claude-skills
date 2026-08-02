@@ -29,7 +29,8 @@ Codex-native variants live under `plugins/victor-codex-skills/skills/` and are d
 
 ## How These Fit Together
 
-Every skill is explicit-invoke only: `/name` in Claude Code, `$name` in Codex. Names below are written bare.
+Every skill is explicit-invoke only. Plugin skills use `/victor-claude-skills:name` in
+Claude Code and `$victor-codex-skills:name` in Codex. Names below are written bare.
 
 ### Starting a change
 

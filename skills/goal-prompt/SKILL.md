@@ -11,7 +11,7 @@ description: >
 
 Create a single prompt the user can paste into a `/goal` loop. Do not implement the work yourself.
 
-Default target is **Claude Code** unless the user asks for Codex. For Claude prompts, refer to `/workstream-implementer` and `/simplify`. For Codex prompts, refer to `$victor-codex-skills:workstream-implementer` and `$victor-codex-skills:simplify`.
+Default target is **Claude Code** unless the user asks for Codex. For Claude prompts, refer to `/workstream-implementer` and `/victor-claude-skills:simplify`. For Codex prompts, refer to `$victor-codex-skills:workstream-implementer` and `$victor-codex-skills:simplify`.
 
 ## Inputs
 

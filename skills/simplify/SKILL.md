@@ -2,9 +2,10 @@
 name: simplify
 description: >
   Simplify code in the requested scope without changing behavior. Trigger only when the
-  user invokes /simplify or explicitly says "run simplify". Do not trigger automatically
-  after routine code changes, during review, while writing comments, or when the user is
-  discussing or configuring the skill.
+  user invokes /victor-claude-skills:simplify. Do not trigger automatically after routine
+  code changes, during review, while writing comments, or when the user is discussing or
+  configuring the skill.
+disable-model-invocation: true
 ---
 
 # Simplify
