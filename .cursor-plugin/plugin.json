@@ -1,8 +1,8 @@
 {
   "name": "victor-claude-skills",
   "displayName": "Victor Claude Skills",
-  "description": "Custom workflow skills: forge, deep-implement, mega-review, review-triage, cross-examine, long-form-article, argument-structure, sweep, simplify, tam-analysis, tam-dcf, workstream-implementer, goal-prompt, frontend-review, plan-codex-review, decision-audit",
-  "version": "1.35.1",
+  "description": "Custom workflow skills: forge, deep-implement, mega-review, quick-review, review-triage, cross-examine, long-form-article, argument-structure, sweep, simplify, tam-analysis, tam-dcf, workstream-implementer, goal-prompt, frontend-review, plan-codex-review, decision-audit",
+  "version": "1.36.0",
   "author": {
     "name": "Victor Blaga",
     "url": "https://github.com/victorblaga"
@@ -22,6 +22,7 @@
     "long-form-article",
     "argument-structure",
     "sweep",
+    "quick-review",
     "simplify",
     "code-simplification",
     "tam-analysis",

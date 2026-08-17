@@ -14,6 +14,7 @@ Codex-native variants live under `plugins/victor-codex-skills/skills/` and are d
 - **mega-review** — Adaptive multi-dimensional code review for agent-written branches: planner subagent steers 10 dimensions (+ migration/API specialists), evidence pass, intent conformance, a dedicated AI-slop dimension with a load-bearing check, falsification verification, recurring-pattern rollup, and a verdict report — with token-lean orchestration
 - **mega-review-atlas** — Interactive decomposition of a system too large for one mega-review into a frozen review atlas: behavioral units (one guarantee each), seams, horizontal sweeps, a symbol-level coverage ledger, and an evidence-gap ledger, fingerprinted to a source state. Maps only — reviews nothing
 - **mega-review-campaign** — Resumable execution of a frozen atlas: one mega-review (unit-packet mode) per unit and seam, declared sweeps, drift detection, idempotent resume, and a system-level synthesis that preserves every per-unit report
+- **quick-review** — Fast single-subagent pre-merge review: correctness, silent failures, AI slop with the load-bearing check, test value, and agent leftovers in one pass, one report file. The last check before merging a PR
 - **review-triage** — Interactive triage of mega-review findings (tensions, patterns, slop classes, IC/EV prefixes) into an implementation plan
 - **cross-examine** — Become the codebase expert and answer the user's questions with evidence
 - **forge** — Iterative top-down code construction (build, refactor, refine) with horizontal-slice design and challenger validation
@@ -47,6 +48,9 @@ Claude Code and `$victor-codex-skills:name` in Codex. Names below are written ba
 Rule of thumb across the three heavy workflows: **`deep-implement`** when you know roughly where the code goes, **`forge`** when you do not or when where it currently goes is wrong, **`workstream-implementer`** when a ticket owns the work and a tracker needs updating.
 
 ### Reviewing a change
+
+`quick-review` is the light path: one subagent, one report, run as the last step before
+merging a PR. The heavy path:
 
 ```text
 mega-review                    → report.md; reads only, changes nothing

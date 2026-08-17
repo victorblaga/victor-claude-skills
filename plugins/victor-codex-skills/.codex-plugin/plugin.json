@@ -1,6 +1,6 @@
 {
   "name": "victor-codex-skills",
-  "version": "1.35.1",
+  "version": "1.36.0",
   "description": "Codex-native variants of Victor Blaga's Claude workflow skills. The Claude skills remain canonical.",
   "author": {
     "name": "Victor Blaga",
@@ -20,6 +20,7 @@
     "long-form-article",
     "argument-structure",
     "sweep",
+    "quick-review",
     "simplify",
     "code-simplification",
     "tam-analysis",
