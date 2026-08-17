@@ -80,10 +80,12 @@ The implementation and review skills are built around one premise: coding models
 
 ## Claude Installation
 
+This repo is its own marketplace (`.claude-plugin/marketplace.json`); there is no separate marketplace repo.
+
 ```text
-claude plugin marketplace add victorblaga/victor-skills-marketplace
-claude plugin install victor-claude-skills
-claude plugin update victor-claude-skills
+claude plugin marketplace add victorblaga/victor-claude-skills
+claude plugin install victor-claude-skills@victor-skills-marketplace
+claude plugin update victor-claude-skills@victor-skills-marketplace
 ```
 
 ## Codex Installation

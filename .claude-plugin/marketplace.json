@@ -1,6 +1,5 @@
 {
   "name": "victor-skills-marketplace",
-  "displayName": "Victor Skills Marketplace",
   "owner": {
     "name": "Victor Blaga"
   },
@@ -12,7 +11,7 @@
     {
       "name": "victor-claude-skills",
       "source": "./",
-      "description": "forge, deep-implement, mega-review, review-triage, sweep, tam-analysis, workstream-implementer, and more"
+      "description": "forge, deep-implement, mega-review, quick-review, review-triage, sweep, tam-analysis, workstream-implementer, and more"
     }
   ]
 }
