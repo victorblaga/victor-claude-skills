@@ -8,6 +8,7 @@ description: >
   scenario, sensitivity matrices, and a report saved as Markdown plus interactive HTML.
   Trigger only on explicit invocation — "/tam-dcf", "/tam-dcf <TICKER>", "/tam-dcf
   <TICKER> <DATE>", "/tam-dcf resume <TICKER>".
+disable-model-invocation: true
 ---
 
 # TAM-DCF

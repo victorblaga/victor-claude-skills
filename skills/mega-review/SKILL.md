@@ -5,6 +5,7 @@ description: >
   pass, verification, severity calibration, and synthesis into a markdown report. Changes no
   code. Trigger only when the user explicitly says "mega-review" or invokes /mega-review —
   not on generic review requests.
+disable-model-invocation: true
 ---
 
 # Mega Review

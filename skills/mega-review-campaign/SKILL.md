@@ -6,6 +6,7 @@ description: >
   a system-level synthesis that preserves every per-unit report. Read-only — changes no
   code. Trigger only when the user explicitly says "mega-review-campaign" or invokes
   /mega-review-campaign.
+disable-model-invocation: true
 ---
 
 # Mega Review Campaign

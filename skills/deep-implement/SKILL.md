@@ -6,6 +6,7 @@ description: >
   accepts a mega-review report as input and implements the fixes on the current branch.
   Trigger only when the user explicitly says "deep-implement" or invokes /deep-implement —
   not on ordinary implementation requests.
+disable-model-invocation: true
 ---
 
 # Deep Implement

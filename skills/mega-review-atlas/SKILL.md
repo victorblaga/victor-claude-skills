@@ -6,6 +6,7 @@ description: >
   source state. Produces scope artifacts only — reviews nothing, changes no code. Trigger
   only when the user explicitly says "mega-review-atlas" or invokes /mega-review-atlas —
   not on generic "map the codebase" requests.
+disable-model-invocation: true
 ---
 
 # Mega Review Atlas

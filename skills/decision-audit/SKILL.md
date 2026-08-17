@@ -8,6 +8,7 @@ description: >
   Trigger only on explicit invocation — "decision-audit", "/decision-audit", "audit your
   decisions". Not for general code review (that is /mega-review), and never auto-fire after
   finishing implementation work.
+disable-model-invocation: true
 ---
 
 # Decision Audit

@@ -7,6 +7,7 @@ description: >
   maturity and real pricing power as an internal sizing tool, and a DCF-ingestible hand-off
   block. Trigger only on explicit invocation — "/tam-analysis", "/tam-analysis <TICKER>",
   "/tam-analysis resume <TICKER>".
+disable-model-invocation: true
 ---
 
 # TAM Analysis

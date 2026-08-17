@@ -6,6 +6,7 @@ description: >
   then a fresh-context Claude review produces a Codex-ready remediation plan. Claude Code
   only — requires the Agent tool and the codex plugin. Trigger only when the user explicitly
   says "plan-codex-review" or invokes /plan-codex-review.
+disable-model-invocation: true
 ---
 
 # Plan / Codex / Review

@@ -5,6 +5,7 @@ description: >
   autonomy, calibrated against exemplar files the user has approved. Trigger only when the
   user explicitly says "forge" or invokes /forge — not on ordinary build, refactor, or
   restructure requests.
+disable-model-invocation: true
 ---
 
 # Forge

@@ -5,6 +5,7 @@ description: >
   tasks and JIRA tickets, or non-development work such as research, writing, analysis,
   planning, data work and operations. Trigger only when the user explicitly says
   "goal-prompt" or invokes /goal-prompt.
+disable-model-invocation: true
 ---
 
 # Goal Prompt

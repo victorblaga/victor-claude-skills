@@ -6,6 +6,7 @@ description: >
   decision, then walking fixes with the user one at a time. Built for dashboards, admin
   panels and SaaS tools, not marketing sites. Trigger only when the user explicitly says
   "frontend-review" or invokes /frontend-review — not on generic UI feedback.
+disable-model-invocation: true
 ---
 
 # Frontend Review

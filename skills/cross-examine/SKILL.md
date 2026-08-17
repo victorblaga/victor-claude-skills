@@ -4,6 +4,7 @@ description: >
   Become the codebase expert and answer with evidence while the user interrogates you
   about the code. Trigger only when the user explicitly says "cross-examine" or invokes
   /cross-examine — not on general requests to explain code or how something works.
+disable-model-invocation: true
 ---
 
 # Cross-Examine

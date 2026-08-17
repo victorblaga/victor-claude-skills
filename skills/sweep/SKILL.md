@@ -8,6 +8,7 @@ description: >
   mode). Trigger only when the user explicitly says "sweep", "run a sweep", or invokes
   /sweep — not on casual cleanup requests, single-file cleanup, or PR review (that is
   /mega-review).
+disable-model-invocation: true
 ---
 
 # Sweep

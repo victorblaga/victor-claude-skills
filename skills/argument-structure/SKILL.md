@@ -6,6 +6,7 @@ description: >
   the fix as a visual HTML artifact. Trigger only on explicit invocation —
   "argument-structure", "/argument-structure", "minto this", "pyramid this", or a
   similar named request.
+disable-model-invocation: true
 ---
 
 # Argument Structure

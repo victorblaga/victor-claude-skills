@@ -6,6 +6,7 @@ description: >
   verification, PR creation, CI monitoring and JIRA review updates. Trigger only when the
   user explicitly invokes "workstream-implementer" or /workstream-implementer — not on
   ordinary implementation requests.
+disable-model-invocation: true
 ---
 
 # Workstream Implementer

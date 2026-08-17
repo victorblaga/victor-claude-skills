@@ -4,6 +4,7 @@ description: >
   Collaborative workflow for writing or rewriting long-form articles, newsletters and
   essays. Trigger only when the user explicitly says "long-form-article" or invokes
   /long-form-article — not on general requests to write, rewrite, or edit a piece.
+disable-model-invocation: true
 ---
 
 # Long-Form Article

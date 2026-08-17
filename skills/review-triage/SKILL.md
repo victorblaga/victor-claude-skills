@@ -6,6 +6,7 @@ description: >
   review folder. Trigger only when the user explicitly says "review-triage" or invokes
   /review-triage. This is the step between /mega-review and /deep-implement, not either
   of them.
+disable-model-invocation: true
 ---
 
 # Review Triage
